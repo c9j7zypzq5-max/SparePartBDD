@@ -79,6 +79,12 @@ export default async function PartPage({ params }: { params: Params }) {
           <span className="font-mono">{part.referenceRaw}</span>
         </h1>
         <StatusBadge status={part.status} />
+        {part.lifecycleCheckedAt && (
+          <span className="text-xs text-zinc-400">
+            Statut vérifié le{" "}
+            {part.lifecycleCheckedAt.toLocaleDateString("fr-FR")}
+          </span>
+        )}
       </div>
       <p className="mt-2 text-lg text-zinc-600">{part.name}</p>
       {part.description && (

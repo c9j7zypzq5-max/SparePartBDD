@@ -50,6 +50,7 @@ Dell 0X8DXD
       "description": "Automate SIMATIC S7-1200, CPU 1214C, 14 entrées TOR, 10 sorties TOR. Phase-out annoncé.",
       "status": "obsolete",
       "category": "Automates programmables",
+      "productUrl": "https://mall.industry.siemens.com/mall/fr/fr/Catalog/Product/6ES7214-1AG31-0XB0",
       "attributes": {
         "Alimentation": "24 V DC",
         "Mémoire": "75 KB"
@@ -82,6 +83,9 @@ Dell 0X8DXD
 
 ## Règles importantes :
 - Si une information est inconnue, omets le champ (ne mets pas null ni "")
+- productUrl = page produit OFFICIELLE du fabricant uniquement (jamais un
+  vendeur) — elle sert au contrôle hebdomadaire « toujours fabriquée ? » ;
+  omets le champ si introuvable
 - supersededBy = référence (string) chez le MÊME fabricant uniquement
 - compatibleWith = ["NomFabricant|Référence"] pour les équivalents d'autres fabricants
 - Inclure au moins une offre si le prix est trouvable
