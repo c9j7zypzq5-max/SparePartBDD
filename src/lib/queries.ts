@@ -117,8 +117,35 @@ export async function getAllManufacturers() {
   return db.select().from(manufacturers).orderBy(asc(manufacturers.name));
 }
 
+/** Fabricants avec leurs compteurs de pièces, pour /marques et la home. */
+export async function getManufacturersWithCounts() {
+  return db
+    .select({
+      manufacturer: manufacturers,
+      partsCount: sql<number>`count(${parts.id})::int`,
+      obsoleteCount: sql<number>`count(*) FILTER (WHERE ${parts.status} = 'obsolete')::int`,
+    })
+    .from(manufacturers)
+    .leftJoin(parts, eq(parts.manufacturerId, manufacturers.id))
+    .groupBy(manufacturers.id)
+    .orderBy(asc(manufacturers.name));
+}
+
 export async function getAllCategories() {
   return db.select().from(categories).orderBy(asc(categories.name));
+}
+
+/** Catégories avec leur nombre de pièces, pour la page /categories. */
+export async function getCategoriesWithCounts() {
+  return db
+    .select({
+      category: categories,
+      partsCount: sql<number>`count(${parts.id})::int`,
+    })
+    .from(categories)
+    .leftJoin(parts, eq(parts.categoryId, categories.id))
+    .groupBy(categories.id)
+    .orderBy(asc(categories.name));
 }
 
 /** Pour le sitemap : toutes les URLs de pages pièce. */

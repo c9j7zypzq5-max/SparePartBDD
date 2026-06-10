@@ -21,8 +21,14 @@ export interface SearchHit {
 
 export interface SearchOptions {
   limit?: number;
+  /** Décalage pour la pagination (OFFSET SQL) */
+  offset?: number;
   /** Restreint à une industrie (slug de l'enum, ex : "industrie") */
   industry?: string;
+  /** Restreint au statut de fabrication ("active" | "obsolete") */
+  status?: string;
+  /** Restreint à un fabricant (slug) */
+  manufacturerSlug?: string;
 }
 
 export interface SearchService {

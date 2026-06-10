@@ -2,8 +2,8 @@ import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
 import { PartCard } from "@/components/part-card";
 import {
-  getAllManufacturers,
   getHomeStats,
+  getManufacturersWithCounts,
   getRecentSupersessions,
 } from "@/lib/queries";
 
@@ -26,12 +26,12 @@ const VERTICALES = [
 
 export default async function HomePage() {
   let stats = { partsCount: 0, manufacturersCount: 0, offersCount: 0, obsoleteCount: 0 };
-  let manufacturers: Awaited<ReturnType<typeof getAllManufacturers>> = [];
+  let manufacturers: Awaited<ReturnType<typeof getManufacturersWithCounts>> = [];
   let supersessionRows: Awaited<ReturnType<typeof getRecentSupersessions>> = [];
   try {
     [stats, manufacturers, supersessionRows] = await Promise.all([
       getHomeStats(),
-      getAllManufacturers(),
+      getManufacturersWithCounts(),
       getRecentSupersessions(4),
     ]);
   } catch {
@@ -168,13 +168,13 @@ export default async function HomePage() {
         <section className="mb-10">
           <h2 className="text-2xl font-bold tracking-tight">Parcourir par marque</h2>
           <div className="mt-5 flex flex-wrap gap-2">
-            {manufacturers.map((m) => (
+            {manufacturers.map(({ manufacturer: m, partsCount }) => (
               <Link
                 key={m.id}
                 href={`/marque/${m.slug}`}
                 className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
               >
-                {m.name}
+                {m.name} <span className="text-zinc-400">· {partsCount}</span>
               </Link>
             ))}
           </div>

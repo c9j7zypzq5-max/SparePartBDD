@@ -19,9 +19,16 @@ export class PostgresSearchService implements SearchService {
     if (!trimmed) return [];
 
     const limit = options.limit ?? 20;
+    const offset = options.offset ?? 0;
     const normalizedRef = normalizeReference(trimmed);
     const industryFilter = options.industry
       ? sql` AND m.industry::text = ${options.industry}`
+      : sql``;
+    const statusFilter = options.status
+      ? sql` AND p.status::text = ${options.status}`
+      : sql``;
+    const manufacturerFilter = options.manufacturerSlug
+      ? sql` AND m.slug = ${options.manufacturerSlug}`
       : sql``;
 
     const rows = await db.execute(sql`
@@ -63,9 +70,10 @@ export class PostgresSearchService implements SearchService {
       JOIN manufacturers m ON m.id = p.manufacturer_id
       JOIN ref_matches rm ON rm.id = p.id
       LEFT JOIN text_matches tm ON tm.id = p.id
-      WHERE (rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01)${industryFilter}
+      WHERE (rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01)${industryFilter}${statusFilter}${manufacturerFilter}
       ORDER BY score DESC
       LIMIT ${limit}
+      OFFSET ${offset}
     `);
 
     return (rows as unknown as Record<string, unknown>[]).map((r) => ({

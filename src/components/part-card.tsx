@@ -8,6 +8,7 @@ export function PartCard({
   manufacturerName,
   status,
   industry,
+  confidence,
 }: {
   href: string;
   name: string;
@@ -15,6 +16,8 @@ export function PartCard({
   manufacturerName: string;
   status: string;
   industry?: string;
+  /** Score 0..1 de confiance dans la compatibilité (affiché si fourni) */
+  confidence?: number;
 }) {
   return (
     <Link
@@ -31,7 +34,22 @@ export function PartCard({
             <div className="mt-1 text-xs text-zinc-400 capitalize">{industry}</div>
           )}
         </div>
-        <StatusBadge status={status} />
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <StatusBadge status={status} />
+          {typeof confidence === "number" && (
+            <span
+              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                confidence >= 0.7
+                  ? "bg-green-100 text-green-700"
+                  : confidence >= 0.5
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-zinc-100 text-zinc-500"
+              }`}
+            >
+              confiance {Math.round(confidence * 100)} %
+            </span>
+          )}
+        </div>
       </div>
     </Link>
   );

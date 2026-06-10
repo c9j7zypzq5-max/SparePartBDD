@@ -27,13 +27,19 @@ export default async function ManufacturerPage({ params }: { params: Params }) {
   const data = await getManufacturerWithParts(marque);
   if (!data) notFound();
 
+  const obsoleteCount = data.parts.filter((p) => p.status === "obsolete").length;
+
   return (
     <div>
       <h1 className="text-3xl font-bold tracking-tight">
         Pièces détachées {data.manufacturer.name}
       </h1>
-      <p className="mt-2 text-zinc-600 capitalize">
-        Industrie : {data.manufacturer.industry}
+      <p className="mt-2 text-zinc-600">
+        <span className="capitalize">Industrie : {data.manufacturer.industry}</span>
+        {" · "}
+        {data.parts.length} pièce{data.parts.length > 1 ? "s" : ""} référencée
+        {data.parts.length > 1 ? "s" : ""}
+        {obsoleteCount > 0 && <> dont {obsoleteCount} obsolète{obsoleteCount > 1 ? "s" : ""}</>}
       </p>
       <div className="mt-6 grid gap-3">
         {data.parts.map((part) => (

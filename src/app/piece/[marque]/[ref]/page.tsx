@@ -90,6 +90,16 @@ export default async function PartPage({ params }: { params: Params }) {
       {part.description && (
         <p className="mt-4 max-w-3xl text-zinc-700">{part.description}</p>
       )}
+      {part.productUrl && (
+        <a
+          href={part.productUrl}
+          target="_blank"
+          rel="noopener"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
+        >
+          Voir chez le fabricant ↗
+        </a>
+      )}
 
       {part.status === "obsolete" && detail.replacedBy.length > 0 && (
         <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
@@ -205,7 +215,7 @@ export default async function PartPage({ params }: { params: Params }) {
             Compatibilité non officielle — vérifiez les caractéristiques avant achat.
           </p>
           <div className="mt-3 grid gap-3">
-            {detail.compatibles.map(({ part: p, manufacturer: m }) => (
+            {detail.compatibles.map(({ compatibility, part: p, manufacturer: m }) => (
               <PartCard
                 key={p.id}
                 href={`/piece/${m.slug}/${p.slug}`}
@@ -213,6 +223,7 @@ export default async function PartPage({ params }: { params: Params }) {
                 referenceRaw={p.referenceRaw}
                 manufacturerName={m.name}
                 status={p.status}
+                confidence={compatibility.confidence}
               />
             ))}
           </div>
@@ -230,6 +241,7 @@ export default async function PartPage({ params }: { params: Params }) {
               currency: offer.currency,
               availability: offer.availability,
               url: offer.url,
+              scrapedAt: offer.scrapedAt,
             }))}
           />
         </div>
