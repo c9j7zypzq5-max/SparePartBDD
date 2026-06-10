@@ -48,6 +48,105 @@ Puis tester : `http://localhost:3000`, recherche `PWR-C1-715WAC`
 `6SE6440-2UD21-5AA1` (variateur Siemens obsolète → SINAMICS G120C), ou
 `filtre à huile`.
 
+## Déploiement Vercel + Neon (PostgreSQL managé)
+
+### 1. Base de données (Neon — tier gratuit suffisant pour le démarrage)
+
+1. Créer un compte sur [neon.tech](https://neon.tech) (ou via Vercel Marketplace)
+2. Créer un projet, copier la connection string (format
+   `postgres://user:pass@host.neon.tech/dbname?sslmode=require`)
+3. Activer l'extension pg_trgm dans la console Neon :
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS pg_trgm;
+   ```
+
+### 2. Déploiement Vercel
+
+```bash
+# Dans le tableau de bord Vercel → New Project → importer le dépôt GitHub
+# Puis dans Settings → Environment Variables, ajouter :
+#   DATABASE_URL     = <connection string Neon>
+#   NEXT_PUBLIC_SITE_URL = https://ton-domaine.vercel.app
+#   INGEST_API_KEY   = <clé secrète aléatoire — voir ci-dessous>
+```
+
+Générer une clé API pour l'ingestion :
+```bash
+openssl rand -hex 32
+```
+
+### 3. Initialiser le schéma sur Neon
+
+```bash
+DATABASE_URL="postgres://..." npm run db:push
+```
+
+### 4. Pousser tes données depuis le Mac mini
+
+```bash
+INGEST_API_KEY=ta_cle \
+INGEST_URL=https://ton-domaine.vercel.app \
+npx tsx scripts/ingest/push.ts mon-batch.json
+```
+
+---
+
+## Pipeline d'ingestion Ollama (Mac mini → Vercel)
+
+Le endpoint `POST /api/ingest` (protégé par `INGEST_API_KEY`) accepte un JSON
+au format `IngestPayload` et upserte les pièces en base.
+
+### Workflow
+
+1. Copier `scripts/ingest/prompt-template.md` et remplir la liste de références
+2. Lancer les sessions Ollama sur le Mac mini (en parallèle si besoin)
+3. Sauvegarder la réponse JSON dans un fichier
+4. Envoyer le fichier à l'API :
+
+```bash
+# Variables d'environnement à définir une fois
+export INGEST_API_KEY=ta_cle_secrete
+export INGEST_URL=https://ton-domaine.vercel.app   # ou http://localhost:3000
+
+# Envoyer un batch
+npm run push -- scripts/ingest/mon-batch.json
+# ou directement :
+npx tsx scripts/ingest/push.ts scripts/ingest/mon-batch.json
+```
+
+### Format JSON attendu (IngestPayload)
+
+```json
+{
+  "source": "ollama-batch-001",
+  "parts": [
+    {
+      "manufacturer": "Siemens",
+      "industry": "industrie",
+      "reference": "6ES7214-1AG31-0XB0",
+      "name": "CPU S7-1200 1214C DC/DC/DC (gen. 1)",
+      "status": "obsolete",
+      "supersededBy": "6ES7214-1AG40-0XB0",
+      "offers": [
+        {
+          "sellerName": "Radwell",
+          "sellerType": "reconditionne",
+          "price": 420,
+          "currency": "USD",
+          "availability": "Garanti 2 ans",
+          "url": "https://www.radwell.com/..."
+        }
+      ]
+    }
+  ]
+}
+```
+
+Voir `scripts/ingest/prompt-template.md` pour le prompt complet à donner à
+Ollama et les instructions de parallélisation.
+
+---
+
 ## Structure
 
 ```
@@ -58,17 +157,23 @@ src/
 │   ├── piece/[marque]/[ref]/         # page pièce = page SEO clé (JSON-LD Product)
 │   ├── marque/[marque]/              # hub marque (maillage interne)
 │   ├── categorie/[slug]/             # hub catégorie
+│   ├── api/ingest/route.ts           # POST /api/ingest — pipeline Ollama
 │   ├── sitemap.ts                    # sitemap dynamique
 │   └── robots.ts
 ├── db/schema.ts                      # modèle de données (voir ci-dessous)
 ├── lib/
 │   ├── normalize.ts                  # normalisation des références
+│   ├── ingest-types.ts               # types partagés IngestPayload / IngestPart
+│   ├── ingest-pipeline.ts            # logique d'upsert (2 passes)
 │   ├── queries.ts                    # requêtes des pages
 │   └── search/                       # SearchService + implémentation Postgres
 └── components/
 scripts/
 ├── seed.ts                           # données de démo
-└── ingest/adapter.ts                 # interface SourceAdapter (pipeline d'ingestion)
+└── ingest/
+    ├── adapter.ts                    # interface SourceAdapter (sources futures)
+    ├── push.ts                       # CLI : envoie un fichier JSON à /api/ingest
+    └── prompt-template.md            # prompt Ollama à copier-coller
 ```
 
 ## Modèle de données

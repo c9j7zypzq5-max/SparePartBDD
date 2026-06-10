@@ -8,7 +8,8 @@
     "start": "next start",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "push": "tsx scripts/ingest/push.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.2",

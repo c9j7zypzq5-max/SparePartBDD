@@ -123,35 +123,56 @@ export const partReferences = pgTable(
     brand: text("brand"),
     source: text("source"),
   },
-  (t) => [index("part_references_normalized_idx").on(t.referenceNormalized)],
+  (t) => [
+    index("part_references_normalized_idx").on(t.referenceNormalized),
+    uniqueIndex("part_references_part_ref_idx").on(
+      t.partId,
+      t.referenceNormalized,
+    ),
+  ],
 );
 
 /** Chaîne de remplacement officielle : oldPart a été remplacée par newPart. */
-export const supersessions = pgTable("supersessions", {
-  id: serial("id").primaryKey(),
-  oldPartId: integer("old_part_id")
-    .notNull()
-    .references(() => parts.id),
-  newPartId: integer("new_part_id")
-    .notNull()
-    .references(() => parts.id),
-  source: text("source"),
-  note: text("note"),
-});
+export const supersessions = pgTable(
+  "supersessions",
+  {
+    id: serial("id").primaryKey(),
+    oldPartId: integer("old_part_id")
+      .notNull()
+      .references(() => parts.id),
+    newPartId: integer("new_part_id")
+      .notNull()
+      .references(() => parts.id),
+    source: text("source"),
+    note: text("note"),
+  },
+  (t) => [
+    uniqueIndex("supersessions_old_new_idx").on(t.oldPartId, t.newPartId),
+  ],
+);
 
 /** Pièces compatibles alternatives (non officielles), avec score de confiance. */
-export const compatibilities = pgTable("compatibilities", {
-  id: serial("id").primaryKey(),
-  partId: integer("part_id")
-    .notNull()
-    .references(() => parts.id),
-  compatiblePartId: integer("compatible_part_id")
-    .notNull()
-    .references(() => parts.id),
-  /** 0..1 — confiance dans la compatibilité selon la source */
-  confidence: real("confidence").notNull().default(0.5),
-  source: text("source"),
-});
+export const compatibilities = pgTable(
+  "compatibilities",
+  {
+    id: serial("id").primaryKey(),
+    partId: integer("part_id")
+      .notNull()
+      .references(() => parts.id),
+    compatiblePartId: integer("compatible_part_id")
+      .notNull()
+      .references(() => parts.id),
+    /** 0..1 — confiance dans la compatibilité selon la source */
+    confidence: real("confidence").notNull().default(0.5),
+    source: text("source"),
+  },
+  (t) => [
+    uniqueIndex("compatibilities_part_compat_idx").on(
+      t.partId,
+      t.compatiblePartId,
+    ),
+  ],
+);
 
 export const sellers = pgTable(
   "sellers",
