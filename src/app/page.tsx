@@ -83,7 +83,7 @@ export default async function HomePage() {
 
       {/* Stats */}
       {stats.partsCount > 0 && (
-        <section className="-mt-10 mb-12">
+        <section className="relative z-10 -mt-10 mb-12">
           <div className="mx-auto grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               { value: stats.partsCount, label: "pièces référencées" },
