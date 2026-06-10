@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { aliasedTable, and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 const {
@@ -137,4 +137,36 @@ export async function getAllPartPaths() {
     manufacturerSlug: slugById.get(r.manufacturerId)!,
     partSlug: r.partSlug,
   }));
+}
+
+/** Statistiques affichées sur la home. */
+export async function getHomeStats() {
+  const [stats] = await db
+    .select({
+      partsCount: sql<number>`(SELECT count(*) FROM parts)`,
+      manufacturersCount: sql<number>`(SELECT count(*) FROM manufacturers)`,
+      offersCount: sql<number>`(SELECT count(*) FROM offers)`,
+      obsoleteCount: sql<number>`(SELECT count(*) FROM parts WHERE status = 'obsolete')`,
+    })
+    .from(sql`(SELECT 1) AS one`);
+  return stats;
+}
+
+/** Pièces obsolètes avec leur remplacement officiel, pour la home. */
+export async function getRecentSupersessions(limit = 4) {
+  const oldParts = aliasedTable(parts, "old_parts");
+  const oldManufacturers = aliasedTable(manufacturers, "old_manufacturers");
+  return db
+    .select({
+      oldPart: oldParts,
+      oldManufacturer: oldManufacturers,
+      newPart: parts,
+      newManufacturer: manufacturers,
+    })
+    .from(supersessions)
+    .innerJoin(oldParts, eq(oldParts.id, supersessions.oldPartId))
+    .innerJoin(oldManufacturers, eq(oldManufacturers.id, oldParts.manufacturerId))
+    .innerJoin(parts, eq(parts.id, supersessions.newPartId))
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .limit(limit);
 }

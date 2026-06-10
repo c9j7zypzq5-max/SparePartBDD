@@ -19,10 +19,17 @@ export interface SearchHit {
   score: number;
 }
 
+export interface SearchOptions {
+  limit?: number;
+  /** Restreint à une industrie (slug de l'enum, ex : "industrie") */
+  industry?: string;
+}
+
 export interface SearchService {
   /**
    * Recherche par référence (exacte ou approchée) ou par nom de pièce.
-   * La requête peut être "00754870", "BMW 11427953129" ou "filtre à huile".
+   * La requête peut être "6ES7214-1AG40", "Cisco PWR-C1-715WAC" ou
+   * "variateur 1,5 kW".
    */
-  search(query: string, limit?: number): Promise<SearchHit[]>;
+  search(query: string, options?: SearchOptions): Promise<SearchHit[]>;
 }
