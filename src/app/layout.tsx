@@ -11,6 +11,15 @@ export const metadata: Metadata = {
   },
   description:
     "Entrez une référence Siemens, Schneider, ABB, Rockwell, Cisco, Dell, HPE ou Lenovo : statut de fabrication, remplacement officiel, compatibles, vendeurs et prix.",
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "SparePartSearch",
+    title: "SparePartSearch — pièces industrielles et informatiques par référence",
+    description:
+      "Entrez une référence Siemens, Schneider, ABB, Rockwell, Cisco, Dell, HPE ou Lenovo : statut de fabrication, remplacement officiel, compatibles, vendeurs et prix.",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({
@@ -65,6 +74,11 @@ export default function RootLayout({
                 <li>
                   <Link href="/marques" className="text-zinc-500 hover:text-zinc-900">
                     Toutes les marques
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/categories" className="text-zinc-500 hover:text-zinc-900">
+                    Toutes les catégories
                   </Link>
                 </li>
                 <li>
