@@ -4,10 +4,9 @@ import {
   getAllManufacturers,
   getAllPartPaths,
 } from "@/lib/queries";
+import { siteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 /**
  * Sitemap dynamique. Au-delà de ~50 000 URLs il faudra passer à un index de
