@@ -44,6 +44,11 @@ export interface IngestPart {
   description?: string;
   status?: PartStatus;
   category?: string;
+  /**
+   * URL de la page produit OFFICIELLE du fabricant (pas un vendeur).
+   * Sert au contrôle hebdomadaire « toujours fabriquée ? » du Mac mini.
+   */
+  productUrl?: string;
   /** Attributs techniques libres (ex : {"Tension": "24V DC", "Courant": "5A"}) */
   attributes?: Record<string, string>;
   crossReferences?: {

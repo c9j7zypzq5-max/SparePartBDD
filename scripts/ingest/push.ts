@@ -41,26 +41,33 @@ try {
   process.exit(1);
 }
 
-console.log(`Envoi de ${filePath} vers ${baseUrl}/api/ingest …`);
+async function main() {
+  console.log(`Envoi de ${filePath} vers ${baseUrl}/api/ingest …`);
 
-const res = await fetch(`${baseUrl}/api/ingest`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${apiKey}`,
-  },
-  body: JSON.stringify(payload),
-});
+  const res = await fetch(`${baseUrl}/api/ingest`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  });
 
-const body = await res.json();
-if (res.ok || res.status === 207) {
-  console.log(
-    `✔ ${body.partsInserted} insérées, ${body.partsUpdated} mises à jour, ${body.offersInserted} offres`,
-  );
-  if (body.errors?.length) {
-    console.warn(`⚠ ${body.errors.length} erreur(s) :`, body.errors);
+  const body = await res.json();
+  if (res.ok || res.status === 207) {
+    console.log(
+      `✔ ${body.partsInserted} insérées, ${body.partsUpdated} mises à jour, ${body.offersInserted} offres`,
+    );
+    if (body.errors?.length) {
+      console.warn(`⚠ ${body.errors.length} erreur(s) :`, body.errors);
+    }
+  } else {
+    console.error(`Erreur ${res.status} :`, body);
+    process.exit(1);
   }
-} else {
-  console.error(`Erreur ${res.status} :`, body);
-  process.exit(1);
 }
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

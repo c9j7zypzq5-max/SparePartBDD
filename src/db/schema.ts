@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -96,6 +97,14 @@ export const parts = pgTable(
     imageUrl: text("image_url"),
     /** Attributs techniques libres (dimensions, voltage, matière…) */
     attributes: jsonb("attributes").$type<Record<string, string>>(),
+    /** URL de la page produit officielle du fabricant (sert à la veille hebdo) */
+    productUrl: text("product_url"),
+    /** Dernière vérification du cycle de vie via productUrl */
+    lifecycleCheckedAt: timestamp("lifecycle_checked_at"),
+    /** Signal ambigu détecté lors de la veille — à vérifier manuellement */
+    needsReview: boolean("needs_review").notNull().default(false),
+    /** Trace du dernier contrôle (ex : "HTTP 404", "mot-clé 'discontinued'") */
+    lifecycleNote: text("lifecycle_note"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },

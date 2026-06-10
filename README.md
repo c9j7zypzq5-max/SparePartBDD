@@ -147,6 +147,49 @@ Ollama et les instructions de parallélisation.
 
 ---
 
+## Surveillance hebdomadaire du cycle de vie (Mac mini)
+
+Principe économique : la fiche complète d'une pièce n'est générée **qu'une
+fois** (pipeline d'ingestion ci-dessus, avec le champ `productUrl` = page
+produit officielle du fabricant). Ensuite, un job hebdomadaire léger
+re-vérifie seulement « est-ce toujours fabriqué/commercialisé ? » en
+visitant cette URL — sans LLM, sauf pour trancher les cas ambigus.
+
+### Endpoints (auth `Authorization: Bearer $INGEST_API_KEY`)
+
+- `GET /api/lifecycle/pending?limit=200` — pièces dues pour un contrôle
+  (`productUrl` renseignée, non obsolètes, jamais contrôlées ou contrôlées
+  il y a plus de 7 jours).
+- `POST /api/lifecycle/report` — applique le rapport selon la politique :
+
+| Verdict du script | Statut | À vérifier | Re-tenté au prochain run |
+|---|---|---|---|
+| `active` (page vivante, prix, panier…) | → fabriquée | non | dans 7 j |
+| `obsolete` (HTTP 404/410 ou mention « discontinued / phase-out »…) | → obsolète | non | non (état terminal) |
+| `ambiguous` (aucun signal fiable) | inchangé | **oui** | dans 7 j |
+| `error` (timeout, 5xx, anti-bot) | inchangé | non | **dès le prochain run** |
+
+### Lancer le contrôle depuis le Mac mini
+
+```bash
+INGEST_URL=https://ton-domaine.vercel.app \
+INGEST_API_KEY=ta_cle \
+OLLAMA_MODEL=qwen2.5:14b \
+npm run lifecycle
+```
+
+`OLLAMA_MODEL` est optionnel : sans lui, les pages sans signal clair sont
+simplement marquées « à vérifier ». Planification cron (tous les lundis 7 h) :
+
+```cron
+0 7 * * 1 cd $HOME/SparePartBDD && INGEST_URL=https://ton-domaine.vercel.app INGEST_API_KEY=ta_cle OLLAMA_MODEL=qwen2.5:14b npm run lifecycle >> $HOME/lifecycle.log 2>&1
+```
+
+> Si le Mac mini est en veille à cette heure-là, préférer un agent `launchd`
+> (clé `StartCalendarInterval`), qui rattrape les exécutions manquées au réveil.
+
+---
+
 ## Structure
 
 ```
