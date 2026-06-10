@@ -10,9 +10,9 @@ export const maxDuration = 300;
 // après utilisation.
 const SEED_TOKEN = "540821343168665d93794ffe17c3290e26f516ae8801b5a4";
 
-export async function POST(req: NextRequest) {
-  const auth = req.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${SEED_TOKEN}`) {
+export async function GET(req: NextRequest) {
+  const token = req.nextUrl.searchParams.get("token") ?? "";
+  if (token !== SEED_TOKEN) {
     return Response.json({ error: "Non autorisé" }, { status: 401 });
   }
 
