@@ -1,11 +1,12 @@
 # SparePartSearch — moteur de recherche de pièces détachées
 
 Squelette MVP d'un moteur de recherche mondial de pièces détachées
-multi-industries (automobile, électroménager, industrie, HVAC, électronique).
+multi-industries. **Verticales prioritaires du lancement : industrie
+(automatisme, MRO) et informatique (serveurs, réseau, PC)** — automobile,
+électroménager, HVAC et électronique suivront.
 
-L'utilisateur entre une **référence OEM** (ex : `Bosch 00754870`,
-`BMW 11427953129`, `Siemens 6ES7214-1AG40-0XB0`) ou un nom de pièce, et
-obtient :
+L'utilisateur entre une **référence OEM** (ex : `Siemens 6ES7214-1AG40-0XB0`,
+`Cisco PWR-C1-715WAC`, `Bosch 00754870`) ou un nom de pièce, et obtient :
 
 1. la pièce exacte correspondante ;
 2. son **statut** : encore fabriquée / obsolète ;
@@ -34,7 +35,7 @@ npm install
 createdb sparepart
 cp .env.example .env   # ajuster DATABASE_URL si besoin
 
-# 3. Schéma + données de démonstration (~20 pièces, 5 industries)
+# 3. Schéma + données de démonstration (~30 pièces, 6 industries)
 npm run db:push
 npm run seed
 
@@ -42,8 +43,9 @@ npm run seed
 npm run dev
 ```
 
-Puis tester : `http://localhost:3000`, recherche `00754870` (pompe Bosch),
-`11427511161` (filtre BMW obsolète → remplacement affiché), ou
+Puis tester : `http://localhost:3000`, recherche `PWR-C1-715WAC`
+(alimentation Cisco en fin de vie → successeur affiché),
+`6SE6440-2UD21-5AA1` (variateur Siemens obsolète → SINAMICS G120C), ou
 `filtre à huile`.
 
 ## Structure
@@ -95,7 +97,11 @@ dédoublonnage sera ajouté avec la première vraie source.
 
 ## Roadmap (extrait)
 
-- [ ] Première vraie source de données (flux affilié + API eBay Browse)
+- [ ] Industrie : ingestion des statuts de cycle de vie fabricants
+      (phase-out/successeurs Siemens, Schneider, ABB)
+- [ ] Informatique : adapter Cisco EoX (End-of-Life API) pour les statuts
+      EOL/EOS et références de remplacement
+- [ ] Première source d'offres (API eBay Browse + flux affiliés)
 - [ ] Sitemaps shardés (> 50 000 URLs) générés hors ligne
 - [ ] Meilisearch en remplacement de la recherche Postgres
 - [ ] Pages multilingues (`/en/part/...`) avec hreflang

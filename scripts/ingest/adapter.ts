@@ -11,9 +11,10 @@
 export interface RawPart {
   manufacturerName: string;
   industry:
+    | "industrie"
+    | "informatique"
     | "automobile"
     | "electromenager"
-    | "industrie"
     | "hvac"
     | "electronique";
   reference: string;

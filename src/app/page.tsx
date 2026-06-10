@@ -2,9 +2,10 @@ import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
 
 const INDUSTRIES = [
+  { slug: "industrie", label: "Industrie", example: "Siemens 6ES7214-1AG40-0XB0" },
+  { slug: "informatique", label: "Informatique", example: "Cisco PWR-C1-715WAC" },
   { slug: "automobile", label: "Automobile", example: "BMW 11427953129" },
   { slug: "electromenager", label: "Électroménager", example: "Bosch 00754870" },
-  { slug: "industrie", label: "Industrie", example: "Siemens 6ES7214-1AG40-0XB0" },
   { slug: "hvac", label: "HVAC", example: "Daikin 5021205" },
   { slug: "electronique", label: "Électronique", example: "Samsung BN44-00932B" },
 ];

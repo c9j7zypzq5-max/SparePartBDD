@@ -47,6 +47,11 @@ const MANUFACTURERS: { name: string; industry: Industry; website: string }[] = [
   { name: "Siemens", industry: "industrie", website: "https://www.siemens.com" },
   { name: "Schneider Electric", industry: "industrie", website: "https://www.se.com" },
   { name: "ABB", industry: "industrie", website: "https://www.abb.com" },
+  { name: "Rockwell Automation", industry: "industrie", website: "https://www.rockwellautomation.com" },
+  { name: "Cisco", industry: "informatique", website: "https://www.cisco.com" },
+  { name: "Dell", industry: "informatique", website: "https://www.dell.com" },
+  { name: "HPE", industry: "informatique", website: "https://www.hpe.com" },
+  { name: "Lenovo", industry: "informatique", website: "https://www.lenovo.com" },
   { name: "Daikin", industry: "hvac", website: "https://www.daikin.fr" },
   { name: "Atlantic", industry: "hvac", website: "https://www.groupe-atlantic.fr" },
   { name: "LG", industry: "electronique", website: "https://www.lg.com" },
@@ -61,6 +66,11 @@ const CATEGORIES: { name: string; industry: Industry }[] = [
   { name: "Embrayages", industry: "automobile" },
   { name: "Automates programmables", industry: "industrie" },
   { name: "Contacteurs", industry: "industrie" },
+  { name: "Variateurs de vitesse", industry: "industrie" },
+  { name: "Alimentations serveur et réseau", industry: "informatique" },
+  { name: "Modules optiques SFP", industry: "informatique" },
+  { name: "Batteries d'ordinateur portable", industry: "informatique" },
+  { name: "Contrôleurs RAID", industry: "informatique" },
   { name: "Cartes électroniques", industry: "hvac" },
   { name: "Résistances de chauffe", industry: "hvac" },
   { name: "Alimentations TV", industry: "electronique" },
@@ -81,6 +91,8 @@ const SELLERS: {
   { name: "AutoDoc", type: "aftermarket", website: "https://www.autodoc.fr", country: "DE" },
   { name: "eSpares", type: "aftermarket", website: "https://www.espares.co.uk", country: "GB" },
   { name: "Radwell", type: "reconditionne", website: "https://www.radwell.com", country: "US" },
+  { name: "ServerSupply", type: "aftermarket", website: "https://www.serversupply.com", country: "US" },
+  { name: "ETB Technologies", type: "reconditionne", website: "https://www.etb-tech.com", country: "GB" },
   { name: "eBay", type: "occasion", website: "https://www.ebay.fr", country: "FR" },
 ];
 
@@ -299,6 +311,136 @@ const PARTS: SeedPart[] = [
     category: "Contacteurs",
     compatibleWith: ["Schneider Electric|LC1D18M7"],
     offers: [{ seller: "Radwell", price: 52.5, availability: "Surplus neuf" }],
+  },
+
+  {
+    manufacturer: "Rockwell Automation",
+    industry: "industrie",
+    reference: "2711P-T7C4D8",
+    name: "Terminal opérateur PanelView Plus 7",
+    description:
+      "IHM tactile PanelView Plus 7 Standard 6,5\" Allen-Bradley, Ethernet, 24 V DC.",
+    status: "active",
+    category: "Automates programmables",
+    offers: [
+      { seller: "Radwell", price: 1450.0, availability: "Surplus neuf" },
+      { seller: "eBay", price: 980.0, availability: "Occasion" },
+    ],
+  },
+  {
+    manufacturer: "Siemens",
+    industry: "industrie",
+    reference: "6SE6440-2UD21-5AA1",
+    name: "Variateur MICROMASTER 440, 1,5 kW",
+    description:
+      "Variateur de fréquence MICROMASTER 440. Gamme arrêtée par Siemens, successeur conseillé : SINAMICS G120 (6SL3210-1KE21-3UF1).",
+    status: "obsolete",
+    category: "Variateurs de vitesse",
+    supersededBy: "6SL3210-1KE21-3UF1",
+    offers: [
+      { seller: "Radwell", price: 520.0, availability: "Reconditionné, garanti 2 ans" },
+      { seller: "eBay", price: 350.0, availability: "Occasion" },
+    ],
+  },
+  {
+    manufacturer: "Siemens",
+    industry: "industrie",
+    reference: "6SL3210-1KE21-3UF1",
+    name: "Variateur SINAMICS G120C, 5,5 kW",
+    description:
+      "Variateur de fréquence compact SINAMICS G120C, successeur de la gamme MICROMASTER.",
+    status: "active",
+    category: "Variateurs de vitesse",
+    offers: [{ seller: "Siemens Industry Mall", price: 890.0, availability: "En stock" }],
+  },
+
+  // --- Informatique ---
+  {
+    manufacturer: "Cisco",
+    industry: "informatique",
+    reference: "PWR-C1-715WAC",
+    name: "Alimentation 715 W AC Catalyst 3850/9300",
+    description:
+      "Bloc d'alimentation 715 W AC pour commutateurs Cisco Catalyst 3850 et 9300. Annoncé en fin de vie (EoS), successeur : PWR-C1-715WAC-P.",
+    status: "obsolete",
+    category: "Alimentations serveur et réseau",
+    supersededBy: "PWR-C1-715WAC-P",
+    crossRefs: [{ reference: "341-0612-02", type: "mpn", brand: "Cisco" }],
+    offers: [
+      { seller: "ServerSupply", price: 145.0, availability: "Refurbished" },
+      { seller: "eBay", price: 89.0, availability: "Occasion testée" },
+    ],
+  },
+  {
+    manufacturer: "Cisco",
+    industry: "informatique",
+    reference: "PWR-C1-715WAC-P",
+    name: "Alimentation 715 W AC platine Catalyst 9300",
+    description:
+      "Bloc d'alimentation 715 W AC haut rendement (platinum) pour Catalyst 9300, remplace PWR-C1-715WAC.",
+    status: "active",
+    category: "Alimentations serveur et réseau",
+    offers: [{ seller: "ServerSupply", price: 320.0, availability: "Neuf" }],
+  },
+  {
+    manufacturer: "Cisco",
+    industry: "informatique",
+    reference: "GLC-SX-MMD",
+    name: "Module SFP 1000BASE-SX multimode",
+    description:
+      "Émetteur-récepteur optique SFP 1 Gb/s multimode 850 nm avec DOM. De nombreux modules tiers compatibles existent.",
+    status: "active",
+    category: "Modules optiques SFP",
+    crossRefs: [{ reference: "SFP1G-SX-85", type: "aftermarket", brand: "FS" }],
+    offers: [
+      { seller: "ServerSupply", price: 24.0, availability: "Neuf" },
+      { seller: "eBay", price: 9.9, availability: "Occasion" },
+    ],
+  },
+  {
+    manufacturer: "Dell",
+    industry: "informatique",
+    reference: "0X8DXD",
+    name: "Contrôleur RAID PERC H730P 2 Go",
+    description:
+      "Carte contrôleur RAID PERC H730P mini mono 2 Go cache pour serveurs Dell PowerEdge R630/R730.",
+    status: "obsolete",
+    category: "Contrôleurs RAID",
+    offers: [
+      { seller: "ServerSupply", price: 189.0, availability: "Refurbished" },
+      { seller: "ETB Technologies", price: 165.0, availability: "Reconditionné, garanti 3 ans" },
+      { seller: "eBay", price: 120.0, availability: "Occasion" },
+    ],
+  },
+  {
+    manufacturer: "HPE",
+    industry: "informatique",
+    reference: "511778-001",
+    name: "Alimentation 460 W ProLiant G6/G7",
+    description:
+      "Bloc d'alimentation 460 W common slot pour serveurs HPE ProLiant DL360/DL380 G6 et G7. Spare HPE, plus produit.",
+    status: "obsolete",
+    category: "Alimentations serveur et réseau",
+    crossRefs: [{ reference: "503296-B21", type: "oem", brand: "HPE" }],
+    offers: [
+      { seller: "ServerSupply", price: 49.0, availability: "Refurbished" },
+      { seller: "eBay", price: 25.0, availability: "Occasion" },
+    ],
+  },
+  {
+    manufacturer: "Lenovo",
+    industry: "informatique",
+    reference: "01AV430",
+    name: "Batterie interne ThinkPad X1 Carbon Gen 5/6",
+    description:
+      "Batterie Li-Po 57 Wh (FRU) pour ThinkPad X1 Carbon 5e et 6e génération.",
+    status: "active",
+    category: "Batteries d'ordinateur portable",
+    crossRefs: [{ reference: "SB10K97566", type: "oem", brand: "Lenovo" }],
+    offers: [
+      { seller: "ServerSupply", price: 95.0, availability: "Neuf" },
+      { seller: "eBay", price: 45.0, availability: "Compatible neuf" },
+    ],
   },
 
   // --- HVAC ---

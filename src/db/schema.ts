@@ -21,9 +21,12 @@ import {
  */
 
 export const industryEnum = pgEnum("industry", [
+  // Verticales prioritaires du lancement
+  "industrie",
+  "informatique",
+  // Extensions prévues
   "automobile",
   "electromenager",
-  "industrie",
   "hvac",
   "electronique",
 ]);
