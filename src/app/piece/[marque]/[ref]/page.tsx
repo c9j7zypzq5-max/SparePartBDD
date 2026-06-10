@@ -85,6 +85,41 @@ export default async function PartPage({ params }: { params: Params }) {
         <p className="mt-4 max-w-3xl text-zinc-700">{part.description}</p>
       )}
 
+      {part.status === "obsolete" && detail.replacedBy.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
+          <span className="text-2xl">⚠️</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-amber-900">
+              Cette pièce n&apos;est plus fabriquée
+            </p>
+            <p className="text-sm text-amber-800">
+              Remplacement officiel :{" "}
+              <Link
+                href={`/piece/${detail.replacedBy[0].manufacturer.slug}/${detail.replacedBy[0].part.slug}`}
+                className="font-mono font-semibold underline hover:no-underline"
+              >
+                {detail.replacedBy[0].part.referenceRaw}
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {part.status === "obsolete" && detail.replacedBy.length === 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-zinc-300 bg-zinc-50 px-5 py-4">
+          <span className="text-2xl">🔎</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-zinc-900">
+              Pièce obsolète sans remplacement officiel connu
+            </p>
+            <p className="text-sm text-zinc-600">
+              Le reconditionné et le surplus restent souvent disponibles —
+              voir les offres ci-dessous.
+            </p>
+          </div>
+        </div>
+      )}
+
       {part.attributes && Object.keys(part.attributes).length > 0 && (
         <section className="mt-8">
           <h2 className="text-xl font-semibold">Caractéristiques</h2>

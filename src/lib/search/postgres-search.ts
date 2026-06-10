@@ -1,24 +1,28 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { normalizeReference } from "@/lib/normalize";
-import type { SearchHit, SearchService } from "./search-service";
+import type { SearchHit, SearchOptions, SearchService } from "./search-service";
 
 /**
  * Implémentation MVP de la recherche sur PostgreSQL :
  *  - matching de référence exact puis approché (pg_trgm) sur la référence
  *    normalisée des pièces ET des cross-references ;
- *  - full-text (français simplifié via `unaccent`-free to_tsvector) sur le
- *    nom et la description pour les requêtes en langage naturel.
+ *  - full-text sur le nom et la description pour les requêtes en langage
+ *    naturel.
  *
  * Les deux scores sont combinés : un match de référence domine toujours un
  * match textuel.
  */
 export class PostgresSearchService implements SearchService {
-  async search(query: string, limit = 20): Promise<SearchHit[]> {
+  async search(query: string, options: SearchOptions = {}): Promise<SearchHit[]> {
     const trimmed = query.trim();
     if (!trimmed) return [];
 
+    const limit = options.limit ?? 20;
     const normalizedRef = normalizeReference(trimmed);
+    const industryFilter = options.industry
+      ? sql` AND m.industry::text = ${options.industry}`
+      : sql``;
 
     const rows = await db.execute(sql`
       WITH ref_matches AS (
@@ -59,7 +63,7 @@ export class PostgresSearchService implements SearchService {
       JOIN manufacturers m ON m.id = p.manufacturer_id
       JOIN ref_matches rm ON rm.id = p.id
       LEFT JOIN text_matches tm ON tm.id = p.id
-      WHERE rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01
+      WHERE (rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01)${industryFilter}
       ORDER BY score DESC
       LIMIT ${limit}
     `);
