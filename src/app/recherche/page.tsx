@@ -177,6 +177,14 @@ export default async function SearchPage({
             manufacturerSlug={hit.manufacturerSlug}
             status={hit.status}
             industry={hit.industry}
+            watchlistData={{
+              reference: hit.referenceRaw,
+              manufacturer: hit.manufacturerName,
+              manufacturerSlug: hit.manufacturerSlug,
+              partSlug: hit.slug,
+              name: hit.name,
+              status: hit.status,
+            }}
           />
         ))}
       </div>

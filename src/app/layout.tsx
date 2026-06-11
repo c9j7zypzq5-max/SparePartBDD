@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { siteUrl } from "@/lib/site-url";
+import { WatchlistCount } from "@/components/watchlist-count";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -39,6 +40,7 @@ export default function RootLayout({
               <Link href="/marques" className="hover:text-zinc-900">
                 Marques
               </Link>
+              <WatchlistCount />
               <Link
                 href="/recherche?q="
                 className="rounded-lg bg-zinc-900 px-3 py-1.5 text-white transition hover:bg-zinc-700"
@@ -84,6 +86,11 @@ export default function RootLayout({
                 <li>
                   <Link href="/recherche?q=" className="text-zinc-500 hover:text-zinc-900">
                     Recherche
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/liste" className="text-zinc-500 hover:text-zinc-900">
+                    Ma liste
                   </Link>
                 </li>
               </ul>

@@ -78,6 +78,14 @@ export function InfinitePartsList({
             manufacturerName={manufacturerName}
             manufacturerSlug={manufacturerSlug}
             status={part.status}
+            watchlistData={{
+              reference: part.referenceRaw,
+              manufacturer: manufacturerName,
+              manufacturerSlug,
+              partSlug: part.slug,
+              name: part.name,
+              status: part.status,
+            }}
           />
         ))}
       </div>

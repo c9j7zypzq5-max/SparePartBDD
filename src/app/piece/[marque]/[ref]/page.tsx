@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PartCard } from "@/components/part-card";
 import { SellerTable } from "@/components/seller-table";
 import { StatusBadge } from "@/components/status-badge";
+import { WatchlistButton } from "@/components/watchlist-button";
 import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail } from "@/lib/queries";
 
@@ -33,6 +34,9 @@ export default async function PartPage({ params }: { params: Params }) {
   if (!detail) notFound();
 
   const { part, manufacturer, category } = detail;
+  const minPriceOffer = detail.offers.find((o) => o.offer.price != null);
+  const minPrice = minPriceOffer ? parseFloat(minPriceOffer.offer.price!) : undefined;
+  const currency = minPriceOffer?.offer.currency ?? "EUR";
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -86,6 +90,20 @@ export default async function PartPage({ params }: { params: Params }) {
             {part.lifecycleCheckedAt.toLocaleDateString("fr-FR")}
           </span>
         )}
+        <WatchlistButton
+          entry={{
+            reference: part.referenceRaw,
+            manufacturer: manufacturer.name,
+            manufacturerSlug: manufacturer.slug,
+            partSlug: part.slug,
+            name: part.name,
+            status: part.status,
+            minPrice,
+            currency,
+            dateAdded: new Date().toISOString(),
+            snapshotDate: new Date().toISOString(),
+          }}
+        />
       </div>
       <p className="mt-2 text-lg text-zinc-600">{part.name}</p>
       <p className="mt-4 max-w-3xl text-zinc-700">
