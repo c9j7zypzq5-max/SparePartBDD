@@ -1,42 +1,27 @@
 import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
-import { PartCard } from "@/components/part-card";
-import {
-  getHomeStats,
-  getManufacturersWithCounts,
-  getRecentSupersessions,
-} from "@/lib/queries";
+import { BrandLogo } from "@/components/brand-logo";
+import { getHomepageData, getRecentSupersessions } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
-const VERTICALES = [
-  {
-    label: "Industrie",
-    description: "Automates, variateurs, contacteurs, IHM, pneumatique — Siemens, Schneider, ABB, Rockwell…",
-    example: "6ES7315-2AH14-0AB0",
-    icon: "⚙️",
-  },
-  {
-    label: "Informatique",
-    description: "Alimentations serveur, modules réseau, SFP, RAID, batteries — Cisco, Dell, HPE, Lenovo…",
-    example: "PWR-C1-715WAC",
-    icon: "🖥️",
-  },
-];
-
 export default async function HomePage() {
-  let stats = { partsCount: 0, manufacturersCount: 0, offersCount: 0, obsoleteCount: 0 };
-  let manufacturers: Awaited<ReturnType<typeof getManufacturersWithCounts>> = [];
+  let data: Awaited<ReturnType<typeof getHomepageData>> = {
+    stats: { partsCount: 0, manufacturersCount: 0, categoriesCount: 0 },
+    topManufacturers: [],
+    topCategories: [],
+  };
   let supersessionRows: Awaited<ReturnType<typeof getRecentSupersessions>> = [];
   try {
-    [stats, manufacturers, supersessionRows] = await Promise.all([
-      getHomeStats(),
-      getManufacturersWithCounts(),
+    [data, supersessionRows] = await Promise.all([
+      getHomepageData(),
       getRecentSupersessions(4),
     ]);
   } catch {
     // Base indisponible : la home reste utilisable sans les sections data.
   }
+
+  const { stats, topManufacturers, topCategories } = data;
 
   return (
     <div>
@@ -54,14 +39,13 @@ export default async function HomePage() {
             Industrie & Informatique
           </p>
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-            Une référence.{" "}
+            Le catalogue de référence{" "}
             <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
-              Toutes les réponses.
+              pour les pièces industrielles et IT
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-zinc-400">
-            Statut de fabrication, remplacement officiel, pièces compatibles et
-            vendeurs — du neuf constructeur à l&apos;occasion.
+            Trouvez, comparez et accédez aux revendeurs en quelques secondes.
           </p>
           <div className="mt-8">
             <SearchBar autoFocus large />
@@ -81,15 +65,14 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Chiffres clés */}
       {stats.partsCount > 0 && (
         <section className="relative z-10 -mt-10 mb-12">
-          <div className="mx-auto grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mx-auto grid max-w-3xl grid-cols-3 gap-3">
             {[
-              { value: stats.partsCount, label: "pièces référencées" },
-              { value: stats.manufacturersCount, label: "fabricants" },
-              { value: stats.offersCount, label: "offres vendeurs" },
-              { value: stats.obsoleteCount, label: "obsolètes tracées" },
+              { value: stats.partsCount.toLocaleString("fr-FR"), label: "références" },
+              { value: stats.manufacturersCount.toLocaleString("fr-FR"), label: "marques" },
+              { value: stats.categoriesCount.toLocaleString("fr-FR"), label: "catégories" },
             ].map((s) => (
               <div
                 key={s.label}
@@ -103,28 +86,57 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Verticales */}
-      <section className="mb-14">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {VERTICALES.map((v) => (
-            <Link
-              key={v.label}
-              href={`/recherche?q=${encodeURIComponent(v.example)}`}
-              className="group rounded-2xl border border-zinc-200 p-6 transition hover:border-blue-400 hover:shadow-md"
-            >
-              <div className="text-3xl">{v.icon}</div>
-              <h2 className="mt-3 text-xl font-semibold text-zinc-900 group-hover:text-blue-700">
-                {v.label}
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-500">
-                {v.description}
-              </p>
+      {/* Marques populaires */}
+      {topManufacturers.length > 0 && (
+        <section className="mb-14">
+          <h2 className="text-2xl font-bold tracking-tight">Marques populaires</h2>
+          <div className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            {topManufacturers.map(({ manufacturer: m }) => (
+              <Link
+                key={m.id}
+                href={`/marque/${m.slug}`}
+                className="flex flex-col items-center gap-2 rounded-xl border border-zinc-200 p-4 text-center transition hover:border-blue-400 hover:shadow-sm"
+              >
+                <BrandLogo slug={m.slug} name={m.name} size={40} />
+                <span className="text-xs font-medium text-zinc-700">{m.name}</span>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-4 text-right">
+            <Link href="/marques" className="text-sm text-zinc-500 hover:text-zinc-900">
+              Toutes les marques →
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
-      {/* Remplacements */}
+      {/* Catégories principales */}
+      {topCategories.length > 0 && (
+        <section className="mb-14">
+          <h2 className="text-2xl font-bold tracking-tight">Catégories principales</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {topCategories.map(({ category, partsCount }) => (
+              <Link
+                key={category.id}
+                href={`/categorie/${category.slug}`}
+                className="rounded-xl border border-zinc-200 p-4 transition hover:border-blue-400 hover:shadow-sm"
+              >
+                <div className="font-semibold text-zinc-900">{category.name}</div>
+                <div className="mt-1 text-sm text-zinc-500">
+                  {partsCount} référence{partsCount > 1 ? "s" : ""} →
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="mt-4 text-right">
+            <Link href="/categories" className="text-sm text-zinc-500 hover:text-zinc-900">
+              Toutes les catégories →
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Remplacements récents */}
       {supersessionRows.length > 0 && (
         <section className="mb-14">
           <h2 className="text-2xl font-bold tracking-tight">
@@ -163,23 +175,24 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Marques */}
-      {manufacturers.length > 0 && (
-        <section className="mb-10">
-          <h2 className="text-2xl font-bold tracking-tight">Parcourir par marque</h2>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {manufacturers.map(({ manufacturer: m, partsCount }) => (
-              <Link
-                key={m.id}
-                href={`/marque/${m.slug}`}
-                className="rounded-full border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
-              >
-                {m.name} <span className="text-zinc-400">· {partsCount}</span>
-              </Link>
-            ))}
+      {/* CTA Ma liste */}
+      <section className="mb-14 rounded-2xl border border-blue-200 bg-blue-50 p-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-zinc-900">Gérez vos références</h2>
+            <p className="mt-1 max-w-md text-sm text-zinc-600">
+              Constituez votre liste de pièces à surveiller, exportez-la en CSV et
+              comparez vos références en un coup d&apos;œil.
+            </p>
           </div>
-        </section>
-      )}
+          <Link
+            href="/liste"
+            className="shrink-0 rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Voir ma liste →
+          </Link>
+        </div>
+      </section>
 
       {/* Comment ça marche */}
       <section className="mb-8 rounded-2xl bg-zinc-50 p-8">

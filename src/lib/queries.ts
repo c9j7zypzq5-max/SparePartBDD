@@ -373,6 +373,34 @@ export async function getHomeStats() {
   return stats;
 }
 
+export async function getHomepageData() {
+  const [stats, manufacturersWithCounts, categoriesWithCounts] = await Promise.all([
+    getHomeStats(),
+    getManufacturersWithCounts(),
+    getCategoriesWithCounts(),
+  ]);
+
+  const topManufacturers = [...manufacturersWithCounts]
+    .sort((a, b) => b.partsCount - a.partsCount)
+    .slice(0, 12);
+
+  const topCategories = [...categoriesWithCounts]
+    .sort((a, b) => b.partsCount - a.partsCount)
+    .slice(0, 8);
+
+  const categoriesCount = categoriesWithCounts.filter((c) => c.partsCount > 0).length;
+
+  return {
+    stats: {
+      partsCount: stats.partsCount,
+      manufacturersCount: stats.manufacturersCount,
+      categoriesCount,
+    },
+    topManufacturers,
+    topCategories,
+  };
+}
+
 /** Pièces obsolètes avec leur remplacement officiel, pour la home. */
 export async function getRecentSupersessions(limit = 4) {
   const oldParts = aliasedTable(parts, "old_parts");
