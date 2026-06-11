@@ -4,6 +4,7 @@ import Link from "next/link";
 import { StatusBadge } from "./status-badge";
 import { BrandLogo } from "./brand-logo";
 import { WatchlistButton } from "./watchlist-button";
+import { CompareButton } from "./compare-button";
 import type { WatchlistEntry } from "@/lib/watchlist";
 
 export function PartCard({
@@ -66,6 +67,18 @@ export function PartCard({
                 ...watchlistData,
                 dateAdded: new Date().toISOString(),
                 snapshotDate: new Date().toISOString(),
+              }}
+            />
+          )}
+          {manufacturerSlug && (
+            <CompareButton
+              entry={{
+                referenceRaw,
+                name,
+                manufacturerName,
+                manufacturerSlug,
+                slug: href.split("/").pop() ?? "",
+                status,
               }}
             />
           )}

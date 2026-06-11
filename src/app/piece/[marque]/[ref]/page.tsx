@@ -6,6 +6,7 @@ import { SellerTable } from "@/components/seller-table";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { CompareButton } from "@/components/compare-button";
 import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail, getSimilarParts } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
@@ -115,6 +116,16 @@ export default async function PartPage({ params }: { params: Params }) {
             currency,
             dateAdded: new Date().toISOString(),
             snapshotDate: new Date().toISOString(),
+          }}
+        />
+        <CompareButton
+          entry={{
+            referenceRaw: part.referenceRaw,
+            name: part.name,
+            manufacturerName: manufacturer.name,
+            manufacturerSlug: manufacturer.slug,
+            slug: part.slug,
+            status: part.status,
           }}
         />
       </div>

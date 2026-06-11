@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import { siteUrl } from "@/lib/site-url";
 import { NavMenu } from "@/components/nav-menu";
+import { CompareBar } from "@/components/compare-bar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -39,7 +40,8 @@ export default function RootLayout({
             <NavMenu />
           </div>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+        <main className="mx-auto max-w-5xl px-4 py-8 pb-24">{children}</main>
+        <CompareBar />
         <footer className="mt-12 border-t border-zinc-200 bg-zinc-50">
           <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:grid-cols-3">
             <div>
