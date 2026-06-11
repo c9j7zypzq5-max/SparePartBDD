@@ -104,7 +104,11 @@ export async function getManufacturerBySlug(slug: string) {
   return manufacturer ?? null;
 }
 
-export async function getManufacturerPageData(slug: string, limit: number) {
+export async function getManufacturerPageData(
+  slug: string,
+  limit: number,
+  opts: { status?: string; sort?: string } = {},
+) {
   const [manufacturer] = await db
     .select()
     .from(manufacturers)
@@ -112,11 +116,24 @@ export async function getManufacturerPageData(slug: string, limit: number) {
     .limit(1);
   if (!manufacturer) return null;
 
+  const statusCondition =
+    opts.status === "active" || opts.status === "obsolete"
+      ? eq(parts.status, opts.status)
+      : undefined;
+
+  const order = opts.sort === "name_desc"
+    ? desc(parts.referenceNormalized)
+    : asc(parts.referenceNormalized);
+
   const [[countRow], [obsoleteRow], partRows] = await Promise.all([
     db
       .select({ total: sql<number>`count(*)::int` })
       .from(parts)
-      .where(eq(parts.manufacturerId, manufacturer.id)),
+      .where(
+        statusCondition
+          ? and(eq(parts.manufacturerId, manufacturer.id), statusCondition)
+          : eq(parts.manufacturerId, manufacturer.id),
+      ),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(parts)
@@ -124,8 +141,12 @@ export async function getManufacturerPageData(slug: string, limit: number) {
     db
       .select()
       .from(parts)
-      .where(eq(parts.manufacturerId, manufacturer.id))
-      .orderBy(asc(parts.referenceNormalized))
+      .where(
+        statusCondition
+          ? and(eq(parts.manufacturerId, manufacturer.id), statusCondition)
+          : eq(parts.manufacturerId, manufacturer.id),
+      )
+      .orderBy(order)
       .limit(limit),
   ]);
 
@@ -147,6 +168,30 @@ export async function getManufacturerPartsPaginated(
     .from(parts)
     .where(eq(parts.manufacturerId, manufacturerId))
     .orderBy(asc(parts.referenceNormalized))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getManufacturerPartsPaginatedFiltered(
+  manufacturerId: number,
+  limit: number,
+  offset: number,
+  opts: { status?: string; sort?: string } = {},
+) {
+  const conditions: ReturnType<typeof eq>[] = [eq(parts.manufacturerId, manufacturerId)];
+  if (opts.status === "active" || opts.status === "obsolete") {
+    conditions.push(eq(parts.status, opts.status));
+  }
+
+  const order = opts.sort === "name_desc"
+    ? desc(parts.referenceNormalized)
+    : asc(parts.referenceNormalized);
+
+  return db
+    .select()
+    .from(parts)
+    .where(and(...conditions))
+    .orderBy(order)
     .limit(limit)
     .offset(offset);
 }

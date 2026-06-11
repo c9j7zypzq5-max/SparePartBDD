@@ -4,6 +4,7 @@ import { SearchBar } from "@/components/search-bar";
 import { PartCard } from "@/components/part-card";
 import { searchService } from "@/lib/search/postgres-search";
 import { getAllManufacturers } from "@/lib/queries";
+import type { SearchOptions } from "@/lib/search/search-service";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ type Search = Promise<{
   statut?: string;
   marque?: string;
   page?: string;
+  sort?: string;
 }>;
 
 const PAGE_SIZE = 20;
@@ -29,12 +31,20 @@ const STATUS_FILTERS = [
   { value: "obsolete", label: "Obsolètes" },
 ];
 
+const SORT_FILTERS = [
+  { value: "", label: "Pertinence" },
+  { value: "price_asc", label: "Prix croissant" },
+  { value: "price_desc", label: "Prix décroissant" },
+  { value: "name_asc", label: "Nom A→Z" },
+];
+
 /** Construit une URL /recherche en omettant les paramètres vides. */
 function buildHref(params: {
   q: string;
   industrie?: string;
   statut?: string;
   marque?: string;
+  sort?: string;
   page?: number;
 }): string {
   const sp = new URLSearchParams();
@@ -42,6 +52,7 @@ function buildHref(params: {
   if (params.industrie) sp.set("industrie", params.industrie);
   if (params.statut) sp.set("statut", params.statut);
   if (params.marque) sp.set("marque", params.marque);
+  if (params.sort) sp.set("sort", params.sort);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   return `/recherche?${sp.toString()}`;
 }
@@ -63,7 +74,7 @@ export default async function SearchPage({
 }: {
   searchParams: Search;
 }) {
-  const { q, industrie, statut, marque, page: pageParam } = await searchParams;
+  const { q, industrie, statut, marque, page: pageParam, sort } = await searchParams;
   const query = q?.trim() ?? "";
   const industry = INDUSTRY_FILTERS.some((f) => f.value === industrie)
     ? industrie
@@ -83,6 +94,7 @@ export default async function SearchPage({
           industry: industry || undefined,
           status: status || undefined,
           manufacturerSlug: marque || undefined,
+          sortBy: (sort as SearchOptions["sortBy"]) || "relevance",
         }),
         getAllManufacturers(),
       ])
@@ -93,7 +105,8 @@ export default async function SearchPage({
     ? `Plus de ${page * PAGE_SIZE} résultats`
     : `${(page - 1) * PAGE_SIZE + hits.length} résultat${(page - 1) * PAGE_SIZE + hits.length > 1 ? "s" : ""}`;
 
-  const base = { q: query, industrie: industry, statut: status, marque };
+  const validSort = SORT_FILTERS.some((f) => f.value === sort) ? sort : undefined;
+  const base = { q: query, industrie: industry, statut: status, marque, sort: validSort };
 
   return (
     <div>
@@ -152,6 +165,17 @@ export default async function SearchPage({
                 {manufacturers.map((m) => (
                   <option key={m.id} value={m.slug}>
                     {m.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="sort"
+                defaultValue={validSort ?? ""}
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-600"
+              >
+                {SORT_FILTERS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
                   </option>
                 ))}
               </select>

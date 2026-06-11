@@ -31,6 +31,22 @@ export class PostgresSearchService implements SearchService {
       ? sql` AND m.slug = ${options.manufacturerSlug}`
       : sql``;
 
+    const sortBy = options.sortBy ?? "relevance";
+    let orderClause;
+    switch (sortBy) {
+      case "price_asc":
+        orderClause = sql`ORDER BY (SELECT MIN(price::numeric) FROM offers WHERE part_id = p.id) ASC NULLS LAST`;
+        break;
+      case "price_desc":
+        orderClause = sql`ORDER BY (SELECT MIN(price::numeric) FROM offers WHERE part_id = p.id) DESC NULLS LAST`;
+        break;
+      case "name_asc":
+        orderClause = sql`ORDER BY p.name ASC`;
+        break;
+      default:
+        orderClause = sql`ORDER BY score DESC`;
+    }
+
     const rows = await db.execute(sql`
       WITH ref_matches AS (
         SELECT p.id,
@@ -71,7 +87,7 @@ export class PostgresSearchService implements SearchService {
       JOIN ref_matches rm ON rm.id = p.id
       LEFT JOIN text_matches tm ON tm.id = p.id
       WHERE (rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01)${industryFilter}${statusFilter}${manufacturerFilter}
-      ORDER BY score DESC
+      ${orderClause}
       LIMIT ${limit}
       OFFSET ${offset}
     `);

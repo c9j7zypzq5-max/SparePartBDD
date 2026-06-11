@@ -29,6 +29,8 @@ export interface SearchOptions {
   status?: string;
   /** Restreint à un fabricant (slug) */
   manufacturerSlug?: string;
+  /** Tri des résultats */
+  sortBy?: "relevance" | "price_asc" | "price_desc" | "name_asc";
 }
 
 export interface SearchService {
