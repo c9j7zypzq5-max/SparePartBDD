@@ -9,6 +9,8 @@
  *   npx tsx scripts/ingest/accumulate.ts --update        → update continu des pièces existantes
  *   npx tsx scripts/ingest/accumulate.ts --update --once → test un seul batch d'update
  *   npx tsx scripts/ingest/accumulate.ts --stats         → résumé sans modifier
+ *   npx tsx scripts/ingest/accumulate.ts --repair        → répare les pièces incomplètes (description/URL/status/category)
+ *   npx tsx scripts/ingest/accumulate.ts --repair --once → test un seul batch de repair
  *
  * Requires:
  *   - .env at repo root with INGEST_API_KEY
@@ -49,7 +51,8 @@ const ONCE_MODE   = process.argv.includes("--once");
 const UPDATE_MODE = process.argv.includes("--update");
 const CLEAN_MODE  = process.argv.includes("--clean");
 const STATS_MODE  = process.argv.includes("--stats");
-const ENRICH_MODE = !UPDATE_MODE && !CLEAN_MODE && !STATS_MODE; // default
+const REPAIR_MODE = process.argv.includes("--repair");
+const ENRICH_MODE = !UPDATE_MODE && !CLEAN_MODE && !STATS_MODE && !REPAIR_MODE; // default
 
 // ---------------------------------------------------------------------------
 // Types — exact mirror of src/lib/ingest-types.ts
@@ -117,6 +120,7 @@ interface LastStats {
 interface AppState {
   enrich: { batchIndex: number; generationRound: number };
   update: { batchOffset: number };
+  repair: { cursor: number };
   lastRun?: string;
   lastStats?: LastStats;
 }
@@ -127,7 +131,7 @@ function loadState(): AppState {
       return JSON.parse(fs.readFileSync(STATE_FILE, "utf-8")) as AppState;
     } catch { /* corrupt state, start fresh */ }
   }
-  return { enrich: { batchIndex: 0, generationRound: 0 }, update: { batchOffset: 0 } };
+  return { enrich: { batchIndex: 0, generationRound: 0 }, update: { batchOffset: 0 }, repair: { cursor: 0 } };
 }
 
 function saveState(state: AppState): void {
@@ -654,6 +658,187 @@ async function sendToApi(payload: IngestPayload): Promise<IngestResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Mode: --repair
+// ---------------------------------------------------------------------------
+
+const REPAIR_API_URL  = "https://spare-part-bdd.vercel.app/api/repair/incomplete";
+const REPAIR_BATCH_SIZE = 8;
+
+interface RepairPart {
+  id: number;
+  manufacturer: string;
+  reference: string;
+  industry: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  status: string;
+  productUrl: string | null;
+  attributes: Record<string, string> | null;
+}
+
+let repairBatchCounter = 0;
+
+function buildRepairPrompt(parts: RepairPart[]): string {
+  repairBatchCounter++;
+  const batchId = `R${String(repairBatchCounter).padStart(3, "0")}`;
+
+  const list = parts.map((p) => {
+    const missing: string[] = [];
+    if (!p.description) missing.push("description");
+    if (p.status === "unknown") missing.push("status");
+    if (!p.category) missing.push("category");
+    return `${p.manufacturer} ${p.reference} "${p.name}" → MANQUE: ${missing.join(", ")}`;
+  }).join("\n");
+
+  return `Tu es un agent de réparation de données pour une base de pièces détachées industrielles et informatiques.
+
+Pour chaque pièce ci-dessous, fournis UNIQUEMENT les champs indiqués comme manquants (MANQUE:).
+Ne modifie AUCUN autre champ. Réponds UNIQUEMENT avec du JSON valide.
+
+## Pièces à compléter (batch ${batchId})
+
+${list}
+
+## Format JSON EXACT (IngestPayload) :
+
+{
+  "source": "ollama-repair-${batchId}",
+  "parts": [
+    {
+      "manufacturer": "NomFabricant",
+      "industry": "industrie",
+      "reference": "REFERENCE_EXACTE",
+      "name": "Nom exact",
+      "description": "Description technique courte (2-3 phrases, uniquement si MANQUE contient description)",
+      "status": "active",
+      "category": "Catégorie (uniquement si MANQUE contient category)"
+    }
+  ]
+}
+
+## Valeurs autorisées :
+- industry : "industrie", "informatique", "automobile", "electromenager", "hvac", "electronique"
+- status : "active" (commercialisé), "obsolete" (fin de vie), "unknown" (incertain)
+- category : utiliser la catégorie la plus précise possible parmi les standards industriels
+
+## Règles :
+- N'inclus dans ta réponse QUE les champs listés dans MANQUE pour chaque pièce
+- Si tu n'es pas sûr d'une valeur, omets le champ plutôt que d'inventer
+- JSON valide uniquement, aucun commentaire
+
+Réponds UNIQUEMENT avec le JSON.`;
+}
+
+async function runRepairMode(model: string): Promise<void> {
+  const state = loadState();
+  const repairCursor = state.repair?.cursor ?? 0;
+
+  log("🔧  [repair] Fetching incomplete parts from DB…");
+  const fetchRes = await fetch(`${REPAIR_API_URL}?limit=2000`, {
+    headers: { Authorization: `Bearer ${INGEST_API_KEY}` },
+  });
+  if (!fetchRes.ok) {
+    log(`❌  repair/incomplete HTTP ${fetchRes.status}: ${await fetchRes.text()}`);
+    return;
+  }
+  const { parts: allParts } = (await fetchRes.json()) as { parts: RepairPart[] };
+
+  const missingDesc    = allParts.filter((p) => !p.description).length;
+  const missingUrl     = allParts.filter((p) => !p.productUrl).length;
+  const unknownStatus  = allParts.filter((p) => p.status === "unknown").length;
+  const missingCat     = allParts.filter((p) => !p.category).length;
+
+  log(`[Repair] Found ${allParts.length} parts to repair (${missingDesc} missing description, ${missingUrl} missing URL, ${unknownStatus} unknown status, ${missingCat} missing category)`);
+
+  if (allParts.length === 0) { log("✅  Nothing to repair."); return; }
+
+  // Resume from cursor (offset into fetched list)
+  let cursor = repairCursor >= allParts.length ? 0 : repairCursor;
+  if (cursor > 0) log(`▶  Resuming from offset ${cursor}/${allParts.length}`);
+
+  let totalUpdated = 0, totalErrors = 0;
+
+  while (cursor < allParts.length) {
+    const batch = allParts.slice(cursor, cursor + REPAIR_BATCH_SIZE);
+    log(`▶  [repair] batch ${Math.floor(cursor / REPAIR_BATCH_SIZE) + 1}/${Math.ceil(allParts.length / REPAIR_BATCH_SIZE)} — ${batch.map((p) => p.reference).join(", ")}`);
+    const batchStart = Date.now();
+
+    // Determine which parts need Ollama (missing description/category/status)
+    const needsOllama = batch.filter((p) => !p.description || p.status === "unknown" || !p.category);
+
+    // Collect Ollama results keyed by normalizedRef
+    const ollamaMap = new Map<string, IngestPart>();
+
+    if (needsOllama.length > 0) {
+      let raw: string;
+      try { raw = await callOllama(buildRepairPrompt(needsOllama), model); }
+      catch (err) { log(`❌  Ollama: ${err}`); totalErrors++; cursor += REPAIR_BATCH_SIZE; saveState({ ...state, repair: { cursor }, lastRun: new Date().toISOString() }); if (ONCE_MODE) break; await pause(); continue; }
+
+      let payload: IngestPayload;
+      try { payload = extractPayload(raw); }
+      catch (err) { log(`❌  JSON parse: ${err}\n   Raw (500): ${raw.slice(0, 500)}`); totalErrors++; cursor += REPAIR_BATCH_SIZE; saveState({ ...state, repair: { cursor }, lastRun: new Date().toISOString() }); if (ONCE_MODE) break; await pause(); continue; }
+
+      for (const p of validateParts(payload.parts)) {
+        ollamaMap.set(normalizeRef(p.reference), p);
+      }
+    }
+
+    // Build merged IngestParts (preserve existing values, fill only missing)
+    const partsToIngest: IngestPart[] = [];
+    for (const part of batch) {
+      const refNorm = normalizeRef(part.reference);
+      const ollama  = ollamaMap.get(refNorm);
+
+      const ingestPart: IngestPart = {
+        manufacturer: part.manufacturer,
+        industry:     part.industry as Industry,
+        reference:    part.reference,
+        name:         part.name,
+        status:       (part.status !== "unknown" ? part.status : (ollama?.status ?? "unknown")) as PartStatus,
+        // Preserve existing; fill from Ollama only if missing
+        ...(part.description ? { description: part.description } : ollama?.description ? { description: ollama.description } : {}),
+        ...(part.category    ? { category:    part.category    } : ollama?.category    ? { category:    ollama.category    } : {}),
+        ...(part.attributes  ? { attributes:  part.attributes  } : {}),
+        ...(part.productUrl  ? { productUrl:  part.productUrl  } : {}),
+      };
+
+      // Find productUrl only if still missing
+      if (!ingestPart.productUrl) {
+        const found = await findProductUrl(part.reference, part.manufacturer);
+        if (found) {
+          ingestPart.productUrl = found;
+          log(`   🔗  ${part.reference} → ${found}`);
+        }
+      }
+
+      partsToIngest.push(ingestPart);
+    }
+
+    let result: IngestResult;
+    try { result = await sendToApi({ source: `ollama-repair-${repairBatchCounter}`, parts: partsToIngest }); }
+    catch (err) { log(`❌  API: ${err}`); totalErrors++; cursor += REPAIR_BATCH_SIZE; saveState({ ...state, repair: { cursor }, lastRun: new Date().toISOString() }); if (ONCE_MODE) break; await pause(); continue; }
+
+    totalUpdated += result.partsUpdated ?? 0;
+    const elapsed = Date.now() - batchStart;
+    log(`✅  Repair batch (${elapsed}ms): ~${result.partsUpdated} updated${result.errors?.length ? ` (${result.errors.length} errors)` : ""}`);
+    console.log(`\n   📊  Repair session: ~${totalUpdated} updated, ${totalErrors} errors\n`);
+
+    cursor += REPAIR_BATCH_SIZE;
+    saveState({ ...state, repair: { cursor }, lastRun: new Date().toISOString() });
+    if (ONCE_MODE) { log("--once: stopping."); break; }
+    await pause();
+  }
+
+  if (!ONCE_MODE && cursor >= allParts.length) {
+    saveState({ ...state, repair: { cursor: 0 }, lastRun: new Date().toISOString() });
+    log(`\n🏁  Repair cycle complete. ~${totalUpdated} updated, ${totalErrors} errors`);
+  } else {
+    log(`\n🏁  Repair done. ~${totalUpdated} updated, ${totalErrors} errors`);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Mode: --clean
 // ---------------------------------------------------------------------------
 
@@ -1135,7 +1320,7 @@ process.on("SIGINT", () => {
 });
 
 async function main(): Promise<void> {
-  const modeLabel = STATS_MODE ? "--stats" : UPDATE_MODE ? "--update" : CLEAN_MODE ? "--clean" : "--enrich";
+  const modeLabel = STATS_MODE ? "--stats" : UPDATE_MODE ? "--update" : CLEAN_MODE ? "--clean" : REPAIR_MODE ? "--repair" : "--enrich";
   console.log("═══════════════════════════════════════════════════════════");
   console.log("   SparePartSearch — Catalog Accumulator");
   console.log(`   Mode: ${modeLabel}${ONCE_MODE ? " --once" : STATS_MODE ? "" : " (continuous)"}`);
@@ -1154,6 +1339,8 @@ async function main(): Promise<void> {
     await runUpdateMode(model);
   } else if (CLEAN_MODE) {
     await runCleanMode(model);
+  } else if (REPAIR_MODE) {
+    await runRepairMode(model);
   } else {
     await runEnrichMode(model);
   }
