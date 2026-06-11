@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PartCard } from "@/components/part-card";
 import { SellerTable } from "@/components/seller-table";
 import { StatusBadge } from "@/components/status-badge";
+import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -87,9 +88,15 @@ export default async function PartPage({ params }: { params: Params }) {
         )}
       </div>
       <p className="mt-2 text-lg text-zinc-600">{part.name}</p>
-      {part.description && (
-        <p className="mt-4 max-w-3xl text-zinc-700">{part.description}</p>
-      )}
+      <p className="mt-4 max-w-3xl text-zinc-700">
+        {part.description ??
+          generatePartDescription(
+            part.name,
+            manufacturer.name,
+            manufacturer.industry,
+            category?.name,
+          )}
+      </p>
       {part.productUrl && (
         <a
           href={part.productUrl}

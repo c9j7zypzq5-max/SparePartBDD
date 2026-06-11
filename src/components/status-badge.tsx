@@ -5,6 +5,10 @@ const LABELS: Record<string, { text: string; className: string }> = {
   },
   obsolete: {
     text: "Obsolète",
+    className: "bg-orange-100 text-orange-800",
+  },
+  end_of_life: {
+    text: "Fin de vie",
     className: "bg-red-100 text-red-800",
   },
   unknown: {
