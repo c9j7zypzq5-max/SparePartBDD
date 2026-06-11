@@ -18,34 +18,38 @@ export function InfinitePartsList({
   initialParts,
   totalCount,
   extraParams = {},
+  initialOffset = 0,
 }: {
   apiPath: string;
   initialParts: PartSummary[];
   totalCount: number;
   extraParams?: Record<string, string>;
+  initialOffset?: number;
 }) {
+  const startOffset = initialOffset + initialParts.length;
   const [parts, setParts] = useState(initialParts);
   const [loading, setLoading] = useState(false);
-  const [exhausted, setExhausted] = useState(initialParts.length >= totalCount);
+  const [exhausted, setExhausted] = useState(startOffset >= totalCount);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
-  const offsetRef = useRef(initialParts.length);
-  const exhaustedRef = useRef(initialParts.length >= totalCount);
+  const offsetRef = useRef(startOffset);
+  const exhaustedRef = useRef(startOffset >= totalCount);
   const extraParamsRef = useRef(extraParams);
 
   useEffect(() => {
     extraParamsRef.current = extraParams;
   }, [extraParams]);
 
-  // Reset list when extraParams change (e.g. filter change navigates to new SSR page)
+  // Reset list when extraParams change (e.g. filter/page change navigates to new SSR page)
   const extraParamsKey = JSON.stringify(extraParams);
   useEffect(() => {
+    const start = initialOffset + initialParts.length;
     setParts(initialParts);
-    offsetRef.current = initialParts.length;
-    exhaustedRef.current = initialParts.length >= totalCount;
-    setExhausted(initialParts.length >= totalCount);
+    offsetRef.current = start;
+    exhaustedRef.current = start >= totalCount;
+    setExhausted(start >= totalCount);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [extraParamsKey]);
+  }, [extraParamsKey, initialOffset]);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || exhaustedRef.current) return;

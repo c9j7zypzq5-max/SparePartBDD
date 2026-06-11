@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCategoryPageData } from "@/lib/queries";
 import { InfinitePartsList } from "@/components/infinite-parts-list";
@@ -9,6 +10,11 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 24;
 
 type Params = Promise<{ slug: string }>;
+type SearchParams = Promise<{ page?: string }>;
+
+function buildCategoryHref(slug: string, page: number): string {
+  return page > 1 ? `/categorie/${slug}?page=${page}` : `/categorie/${slug}`;
+}
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
@@ -30,10 +36,21 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-export default async function CategoryPage({ params }: { params: Params }) {
+export default async function CategoryPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
   const { slug } = await params;
-  const data = await getCategoryPageData(slug, PAGE_SIZE);
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+  const data = await getCategoryPageData(slug, PAGE_SIZE, { offset });
   if (!data) notFound();
+
+  const hasNextPage = data.totalCount > page * PAGE_SIZE;
 
   return (
     <div>
@@ -58,6 +75,9 @@ export default async function CategoryPage({ params }: { params: Params }) {
           Exporter CSV
         </a>
       </div>
+      {page > 1 && (
+        <p className="mt-3 text-sm text-zinc-500">Page {page}</p>
+      )}
       <InfinitePartsList
         apiPath={`/api/categorie/${slug}/parts`}
         initialParts={data.parts.map(({ part, manufacturer }) => ({
@@ -70,7 +90,30 @@ export default async function CategoryPage({ params }: { params: Params }) {
           manufacturerName: manufacturer.name,
         }))}
         totalCount={data.totalCount}
+        initialOffset={offset}
       />
+
+      {(page > 1 || hasNextPage) && (
+        <nav className="mt-8 flex items-center justify-center gap-4 text-sm font-medium">
+          {page > 1 && (
+            <Link
+              href={buildCategoryHref(slug, page - 1)}
+              className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
+            >
+              ← Page précédente
+            </Link>
+          )}
+          <span className="text-zinc-500">Page {page}</span>
+          {hasNextPage && (
+            <Link
+              href={buildCategoryHref(slug, page + 1)}
+              className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
+            >
+              Page suivante →
+            </Link>
+          )}
+        </nav>
+      )}
     </div>
   );
 }

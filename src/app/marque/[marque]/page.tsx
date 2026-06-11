@@ -11,15 +11,16 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 24;
 
 type Params = Promise<{ marque: string }>;
-type SearchParams = Promise<{ status?: string; sort?: string }>;
+type SearchParams = Promise<{ status?: string; sort?: string; page?: string }>;
 
 function buildBrandHref(
   slug: string,
-  params: { status?: string; sort?: string },
+  params: { status?: string; sort?: string; page?: number },
 ): string {
   const sp = new URLSearchParams();
   if (params.status) sp.set("status", params.status);
   if (params.sort) sp.set("sort", params.sort);
+  if (params.page && params.page > 1) sp.set("page", String(params.page));
   const qs = sp.toString();
   return `/marque/${slug}${qs ? `?${qs}` : ""}`;
 }
@@ -52,9 +53,13 @@ export default async function ManufacturerPage({
   searchParams: SearchParams;
 }) {
   const { marque } = await params;
-  const { status, sort } = await searchParams;
-  const data = await getManufacturerPageData(marque, PAGE_SIZE, { status, sort });
+  const { status, sort, page: pageParam } = await searchParams;
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
+  const data = await getManufacturerPageData(marque, PAGE_SIZE, { status, sort, offset });
   if (!data) notFound();
+
+  const hasNextPage = data.totalCount > page * PAGE_SIZE;
 
   const STATUS_FILTERS = [
     { value: "", label: "Tous" },
@@ -136,6 +141,9 @@ export default async function ManufacturerPage({
           })}
         </div>
       </div>
+      {page > 1 && (
+        <p className="mt-3 text-sm text-zinc-500">Page {page}</p>
+      )}
 
       <InfinitePartsList
         apiPath={`/api/marque/${marque}/parts`}
@@ -149,11 +157,34 @@ export default async function ManufacturerPage({
           manufacturerName: data.manufacturer.name,
         }))}
         totalCount={data.totalCount}
+        initialOffset={offset}
         extraParams={{
           ...(status ? { status } : {}),
           ...(sort ? { sort } : {}),
         }}
       />
+
+      {(page > 1 || hasNextPage) && (
+        <nav className="mt-8 flex items-center justify-center gap-4 text-sm font-medium">
+          {page > 1 && (
+            <Link
+              href={buildBrandHref(marque, { status, sort, page: page - 1 })}
+              className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
+            >
+              ← Page précédente
+            </Link>
+          )}
+          <span className="text-zinc-500">Page {page}</span>
+          {hasNextPage && (
+            <Link
+              href={buildBrandHref(marque, { status, sort, page: page + 1 })}
+              className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
+            >
+              Page suivante →
+            </Link>
+          )}
+        </nav>
+      )}
     </div>
   );
 }
