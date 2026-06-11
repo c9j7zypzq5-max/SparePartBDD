@@ -174,6 +174,7 @@ export default async function SearchPage({
             name={hit.name}
             referenceRaw={hit.referenceRaw}
             manufacturerName={hit.manufacturerName}
+            manufacturerSlug={hit.manufacturerSlug}
             status={hit.status}
             industry={hit.industry}
           />

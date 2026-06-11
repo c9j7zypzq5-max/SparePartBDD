@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getManufacturersWithCounts } from "@/lib/queries";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -46,12 +47,15 @@ export default async function BrandsPage() {
               <Link
                 key={m.id}
                 href={`/marque/${m.slug}`}
-                className="rounded-xl border border-zinc-200 p-4 transition hover:border-blue-400 hover:shadow-sm"
+                className="flex items-center gap-3 rounded-xl border border-zinc-200 p-4 transition hover:border-blue-400 hover:shadow-sm"
               >
-                <div className="font-semibold text-zinc-900">{m.name}</div>
-                <div className="mt-1 text-sm text-zinc-500">
-                  {partsCount} pièce{partsCount > 1 ? "s" : ""} référencée
-                  {partsCount > 1 ? "s" : ""} →
+                <BrandLogo slug={m.slug} name={m.name} size={40} />
+                <div>
+                  <div className="font-semibold text-zinc-900">{m.name}</div>
+                  <div className="mt-1 text-sm text-zinc-500">
+                    {partsCount} pièce{partsCount > 1 ? "s" : ""} référencée
+                    {partsCount > 1 ? "s" : ""} →
+                  </div>
                 </div>
               </Link>
             ))}

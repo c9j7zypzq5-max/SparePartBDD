@@ -76,6 +76,7 @@ export function InfinitePartsList({
             name={part.name}
             referenceRaw={part.referenceRaw}
             manufacturerName={manufacturerName}
+            manufacturerSlug={manufacturerSlug}
             status={part.status}
           />
         ))}

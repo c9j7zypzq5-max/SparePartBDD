@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { StatusBadge } from "./status-badge";
+import { BrandLogo } from "./brand-logo";
 
 export function PartCard({
   href,
   name,
   referenceRaw,
   manufacturerName,
+  manufacturerSlug,
   status,
   industry,
   confidence,
@@ -14,6 +16,7 @@ export function PartCard({
   name: string;
   referenceRaw: string;
   manufacturerName: string;
+  manufacturerSlug?: string;
   status: string;
   industry?: string;
   /** Score 0..1 de confiance dans la compatibilité (affiché si fourni) */
@@ -26,7 +29,10 @@ export function PartCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="font-mono text-sm text-zinc-500">
+          <div className="flex items-center gap-1.5 font-mono text-sm text-zinc-500">
+            {manufacturerSlug && (
+              <BrandLogo slug={manufacturerSlug} name={manufacturerName} size={20} />
+            )}
             {manufacturerName} · {referenceRaw}
           </div>
           <div className="mt-1 font-medium text-zinc-900">{name}</div>

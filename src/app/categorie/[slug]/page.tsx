@@ -40,6 +40,7 @@ export default async function CategoryPage({ params }: { params: Params }) {
             name={part.name}
             referenceRaw={part.referenceRaw}
             manufacturerName={manufacturer.name}
+            manufacturerSlug={manufacturer.slug}
             status={part.status}
           />
         ))}

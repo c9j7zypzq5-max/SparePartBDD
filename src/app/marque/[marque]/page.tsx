@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getManufacturerBySlug, getManufacturerPageData } from "@/lib/queries";
 import { InfinitePartsList } from "@/components/infinite-parts-list";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -27,18 +28,23 @@ export default async function ManufacturerPage({ params }: { params: Params }) {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight">
-        Pièces détachées {data.manufacturer.name}
-      </h1>
-      <p className="mt-2 text-zinc-600">
-        <span className="capitalize">Industrie : {data.manufacturer.industry}</span>
-        {" · "}
-        {data.totalCount} pièce{data.totalCount > 1 ? "s" : ""} référencée
-        {data.totalCount > 1 ? "s" : ""}
-        {data.obsoleteCount > 0 && (
-          <> dont {data.obsoleteCount} obsolète{data.obsoleteCount > 1 ? "s" : ""}</>
-        )}
-      </p>
+      <div className="flex items-center gap-4">
+        <BrandLogo slug={marque} name={data.manufacturer.name} size={64} />
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Pièces détachées {data.manufacturer.name}
+          </h1>
+          <p className="mt-2 text-zinc-600">
+            <span className="capitalize">Industrie : {data.manufacturer.industry}</span>
+            {" · "}
+            {data.totalCount} pièce{data.totalCount > 1 ? "s" : ""} référencée
+            {data.totalCount > 1 ? "s" : ""}
+            {data.obsoleteCount > 0 && (
+              <> dont {data.obsoleteCount} obsolète{data.obsoleteCount > 1 ? "s" : ""}</>
+            )}
+          </p>
+        </div>
+      </div>
       <InfinitePartsList
         manufacturerSlug={marque}
         manufacturerName={data.manufacturer.name}

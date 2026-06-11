@@ -173,6 +173,7 @@ export default async function PartPage({ params }: { params: Params }) {
                 name={p.name}
                 referenceRaw={p.referenceRaw}
                 manufacturerName={m.name}
+                manufacturerSlug={m.slug}
                 status={p.status}
               />
             ))}
@@ -191,6 +192,7 @@ export default async function PartPage({ params }: { params: Params }) {
                 name={p.name}
                 referenceRaw={p.referenceRaw}
                 manufacturerName={m.name}
+                manufacturerSlug={m.slug}
                 status={p.status}
               />
             ))}
@@ -229,6 +231,7 @@ export default async function PartPage({ params }: { params: Params }) {
                 name={p.name}
                 referenceRaw={p.referenceRaw}
                 manufacturerName={m.name}
+                manufacturerSlug={m.slug}
                 status={p.status}
                 confidence={compatibility.confidence}
               />
