@@ -9,7 +9,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { CompareButton } from "@/components/compare-button";
 import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
-import { getPartDetail, getSimilarParts } from "@/lib/queries";
+import { getPartDetail, getSimilarParts, getAlternativeParts } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
@@ -48,12 +48,12 @@ export default async function PartPage({ params }: { params: Params }) {
 
   const { part, manufacturer, category } = detail;
 
-  const similarParts = await getSimilarParts(
-    part.id,
-    manufacturer.id,
-    category?.id ?? null,
-    6,
-  );
+  const [similarParts, alternativeParts] = await Promise.all([
+    getSimilarParts(part.id, manufacturer.id, category?.id ?? null, 6),
+    part.status === "obsolete"
+      ? getAlternativeParts(part.id, manufacturer.id, category?.id ?? null, part.referenceNormalized, 4)
+      : Promise.resolve([]),
+  ]);
   const completenessScore =
     (part.description != null ? 25 : 0) +
     (part.productUrl != null ? 25 : 0) +
@@ -182,6 +182,37 @@ export default async function PartPage({ params }: { params: Params }) {
         >
           Voir chez le fabricant ↗
         </a>
+      )}
+
+      {part.status === "obsolete" && (
+        <div className="mt-6 rounded-xl border border-orange-300 bg-orange-50 px-5 py-4">
+          <p className="font-semibold text-orange-900">
+            ⚠️ Cette pièce est obsolète. Voici des alternatives possibles :
+          </p>
+          {alternativeParts.length > 0 ? (
+            <div className="mt-3 grid gap-3">
+              {alternativeParts.map(({ part: p, manufacturer: m }) => (
+                <PartCard
+                  key={p.id}
+                  href={`/piece/${m.slug}/${p.slug}`}
+                  name={p.name}
+                  referenceRaw={p.referenceRaw}
+                  manufacturerName={m.name}
+                  manufacturerSlug={m.slug}
+                  status={p.status}
+                  updatedAt={p.updatedAt}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-orange-800">
+              Aucune alternative connue dans notre catalogue.{" "}
+              <Link href="/recherche" className="font-medium underline hover:no-underline">
+                Suggérez une référence de remplacement
+              </Link>
+            </p>
+          )}
+        </div>
       )}
 
       {part.status === "obsolete" && detail.replacedBy.length > 0 && (
