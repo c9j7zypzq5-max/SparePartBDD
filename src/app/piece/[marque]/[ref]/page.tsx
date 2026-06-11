@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail } from "@/lib/queries";
+import { siteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export default async function PartPage({ params }: { params: Params }) {
   const minPrice = minPriceOffer ? parseFloat(minPriceOffer.offer.price!) : undefined;
   const currency = minPriceOffer?.offer.currency ?? "EUR";
 
+  const priceOffers = detail.offers.filter((o) => o.offer.price != null);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -46,15 +48,16 @@ export default async function PartPage({ params }: { params: Params }) {
     mpn: part.referenceRaw,
     brand: { "@type": "Brand", name: manufacturer.name },
     description: part.description ?? undefined,
-    offers: detail.offers
-      .filter((o) => o.offer.price)
-      .map((o) => ({
-        "@type": "Offer",
-        price: o.offer.price,
-        priceCurrency: o.offer.currency ?? "EUR",
-        url: o.offer.url,
-        seller: { "@type": "Organization", name: o.seller.name },
-      })),
+    url: `${siteUrl}/piece/${manufacturer.slug}/${part.slug}`,
+    offers: priceOffers.length > 0
+      ? {
+          "@type": "AggregateOffer",
+          lowPrice: Math.min(...priceOffers.map((o) => parseFloat(o.offer.price!))),
+          priceCurrency: priceOffers[0].offer.currency ?? "EUR",
+          offerCount: priceOffers.length,
+          ...(part.status === "obsolete" ? { discontinued: true } : {}),
+        }
+      : undefined,
   };
 
   return (
