@@ -37,6 +37,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       status: p.status,
       manufacturerSlug: marque,
       manufacturerName: manufacturer.name,
+      updatedAt: p.updatedAt?.toISOString() ?? null,
     })),
     hasMore,
   });

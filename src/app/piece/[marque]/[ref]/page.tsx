@@ -54,6 +54,12 @@ export default async function PartPage({ params }: { params: Params }) {
     category?.id ?? null,
     6,
   );
+  const completenessScore =
+    (part.description != null ? 25 : 0) +
+    (part.productUrl != null ? 25 : 0) +
+    (part.status !== "unknown" ? 25 : 0) +
+    (category != null ? 25 : 0);
+
   const minPriceOffer = detail.offers.find((o) => o.offer.price != null);
   const minPrice = minPriceOffer ? parseFloat(minPriceOffer.offer.price!) : undefined;
   const currency = minPriceOffer?.offer.currency ?? "EUR";
@@ -105,6 +111,32 @@ export default async function PartPage({ params }: { params: Params }) {
             {part.lifecycleCheckedAt.toLocaleDateString("fr-FR")}
           </span>
         )}
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
+            <div
+              className={`h-full rounded-full transition-all ${
+                completenessScore === 100
+                  ? "bg-green-500"
+                  : completenessScore >= 50
+                    ? "bg-amber-400"
+                    : "bg-zinc-300"
+              }`}
+              style={{ width: `${completenessScore}%` }}
+            />
+          </div>
+          <span className="text-xs text-zinc-400">
+            {completenessScore === 100 ? (
+              <span className="text-green-600">✓ Fiche complète</span>
+            ) : (
+              `Complétude ${completenessScore}%`
+            )}
+          </span>
+          {part.updatedAt && (
+            <span className="text-xs text-zinc-400">
+              Mis à jour le {part.updatedAt.toLocaleDateString("fr-FR")}
+            </span>
+          )}
+        </div>
         <WatchlistButton
           entry={{
             reference: part.referenceRaw,
@@ -219,6 +251,7 @@ export default async function PartPage({ params }: { params: Params }) {
                 manufacturerName={m.name}
                 manufacturerSlug={m.slug}
                 status={p.status}
+                updatedAt={p.updatedAt}
               />
             ))}
           </div>
@@ -238,6 +271,7 @@ export default async function PartPage({ params }: { params: Params }) {
                 manufacturerName={m.name}
                 manufacturerSlug={m.slug}
                 status={p.status}
+                updatedAt={p.updatedAt}
               />
             ))}
           </div>
@@ -316,6 +350,7 @@ export default async function PartPage({ params }: { params: Params }) {
                 manufacturerName={m.name}
                 manufacturerSlug={m.slug}
                 status={p.status}
+                updatedAt={p.updatedAt}
                 watchlistData={{
                   reference: p.referenceRaw,
                   manufacturer: m.name,

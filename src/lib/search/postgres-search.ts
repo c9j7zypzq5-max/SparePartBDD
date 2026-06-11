@@ -78,6 +78,7 @@ export class PostgresSearchService implements SearchService {
              p.reference_raw,
              p.slug,
              p.status,
+             p.updated_at,
              m.name AS manufacturer_name,
              m.slug AS manufacturer_slug,
              m.industry,
@@ -102,6 +103,7 @@ export class PostgresSearchService implements SearchService {
       manufacturerSlug: String(r.manufacturer_slug),
       industry: String(r.industry),
       score: Number(r.score),
+      updatedAt: r.updated_at ? new Date(r.updated_at as string | Date) : undefined,
     }));
   }
 }

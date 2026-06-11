@@ -27,6 +27,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       status: part.status,
       manufacturerSlug: manufacturer.slug,
       manufacturerName: manufacturer.name,
+      updatedAt: part.updatedAt?.toISOString() ?? null,
     })),
     hasMore,
   });

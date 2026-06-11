@@ -17,6 +17,7 @@ export interface SearchHit {
   industry: string;
   /** Score de pertinence relatif (plus haut = meilleur) */
   score: number;
+  updatedAt?: Date;
 }
 
 export interface SearchOptions {

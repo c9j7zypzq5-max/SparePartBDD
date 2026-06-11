@@ -7,6 +7,8 @@ import { WatchlistButton } from "./watchlist-button";
 import { CompareButton } from "./compare-button";
 import type { WatchlistEntry } from "@/lib/watchlist";
 
+const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
+
 export function PartCard({
   href,
   name,
@@ -16,6 +18,7 @@ export function PartCard({
   status,
   industry,
   confidence,
+  updatedAt,
   watchlistData,
 }: {
   href: string;
@@ -26,8 +29,11 @@ export function PartCard({
   status: string;
   industry?: string;
   confidence?: number;
+  updatedAt?: Date | string;
   watchlistData?: Omit<WatchlistEntry, "dateAdded" | "snapshotDate">;
 }) {
+  const updatedDate = updatedAt ? new Date(updatedAt) : null;
+  const isStale = updatedDate && Date.now() - updatedDate.getTime() > SIX_MONTHS_MS;
   return (
     <Link
       href={href}
@@ -48,6 +54,14 @@ export function PartCard({
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1.5">
           <StatusBadge status={status} />
+          {isStale && (
+            <span className="text-xs text-zinc-400">Données à vérifier</span>
+          )}
+          {updatedDate && !isStale && (
+            <span className="text-xs text-zinc-400">
+              Mis à jour le {updatedDate.toLocaleDateString("fr-FR")}
+            </span>
+          )}
           {typeof confidence === "number" && (
             <span
               className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${

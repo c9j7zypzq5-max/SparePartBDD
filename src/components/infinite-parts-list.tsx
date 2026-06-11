@@ -11,6 +11,7 @@ type PartSummary = {
   status: string;
   manufacturerSlug: string;
   manufacturerName: string;
+  updatedAt?: string | null;
 };
 
 export function InfinitePartsList({
@@ -100,6 +101,7 @@ export function InfinitePartsList({
             manufacturerName={part.manufacturerName}
             manufacturerSlug={part.manufacturerSlug}
             status={part.status}
+            updatedAt={part.updatedAt ?? undefined}
             watchlistData={{
               reference: part.referenceRaw,
               manufacturer: part.manufacturerName,
