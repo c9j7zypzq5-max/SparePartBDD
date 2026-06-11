@@ -9,36 +9,54 @@ type PartSummary = {
   name: string;
   referenceRaw: string;
   status: string;
+  manufacturerSlug: string;
+  manufacturerName: string;
 };
 
 export function InfinitePartsList({
-  manufacturerSlug,
-  manufacturerName,
+  apiPath,
   initialParts,
   totalCount,
+  extraParams = {},
 }: {
-  manufacturerSlug: string;
-  manufacturerName: string;
+  apiPath: string;
   initialParts: PartSummary[];
   totalCount: number;
+  extraParams?: Record<string, string>;
 }) {
   const [parts, setParts] = useState(initialParts);
   const [loading, setLoading] = useState(false);
   const [exhausted, setExhausted] = useState(initialParts.length >= totalCount);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  // Refs to avoid recreating the IntersectionObserver on every state change
   const loadingRef = useRef(false);
   const offsetRef = useRef(initialParts.length);
   const exhaustedRef = useRef(initialParts.length >= totalCount);
+  const extraParamsRef = useRef(extraParams);
+
+  useEffect(() => {
+    extraParamsRef.current = extraParams;
+  }, [extraParams]);
+
+  // Reset list when extraParams change (e.g. filter change navigates to new SSR page)
+  const extraParamsKey = JSON.stringify(extraParams);
+  useEffect(() => {
+    setParts(initialParts);
+    offsetRef.current = initialParts.length;
+    exhaustedRef.current = initialParts.length >= totalCount;
+    setExhausted(initialParts.length >= totalCount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extraParamsKey]);
 
   const loadMore = useCallback(async () => {
     if (loadingRef.current || exhaustedRef.current) return;
     loadingRef.current = true;
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/marque/${manufacturerSlug}/parts?offset=${offsetRef.current}`,
-      );
+      const qs = new URLSearchParams({
+        offset: String(offsetRef.current),
+        ...extraParamsRef.current,
+      });
+      const res = await fetch(`${apiPath}?${qs.toString()}`);
       if (!res.ok) return;
       const data: { parts: PartSummary[]; hasMore: boolean } = await res.json();
       setParts((prev) => [...prev, ...data.parts]);
@@ -51,7 +69,7 @@ export function InfinitePartsList({
       loadingRef.current = false;
       setLoading(false);
     }
-  }, [manufacturerSlug]);
+  }, [apiPath]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -72,16 +90,16 @@ export function InfinitePartsList({
         {parts.map((part) => (
           <PartCard
             key={part.id}
-            href={`/piece/${manufacturerSlug}/${part.slug}`}
+            href={`/piece/${part.manufacturerSlug}/${part.slug}`}
             name={part.name}
             referenceRaw={part.referenceRaw}
-            manufacturerName={manufacturerName}
-            manufacturerSlug={manufacturerSlug}
+            manufacturerName={part.manufacturerName}
+            manufacturerSlug={part.manufacturerSlug}
             status={part.status}
             watchlistData={{
               reference: part.referenceRaw,
-              manufacturer: manufacturerName,
-              manufacturerSlug,
+              manufacturer: part.manufacturerName,
+              manufacturerSlug: part.manufacturerSlug,
               partSlug: part.slug,
               name: part.name,
               status: part.status,

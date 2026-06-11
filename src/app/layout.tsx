@@ -40,6 +40,9 @@ export default function RootLayout({
               <Link href="/marques" className="hover:text-zinc-900">
                 Marques
               </Link>
+              <Link href="/categories" className="hover:text-zinc-900">
+                Catégories
+              </Link>
               <WatchlistCount />
               <Link
                 href="/recherche?q="

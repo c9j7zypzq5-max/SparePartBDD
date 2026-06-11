@@ -46,14 +46,15 @@ export default async function ManufacturerPage({ params }: { params: Params }) {
         </div>
       </div>
       <InfinitePartsList
-        manufacturerSlug={marque}
-        manufacturerName={data.manufacturer.name}
+        apiPath={`/api/marque/${marque}/parts`}
         initialParts={data.parts.map((p) => ({
           id: p.id,
           slug: p.slug,
           name: p.name,
           referenceRaw: p.referenceRaw,
           status: p.status,
+          manufacturerSlug: marque,
+          manufacturerName: data.manufacturer.name,
         }))}
         totalCount={data.totalCount}
       />

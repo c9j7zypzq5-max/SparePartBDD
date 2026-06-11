@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getManufacturerBySlug, getManufacturerPartsPaginated } from "@/lib/queries";
+import {
+  getManufacturerBySlug,
+  getManufacturerPartsPaginated,
+} from "@/lib/queries";
 
 const PAGE_SIZE = 24;
 
@@ -26,6 +29,8 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       name: p.name,
       referenceRaw: p.referenceRaw,
       status: p.status,
+      manufacturerSlug: marque,
+      manufacturerName: manufacturer.name,
     })),
     hasMore,
   });

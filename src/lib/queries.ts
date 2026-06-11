@@ -1,4 +1,4 @@
-import { aliasedTable, and, asc, eq, inArray, sql } from "drizzle-orm";
+import { aliasedTable, and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 const {
@@ -146,6 +146,55 @@ export async function getManufacturerPartsPaginated(
     .select()
     .from(parts)
     .where(eq(parts.manufacturerId, manufacturerId))
+    .orderBy(asc(parts.referenceNormalized))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getCategoryBySlug(slug: string) {
+  const [category] = await db
+    .select()
+    .from(categories)
+    .where(eq(categories.slug, slug))
+    .limit(1);
+  return category ?? null;
+}
+
+export async function getCategoryPageData(slug: string, limit: number) {
+  const [category] = await db
+    .select()
+    .from(categories)
+    .where(eq(categories.slug, slug))
+    .limit(1);
+  if (!category) return null;
+
+  const [[countRow], partRows] = await Promise.all([
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(parts)
+      .where(eq(parts.categoryId, category.id)),
+    db
+      .select({ part: parts, manufacturer: manufacturers })
+      .from(parts)
+      .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+      .where(eq(parts.categoryId, category.id))
+      .orderBy(asc(parts.referenceNormalized))
+      .limit(limit),
+  ]);
+
+  return { category, parts: partRows, totalCount: countRow.total };
+}
+
+export async function getCategoryPartsPaginated(
+  categoryId: number,
+  limit: number,
+  offset: number,
+) {
+  return db
+    .select({ part: parts, manufacturer: manufacturers })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .where(eq(parts.categoryId, categoryId))
     .orderBy(asc(parts.referenceNormalized))
     .limit(limit)
     .offset(offset);

@@ -21,7 +21,8 @@ const INDUSTRY_LABELS: Record<string, string> = {
 };
 
 export default async function CategoriesPage() {
-  const rows = await getCategoriesWithCounts();
+  const rawRows = await getCategoriesWithCounts();
+  const rows = [...rawRows].sort((a, b) => b.partsCount - a.partsCount);
 
   const byIndustry = new Map<string, typeof rows>();
   for (const row of rows) {
