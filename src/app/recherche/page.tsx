@@ -4,7 +4,7 @@ import { SearchBar } from "@/components/search-bar";
 import { PartCard } from "@/components/part-card";
 import { SuggestionForm } from "@/components/suggestion-form";
 import { searchService } from "@/lib/search/postgres-search";
-import { getAllManufacturers } from "@/lib/queries";
+import { getAllManufacturers, searchPartsFuzzy, getManufacturersSuggestions } from "@/lib/queries";
 import type { SearchOptions } from "@/lib/search/search-service";
 
 export const dynamic = "force-dynamic";
@@ -66,7 +66,8 @@ export async function generateMetadata({
   const { q } = await searchParams;
   return {
     title: q ? `Résultats pour « ${q} »` : "Recherche",
-    robots: { index: false }, // les pages de résultats ne doivent pas être indexées
+    robots: { index: false },
+    alternates: { canonical: "/recherche" },
   };
 }
 
@@ -102,6 +103,16 @@ export default async function SearchPage({
     : [[], []];
   const hasNext = rawHits.length > PAGE_SIZE;
   const hits = rawHits.slice(0, PAGE_SIZE);
+
+  // Fuzzy fallback: ILIKE when pg_trgm finds nothing
+  const fuzzyHits =
+    query && hits.length === 0
+      ? await searchPartsFuzzy(query, { limit: PAGE_SIZE })
+      : [];
+  const manufacturerSuggestions =
+    query && hits.length === 0 && fuzzyHits.length === 0
+      ? await getManufacturersSuggestions(query)
+      : [];
   const countLabel = hasNext
     ? `Plus de ${page * PAGE_SIZE} résultats`
     : `${(page - 1) * PAGE_SIZE + hits.length} résultat${(page - 1) * PAGE_SIZE + hits.length > 1 ? "s" : ""}`;
@@ -236,14 +247,55 @@ export default async function SearchPage({
         </nav>
       )}
 
-      {query && hits.length === 0 && (
+      {query && hits.length === 0 && fuzzyHits.length > 0 && (
+        <div className="mt-4 space-y-3">
+          <p className="text-sm text-zinc-500">
+            Aucun résultat exact pour &laquo;&nbsp;{query}&nbsp;&raquo;. Résultats approchés :
+          </p>
+          <div className="grid gap-3">
+            {fuzzyHits.map((hit) => (
+              <PartCard
+                key={hit.partId}
+                href={`/piece/${hit.manufacturerSlug}/${hit.slug}`}
+                name={hit.name}
+                referenceRaw={hit.referenceRaw}
+                manufacturerName={hit.manufacturerName}
+                manufacturerSlug={hit.manufacturerSlug}
+                status={hit.status}
+                industry={hit.industry}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {query && hits.length === 0 && fuzzyHits.length === 0 && (
         <div className="mt-10 space-y-6">
           <div className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center">
-            <p className="font-medium text-zinc-700">Aucune pièce trouvée</p>
-            <p className="mt-1 text-sm text-zinc-500">
-              Essayez avec la référence complète, sans espaces ni tirets, ou
-              élargissez les filtres d&apos;industrie, de statut ou de marque.
+            <p className="font-medium text-zinc-700">
+              Aucun résultat pour &laquo;&nbsp;{query}&nbsp;&raquo;
             </p>
+            {manufacturerSuggestions.length > 0 ? (
+              <div className="mt-3">
+                <p className="text-sm text-zinc-500">Avez-vous essayé :</p>
+                <div className="mt-2 flex flex-wrap justify-center gap-2">
+                  {manufacturerSuggestions.map((m) => (
+                    <Link
+                      key={m.slug}
+                      href={`/marque/${m.slug}`}
+                      className="rounded-full border border-zinc-300 px-4 py-1.5 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-600"
+                    >
+                      {m.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-1 text-sm text-zinc-500">
+                Essayez avec la référence complète, sans espaces ni tirets, ou
+                élargissez les filtres d&apos;industrie, de statut ou de marque.
+              </p>
+            )}
           </div>
           <SuggestionForm defaultReference={query} />
         </div>

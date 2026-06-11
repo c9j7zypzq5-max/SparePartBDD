@@ -1,5 +1,6 @@
-import { aliasedTable, and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { aliasedTable, and, asc, desc, eq, ilike, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { normalizeReference } from "@/lib/normalize";
 
 const {
   categories,
@@ -107,7 +108,7 @@ export async function getManufacturerBySlug(slug: string) {
 export async function getManufacturerPageData(
   slug: string,
   limit: number,
-  opts: { status?: string; sort?: string } = {},
+  opts: { status?: string; sort?: string; offset?: number } = {},
 ) {
   const [manufacturer] = await db
     .select()
@@ -147,7 +148,8 @@ export async function getManufacturerPageData(
           : eq(parts.manufacturerId, manufacturer.id),
       )
       .orderBy(order)
-      .limit(limit),
+      .limit(limit)
+      .offset(opts.offset ?? 0),
   ]);
 
   return {
@@ -205,7 +207,7 @@ export async function getCategoryBySlug(slug: string) {
   return category ?? null;
 }
 
-export async function getCategoryPageData(slug: string, limit: number) {
+export async function getCategoryPageData(slug: string, limit: number, opts: { offset?: number } = {}) {
   const [category] = await db
     .select()
     .from(categories)
@@ -224,7 +226,8 @@ export async function getCategoryPageData(slug: string, limit: number) {
       .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
       .where(eq(parts.categoryId, category.id))
       .orderBy(asc(parts.referenceNormalized))
-      .limit(limit),
+      .limit(limit)
+      .offset(opts.offset ?? 0),
   ]);
 
   return { category, parts: partRows, totalCount: countRow.total };
@@ -360,6 +363,60 @@ export async function getSimilarParts(
   return [...withCategory, ...fallback];
 }
 
+/**
+ * Recherche floue par ILIKE sur la référence normalisée et la référence brute.
+ * Utilisé en fallback quand la recherche pg_trgm ne renvoie rien.
+ */
+export async function searchPartsFuzzy(
+  term: string,
+  opts: { limit?: number; offset?: number } = {},
+) {
+  const raw = term.trim();
+  const normalized = normalizeReference(raw);
+  const limit = opts.limit ?? 20;
+  const offset = opts.offset ?? 0;
+
+  const rows = await db.execute(sql`
+    SELECT p.id,
+           p.name,
+           p.reference_raw,
+           p.slug,
+           p.status,
+           p.updated_at,
+           m.name AS manufacturer_name,
+           m.slug AS manufacturer_slug,
+           m.industry
+    FROM parts p
+    JOIN manufacturers m ON m.id = p.manufacturer_id
+    WHERE p.reference_normalized ILIKE ${"%" + normalized + "%"}
+       OR p.reference_raw ILIKE ${"%" + raw + "%"}
+    ORDER BY p.reference_normalized ASC
+    LIMIT ${limit}
+    OFFSET ${offset}
+  `);
+
+  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+    partId: Number(r.id),
+    name: String(r.name),
+    referenceRaw: String(r.reference_raw),
+    slug: String(r.slug),
+    status: r.status as "active" | "obsolete" | "unknown",
+    manufacturerName: String(r.manufacturer_name),
+    manufacturerSlug: String(r.manufacturer_slug),
+    industry: String(r.industry),
+    updatedAt: r.updated_at ? new Date(r.updated_at as string | Date) : undefined,
+  }));
+}
+
+/** Fabricants dont le nom contient le terme, pour les suggestions "Aucun résultat". */
+export async function getManufacturersSuggestions(term: string, limit = 3) {
+  return db
+    .select({ name: manufacturers.name, slug: manufacturers.slug })
+    .from(manufacturers)
+    .where(ilike(manufacturers.name, `%${term}%`))
+    .limit(limit);
+}
+
 /** Statistiques affichées sur la home. */
 export async function getHomeStats() {
   const [stats] = await db
@@ -399,6 +456,62 @@ export async function getHomepageData() {
     topManufacturers,
     topCategories,
   };
+}
+
+/**
+ * Alternatives actives pour une pièce obsolète, sans passer par les supersessions officielles.
+ * Priorité : même fabricant + même catégorie. Fallback : même préfixe de référence (6 chars).
+ */
+export async function getAlternativeParts(
+  partId: number,
+  manufacturerId: number,
+  categoryId: number | null,
+  referenceNormalized: string,
+  limit = 4,
+) {
+  const byCategoryRows =
+    categoryId != null
+      ? await db
+          .select({ part: parts, manufacturer: manufacturers })
+          .from(parts)
+          .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+          .where(
+            and(
+              eq(parts.manufacturerId, manufacturerId),
+              eq(parts.categoryId, categoryId),
+              eq(parts.status, "active"),
+              sql`${parts.id} != ${partId}`,
+            ),
+          )
+          .orderBy(asc(parts.referenceNormalized))
+          .limit(limit)
+      : [];
+
+  if (byCategoryRows.length >= limit) return byCategoryRows;
+
+  const prefix = `${referenceNormalized.slice(0, 6)}%`;
+  const excludeIds = [partId, ...byCategoryRows.map((r) => r.part.id)];
+  const needed = limit - byCategoryRows.length;
+
+  const byPrefixRows = await db
+    .select({ part: parts, manufacturer: manufacturers })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .where(
+      and(
+        eq(parts.manufacturerId, manufacturerId),
+        eq(parts.status, "active"),
+        ilike(parts.referenceNormalized, prefix),
+        sql`${parts.id} != ALL(ARRAY[${sql.join(
+          excludeIds.map((id) => sql`${id}`),
+          sql`, `,
+        )}]::int[])`,
+      ),
+    )
+    .orderBy(asc(parts.referenceNormalized))
+    .limit(needed);
+
+  return [...byCategoryRows, ...byPrefixRows];
 }
 
 /** Pièces obsolètes avec leur remplacement officiel, pour la home. */
