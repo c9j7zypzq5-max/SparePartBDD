@@ -1,0 +1,9 @@
+{
+  "enrich": {
+    "batchIndex": 49,
+    "generationRound": 3
+  },
+  "update": {
+    "batchOffset": 8
+  }
+}
