@@ -31,5 +31,5 @@ const BRAND_DOMAINS: Record<string, string> = {
 export function getBrandLogoUrl(slug: string): string | null {
   const domain = BRAND_DOMAINS[slug];
   if (!domain) return null;
-  return `https://logo.clearbit.com/${domain}`;
+  return `https://img.logo.dev/${domain}?token=pk_X0RGvkR4QC6c7sK7JVnvqA`;
 }

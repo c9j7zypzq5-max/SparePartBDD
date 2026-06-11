@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { siteUrl } from "@/lib/site-url";
-import { WatchlistCount } from "@/components/watchlist-count";
+import { NavMenu } from "@/components/nav-menu";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -29,28 +29,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr">
-      <body className="min-h-screen bg-white text-zinc-900 antialiased">
+    <html lang="fr" className="overflow-x-hidden">
+      <body className="min-h-screen overflow-x-hidden bg-white text-zinc-900 antialiased">
         <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/90 backdrop-blur">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+          <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <Link href="/" className="text-lg font-bold tracking-tight">
               SparePart<span className="text-blue-600">Search</span>
             </Link>
-            <nav className="flex items-center gap-5 text-sm font-medium text-zinc-600">
-              <Link href="/marques" className="hover:text-zinc-900">
-                Marques
-              </Link>
-              <Link href="/categories" className="hover:text-zinc-900">
-                Catégories
-              </Link>
-              <WatchlistCount />
-              <Link
-                href="/recherche?q="
-                className="rounded-lg bg-zinc-900 px-3 py-1.5 text-white transition hover:bg-zinc-700"
-              >
-                Rechercher
-              </Link>
-            </nav>
+            <NavMenu />
           </div>
         </header>
         <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
