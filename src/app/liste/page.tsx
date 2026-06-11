@@ -9,6 +9,7 @@ import {
   type WatchlistEntry,
 } from "@/lib/watchlist";
 import { StatusBadge } from "@/components/status-badge";
+import { WatchlistSubscribeForm } from "@/components/watchlist-subscribe-form";
 
 type CompareResult = {
   reference: string;
@@ -322,6 +323,8 @@ export default function ListePage() {
               </tbody>
             </table>
           </div>
+
+          <WatchlistSubscribeForm references={list.map((e) => e.reference)} />
 
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
