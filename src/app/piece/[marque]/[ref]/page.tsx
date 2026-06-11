@@ -6,7 +6,7 @@ import { SellerTable } from "@/components/seller-table";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { generatePartDescription } from "@/lib/part-description";
-import { getPartDetail } from "@/lib/queries";
+import { getPartDetail, getSimilarParts } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,13 @@ export default async function PartPage({ params }: { params: Params }) {
   if (!detail) notFound();
 
   const { part, manufacturer, category } = detail;
+
+  const similarParts = await getSimilarParts(
+    part.id,
+    manufacturer.id,
+    category?.id ?? null,
+    6,
+  );
   const minPriceOffer = detail.offers.find((o) => o.offer.price != null);
   const minPrice = minPriceOffer ? parseFloat(minPriceOffer.offer.price!) : undefined;
   const currency = minPriceOffer?.offer.currency ?? "EUR";
@@ -255,6 +262,35 @@ export default async function PartPage({ params }: { params: Params }) {
                 manufacturerSlug={m.slug}
                 status={p.status}
                 confidence={compatibility.confidence}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {similarParts.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-xl font-semibold">
+            Pièces similaires de {manufacturer.name}
+          </h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {similarParts.map(({ part: p, manufacturer: m }) => (
+              <PartCard
+                key={p.id}
+                href={`/piece/${m.slug}/${p.slug}`}
+                name={p.name}
+                referenceRaw={p.referenceRaw}
+                manufacturerName={m.name}
+                manufacturerSlug={m.slug}
+                status={p.status}
+                watchlistData={{
+                  reference: p.referenceRaw,
+                  manufacturer: m.name,
+                  manufacturerSlug: m.slug,
+                  partSlug: p.slug,
+                  name: p.name,
+                  status: p.status,
+                }}
               />
             ))}
           </div>

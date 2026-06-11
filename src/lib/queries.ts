@@ -316,6 +316,50 @@ export async function getAllPartPaths() {
   }));
 }
 
+export async function getSimilarParts(
+  partId: number,
+  manufacturerId: number,
+  categoryId: number | null,
+  limit = 6,
+) {
+  const withCategory =
+    categoryId != null
+      ? await db
+          .select({ part: parts, manufacturer: manufacturers })
+          .from(parts)
+          .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+          .where(
+            and(
+              eq(parts.manufacturerId, manufacturerId),
+              eq(parts.categoryId, categoryId),
+              sql`${parts.id} != ${partId}`,
+            ),
+          )
+          .orderBy(asc(parts.referenceNormalized))
+          .limit(limit)
+      : [];
+
+  if (withCategory.length >= limit) return withCategory;
+
+  const excludeIds = [partId, ...withCategory.map((r) => r.part.id)];
+  const needed = limit - withCategory.length;
+
+  const fallback = await db
+    .select({ part: parts, manufacturer: manufacturers })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .where(
+      and(
+        eq(parts.manufacturerId, manufacturerId),
+        sql`${parts.id} != ALL(ARRAY[${sql.join(excludeIds.map((id) => sql`${id}`), sql`, `)}]::int[])`,
+      ),
+    )
+    .orderBy(asc(parts.referenceNormalized))
+    .limit(needed);
+
+  return [...withCategory, ...fallback];
+}
+
 /** Statistiques affichées sur la home. */
 export async function getHomeStats() {
   const [stats] = await db
