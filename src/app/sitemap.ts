@@ -20,24 +20,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       getAllCategories(),
     ]);
 
+    const now = new Date();
+
+    const staticPages: MetadataRoute.Sitemap = [
+      { url: siteUrl, changeFrequency: "weekly", priority: 1, lastModified: now },
+      { url: `${siteUrl}/marques`, changeFrequency: "monthly", priority: 0.7, lastModified: now },
+      { url: `${siteUrl}/categories`, changeFrequency: "monthly", priority: 0.7, lastModified: now },
+      { url: `${siteUrl}/recherche`, changeFrequency: "monthly", priority: 0.5, lastModified: now },
+      { url: `${siteUrl}/liste`, changeFrequency: "monthly", priority: 0.4, lastModified: now },
+    ];
+
     return [
-      { url: siteUrl, changeFrequency: "daily" as const, priority: 1 },
-      { url: `${siteUrl}/marques`, changeFrequency: "weekly" as const, priority: 0.7 },
-      { url: `${siteUrl}/categories`, changeFrequency: "weekly" as const, priority: 0.7 },
+      ...staticPages,
       ...manufacturers.map((m) => ({
         url: `${siteUrl}/marque/${m.slug}`,
         changeFrequency: "weekly" as const,
         priority: 0.7,
+        lastModified: now,
       })),
       ...categories.map((c) => ({
         url: `${siteUrl}/categorie/${c.slug}`,
         changeFrequency: "weekly" as const,
         priority: 0.6,
+        lastModified: now,
       })),
       ...partPaths.map((p) => ({
         url: `${siteUrl}/piece/${p.manufacturerSlug}/${p.partSlug}`,
         changeFrequency: "weekly" as const,
         priority: 0.8,
+        lastModified: now,
       })),
     ];
   } catch {
