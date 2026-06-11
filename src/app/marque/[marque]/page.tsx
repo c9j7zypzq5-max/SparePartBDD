@@ -1,33 +1,29 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PartCard } from "@/components/part-card";
-import { getManufacturerWithParts } from "@/lib/queries";
+import { getManufacturerBySlug, getManufacturerPageData } from "@/lib/queries";
+import { InfinitePartsList } from "@/components/infinite-parts-list";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 24;
+
 type Params = Promise<{ marque: string }>;
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Params;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { marque } = await params;
-  const data = await getManufacturerWithParts(marque);
-  if (!data) return { title: "Marque introuvable" };
+  const manufacturer = await getManufacturerBySlug(marque);
+  if (!manufacturer) return { title: "Marque introuvable" };
   return {
-    title: `Pièces détachées ${data.manufacturer.name} — références, remplacements, vendeurs`,
-    description: `Catalogue des pièces détachées ${data.manufacturer.name} : statut de fabrication, références de remplacement et vendeurs.`,
+    title: `Pièces détachées ${manufacturer.name} — références, remplacements, vendeurs`,
+    description: `Catalogue des pièces détachées ${manufacturer.name} : statut de fabrication, références de remplacement et vendeurs.`,
     alternates: { canonical: `/marque/${marque}` },
   };
 }
 
 export default async function ManufacturerPage({ params }: { params: Params }) {
   const { marque } = await params;
-  const data = await getManufacturerWithParts(marque);
+  const data = await getManufacturerPageData(marque, PAGE_SIZE);
   if (!data) notFound();
-
-  const obsoleteCount = data.parts.filter((p) => p.status === "obsolete").length;
 
   return (
     <div>
@@ -37,22 +33,24 @@ export default async function ManufacturerPage({ params }: { params: Params }) {
       <p className="mt-2 text-zinc-600">
         <span className="capitalize">Industrie : {data.manufacturer.industry}</span>
         {" · "}
-        {data.parts.length} pièce{data.parts.length > 1 ? "s" : ""} référencée
-        {data.parts.length > 1 ? "s" : ""}
-        {obsoleteCount > 0 && <> dont {obsoleteCount} obsolète{obsoleteCount > 1 ? "s" : ""}</>}
+        {data.totalCount} pièce{data.totalCount > 1 ? "s" : ""} référencée
+        {data.totalCount > 1 ? "s" : ""}
+        {data.obsoleteCount > 0 && (
+          <> dont {data.obsoleteCount} obsolète{data.obsoleteCount > 1 ? "s" : ""}</>
+        )}
       </p>
-      <div className="mt-6 grid gap-3">
-        {data.parts.map((part) => (
-          <PartCard
-            key={part.id}
-            href={`/piece/${data.manufacturer.slug}/${part.slug}`}
-            name={part.name}
-            referenceRaw={part.referenceRaw}
-            manufacturerName={data.manufacturer.name}
-            status={part.status}
-          />
-        ))}
-      </div>
+      <InfinitePartsList
+        manufacturerSlug={marque}
+        manufacturerName={data.manufacturer.name}
+        initialParts={data.parts.map((p) => ({
+          id: p.id,
+          slug: p.slug,
+          name: p.name,
+          referenceRaw: p.referenceRaw,
+          status: p.status,
+        }))}
+        totalCount={data.totalCount}
+      />
     </div>
   );
 }

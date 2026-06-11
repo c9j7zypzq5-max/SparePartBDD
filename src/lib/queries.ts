@@ -95,6 +95,62 @@ export async function getManufacturerWithParts(slug: string) {
   return { manufacturer, parts: partRows };
 }
 
+export async function getManufacturerBySlug(slug: string) {
+  const [manufacturer] = await db
+    .select()
+    .from(manufacturers)
+    .where(eq(manufacturers.slug, slug))
+    .limit(1);
+  return manufacturer ?? null;
+}
+
+export async function getManufacturerPageData(slug: string, limit: number) {
+  const [manufacturer] = await db
+    .select()
+    .from(manufacturers)
+    .where(eq(manufacturers.slug, slug))
+    .limit(1);
+  if (!manufacturer) return null;
+
+  const [[countRow], [obsoleteRow], partRows] = await Promise.all([
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(parts)
+      .where(eq(parts.manufacturerId, manufacturer.id)),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(parts)
+      .where(and(eq(parts.manufacturerId, manufacturer.id), eq(parts.status, "obsolete"))),
+    db
+      .select()
+      .from(parts)
+      .where(eq(parts.manufacturerId, manufacturer.id))
+      .orderBy(asc(parts.referenceNormalized))
+      .limit(limit),
+  ]);
+
+  return {
+    manufacturer,
+    parts: partRows,
+    totalCount: countRow.total,
+    obsoleteCount: obsoleteRow.count,
+  };
+}
+
+export async function getManufacturerPartsPaginated(
+  manufacturerId: number,
+  limit: number,
+  offset: number,
+) {
+  return db
+    .select()
+    .from(parts)
+    .where(eq(parts.manufacturerId, manufacturerId))
+    .orderBy(asc(parts.referenceNormalized))
+    .limit(limit)
+    .offset(offset);
+}
+
 export async function getCategoryWithParts(slug: string) {
   const [category] = await db
     .select()
