@@ -215,3 +215,26 @@ export const offers = pgTable(
   },
   (t) => [index("offers_part_idx").on(t.partId)],
 );
+
+export const suggestionStatusEnum = pgEnum("suggestion_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+
+/** Suggestions d'ajout de références par les utilisateurs. */
+export const suggestions = pgTable("suggestions", {
+  id: serial("id").primaryKey(),
+  reference: text("reference").notNull(),
+  manufacturer: text("manufacturer"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  status: suggestionStatusEnum("status").notNull().default("pending"),
+});
+
+/** Abonnements email aux changements de statut d'une liste de pièces. */
+export const watchlistSubscriptions = pgTable("watchlist_subscriptions", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  references: text("references").array().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

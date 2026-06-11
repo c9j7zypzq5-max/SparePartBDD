@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SearchBar } from "@/components/search-bar";
 import { PartCard } from "@/components/part-card";
+import { SuggestionForm } from "@/components/suggestion-form";
 import { searchService } from "@/lib/search/postgres-search";
 import { getAllManufacturers } from "@/lib/queries";
 import type { SearchOptions } from "@/lib/search/search-service";
@@ -236,12 +237,15 @@ export default async function SearchPage({
       )}
 
       {query && hits.length === 0 && (
-        <div className="mt-10 rounded-2xl border border-dashed border-zinc-300 p-8 text-center">
-          <p className="font-medium text-zinc-700">Aucune pièce trouvée</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Essayez avec la référence complète, sans espaces ni tirets, ou
-            élargissez les filtres d&apos;industrie, de statut ou de marque.
-          </p>
+        <div className="mt-10 space-y-6">
+          <div className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center">
+            <p className="font-medium text-zinc-700">Aucune pièce trouvée</p>
+            <p className="mt-1 text-sm text-zinc-500">
+              Essayez avec la référence complète, sans espaces ni tirets, ou
+              élargissez les filtres d&apos;industrie, de statut ou de marque.
+            </p>
+          </div>
+          <SuggestionForm defaultReference={query} />
         </div>
       )}
     </div>
