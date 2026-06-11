@@ -5,6 +5,7 @@ import { PartCard } from "@/components/part-card";
 import { SellerTable } from "@/components/seller-table";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchlistButton } from "@/components/watchlist-button";
+import { Breadcrumb } from "@/components/breadcrumb";
 import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail, getSimilarParts } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
@@ -22,10 +23,19 @@ export async function generateMetadata({
   const detail = await getPartDetail(marque, ref);
   if (!detail) return { title: "Pièce introuvable" };
   const { part, manufacturer } = detail;
+  const title = `${manufacturer.name} ${part.referenceRaw} — ${part.name}`;
+  const description = `${part.name} ${manufacturer.name} référence ${part.referenceRaw} : statut de fabrication, références de remplacement, pièces compatibles, vendeurs et prix.`;
   return {
-    title: `${manufacturer.name} ${part.referenceRaw} — ${part.name}`,
-    description: `${part.name} ${manufacturer.name} référence ${part.referenceRaw} : statut de fabrication, références de remplacement, pièces compatibles, vendeurs et prix.`,
+    title,
+    description,
     alternates: { canonical: `/piece/${marque}/${ref}` },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: [{ url: "/og-default.jpg" }],
+    },
+    twitter: { card: "summary" },
   };
 }
 
@@ -74,19 +84,12 @@ export default async function PartPage({ params }: { params: Params }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <nav className="text-sm text-zinc-500">
-        <Link href={`/marque/${manufacturer.slug}`} className="hover:underline">
-          {manufacturer.name}
-        </Link>
-        {category && (
-          <>
-            {" / "}
-            <Link href={`/categorie/${category.slug}`} className="hover:underline">
-              {category.name}
-            </Link>
-          </>
-        )}
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: manufacturer.name, href: `/marque/${manufacturer.slug}` },
+          { label: part.referenceRaw, href: `/piece/${manufacturer.slug}/${part.slug}` },
+        ]}
+      />
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold tracking-tight">

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getManufacturerBySlug, getManufacturerPageData } from "@/lib/queries";
 import { InfinitePartsList } from "@/components/infinite-parts-list";
 import { BrandLogo } from "@/components/brand-logo";
+import { Breadcrumb } from "@/components/breadcrumb";
 
 export const dynamic = "force-dynamic";
 
@@ -27,10 +28,19 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { marque } = await params;
   const manufacturer = await getManufacturerBySlug(marque);
   if (!manufacturer) return { title: "Marque introuvable" };
+  const title = `Pièces détachées ${manufacturer.name} — références, remplacements, vendeurs`;
+  const description = `Catalogue des pièces détachées ${manufacturer.name} : statut de fabrication, références de remplacement et vendeurs.`;
   return {
-    title: `Pièces détachées ${manufacturer.name} — références, remplacements, vendeurs`,
-    description: `Catalogue des pièces détachées ${manufacturer.name} : statut de fabrication, références de remplacement et vendeurs.`,
+    title,
+    description,
     alternates: { canonical: `/marque/${marque}` },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: [{ url: "/og-default.jpg" }],
+    },
+    twitter: { card: "summary" },
   };
 }
 
@@ -59,6 +69,7 @@ export default async function ManufacturerPage({
 
   return (
     <div>
+      <Breadcrumb items={[{ label: "Marques", href: "/marques" }, { label: data.manufacturer.name, href: `/marque/${marque}` }]} />
       <div className="flex items-center gap-4">
         <BrandLogo slug={marque} name={data.manufacturer.name} size={64} />
         <div>
