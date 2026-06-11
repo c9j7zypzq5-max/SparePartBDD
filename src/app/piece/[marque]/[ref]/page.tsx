@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { CompareButton } from "@/components/compare-button";
+import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail, getSimilarParts } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
@@ -128,6 +129,7 @@ export default async function PartPage({ params }: { params: Params }) {
             status: part.status,
           }}
         />
+        <PrintButton />
       </div>
       <p className="mt-2 text-lg text-zinc-600">{part.name}</p>
       <p className="mt-4 max-w-3xl text-zinc-700">
@@ -260,7 +262,7 @@ export default async function PartPage({ params }: { params: Params }) {
       )}
 
       {detail.compatibles.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-8 print-hide">
           <h2 className="text-xl font-semibold">Pièces compatibles alternatives</h2>
           <p className="mt-1 text-sm text-zinc-500">
             Compatibilité non officielle — vérifiez les caractéristiques avant achat.
@@ -283,7 +285,7 @@ export default async function PartPage({ params }: { params: Params }) {
       )}
 
       {similarParts.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-8 print-hide">
           <h2 className="text-xl font-semibold">
             Pièces similaires de {manufacturer.name}
           </h2>

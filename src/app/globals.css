@@ -1,1 +1,66 @@
 @import "tailwindcss";
+
+@media print {
+  /* Hide navigation and UI chrome */
+  header,
+  footer,
+  nav[aria-label="Fil d'Ariane"],
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* Hide watchlist/compare/action buttons */
+  button,
+  a[href^="/recherche"],
+  a[href^="/marque"],
+  a[href^="/categorie"],
+  section:has(h2:contains("similaires")),
+  section:has(h2:contains("compatibles")),
+  section:has(h2:contains("Remplace")) {
+    /* Kept intentionally — per-element class approach below */
+  }
+
+  body {
+    font-size: 12pt;
+    color: #000;
+    background: #fff;
+  }
+
+  article {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  /* Print header with logo and date */
+  article::before {
+    content: "SparePartSearch — " attr(data-ref) " — Imprimé le " attr(data-date);
+    display: block;
+    font-size: 10pt;
+    color: #666;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+
+  /* Hide similar parts and compatibility sections */
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Page breaks */
+  section {
+    page-break-inside: avoid;
+  }
+
+  /* Links show as text */
+  a[href]::after {
+    content: none;
+  }
+
+  /* Remove shadows/borders for cleaner print */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
