@@ -31,5 +31,5 @@ const BRAND_DOMAINS: Record<string, string> = {
 export function getBrandLogoUrl(slug: string): string | null {
   const domain = BRAND_DOMAINS[slug];
   if (!domain) return null;
-  return `https://img.logo.dev/${domain}?token=pk_X0RGvkR4QC6c7sK7JVnvqA`;
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
 }

@@ -284,6 +284,23 @@ export default async function PartPage({ params }: { params: Params }) {
         </section>
       )}
 
+      <section className="mt-8">
+        <h2 className="text-xl font-semibold">Où acheter cette pièce</h2>
+        <div className="mt-3">
+          <SellerTable
+            offers={detail.offers.map(({ offer, seller }) => ({
+              sellerName: seller.name,
+              sellerType: seller.type,
+              price: offer.price,
+              currency: offer.currency,
+              availability: offer.availability,
+              url: offer.url,
+              scrapedAt: offer.scrapedAt,
+            }))}
+          />
+        </div>
+      </section>
+
       {similarParts.length > 0 && (
         <section className="mt-8 print-hide">
           <h2 className="text-xl font-semibold">
@@ -312,23 +329,6 @@ export default async function PartPage({ params }: { params: Params }) {
           </div>
         </section>
       )}
-
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">Où acheter cette pièce</h2>
-        <div className="mt-3">
-          <SellerTable
-            offers={detail.offers.map(({ offer, seller }) => ({
-              sellerName: seller.name,
-              sellerType: seller.type,
-              price: offer.price,
-              currency: offer.currency,
-              availability: offer.availability,
-              url: offer.url,
-              scrapedAt: offer.scrapedAt,
-            }))}
-          />
-        </div>
-      </section>
     </article>
   );
 }
