@@ -1,9 +1,14 @@
 import { NextRequest } from "next/server";
 import { db, schema } from "@/db";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const { suggestions } = schema;
 
 export async function POST(req: NextRequest) {
+  // Anti-spam : 5 suggestions / minute / IP
+  const rl = rateLimit(`suggestions:${clientIp(req)}`, 5, 60_000);
+  if (!rl.ok) return tooManyRequests(rl);
+
   let body: { reference: string; manufacturer?: string };
   try {
     body = await req.json();

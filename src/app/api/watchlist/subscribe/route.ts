@@ -1,9 +1,14 @@
 import { NextRequest } from "next/server";
 import { db, schema } from "@/db";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const { watchlistSubscriptions } = schema;
 
 export async function POST(req: NextRequest) {
+  // Anti-spam : 5 abonnements / minute / IP
+  const rl = rateLimit(`watchlist:${clientIp(req)}`, 5, 60_000);
+  if (!rl.ok) return tooManyRequests(rl);
+
   let body: { email: string; references: string[] };
   try {
     body = await req.json();

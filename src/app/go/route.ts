@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/db";
 import { findResellerByUrl } from "@/lib/resellers";
 import { decorateAffiliate } from "@/lib/affiliate";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,16 +41,21 @@ export async function GET(req: NextRequest) {
   const sellerSlug = reseller.slug || seller;
   const { url: finalUrl, affiliated } = decorateAffiliate(sellerSlug, dest.toString());
 
-  // Enregistrement best-effort — ne jamais bloquer la redirection
-  try {
-    await db.insert(schema.outboundClicks).values({
-      partId:     partId ? Number(partId) : null,
-      sellerSlug,
-      reference:  ref,
-      affiliated,
-    });
-  } catch {
-    /* la traçabilité ne doit pas casser le parcours utilisateur */
+  // Enregistrement best-effort — ne jamais bloquer la redirection. Au-delà de
+  // 60 clics/min/IP (bot), on redirige toujours mais on cesse d'écrire en base
+  // pour ne pas polluer les statistiques ni saturer la table.
+  const rl = rateLimit(`go:${clientIp(req)}`, 60, 60_000);
+  if (rl.ok) {
+    try {
+      await db.insert(schema.outboundClicks).values({
+        partId:     partId ? Number(partId) : null,
+        sellerSlug,
+        reference:  ref,
+        affiliated,
+      });
+    } catch {
+      /* la traçabilité ne doit pas casser le parcours utilisateur */
+    }
   }
 
   return NextResponse.redirect(finalUrl, 302);

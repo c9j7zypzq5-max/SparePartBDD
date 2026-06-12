@@ -9,6 +9,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { CompareButton } from "@/components/compare-button";
 import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
+import { buildPartFaq, faqJsonLd } from "@/lib/part-faq";
 import { getPartDetail, getSimilarParts, getAlternativeParts } from "@/lib/queries";
 import { resellersForPart } from "@/lib/resellers";
 import { goHref, resolveResellerHref } from "@/lib/affiliate";
@@ -146,6 +147,21 @@ export default async function PartPage({ params }: { params: Params }) {
       : undefined,
   };
 
+  // FAQ générée depuis les données de la fiche (visible + JSON-LD FAQPage)
+  const faqItems = buildPartFaq({
+    reference: part.referenceRaw,
+    manufacturerName: manufacturer.name,
+    name: part.name,
+    description: part.description,
+    status: part.status,
+    categoryName: category?.name ?? null,
+    lifecycleCheckedAt: part.lifecycleCheckedAt,
+    replacementReference: detail.replacedBy[0]?.part.referenceRaw ?? null,
+    sellerNames: detail.offers.map(({ seller }) => seller.name),
+    minPrice: minPrice ?? null,
+    currency,
+  });
+
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -171,6 +187,12 @@ export default async function PartPage({ params }: { params: Params }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
+      {faqItems.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqItems)) }}
+        />
+      )}
 
       <Breadcrumb
         items={[
@@ -446,6 +468,23 @@ export default async function PartPage({ params }: { params: Params }) {
           />
         </div>
       </section>
+
+      {faqItems.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-xl font-semibold">Questions fréquentes</h2>
+          <div className="mt-3 max-w-3xl divide-y divide-zinc-100 rounded-xl border border-zinc-200">
+            {faqItems.map((item) => (
+              <details key={item.question} className="group px-5 py-4">
+                <summary className="cursor-pointer list-none font-medium text-zinc-800 marker:hidden [&::-webkit-details-marker]:hidden">
+                  <span className="mr-2 inline-block text-zinc-400 transition group-open:rotate-90">›</span>
+                  {item.question}
+                </summary>
+                <p className="mt-2 pl-5 text-sm leading-relaxed text-zinc-600">{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
 
       {similarParts.length > 0 && (
         <section className="mt-8 print-hide">

@@ -3,11 +3,16 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { generateApiKey } from "@/lib/api-auth";
 import { PLAN_QUOTAS } from "@/db/schema";
+import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 /** POST /api/developers/keys — génère une clé gratuite (email requis). */
 export async function POST(req: NextRequest) {
+  // Anti-abus : 3 créations de clé / heure / IP (une clé = 1 000 req/mois gratuites)
+  const rl = rateLimit(`keys:${clientIp(req)}`, 3, 3_600_000);
+  if (!rl.ok) return tooManyRequests(rl);
+
   let body: { email?: string };
   try { body = await req.json(); } catch {
     return Response.json({ error: "JSON invalide" }, { status: 400 });
