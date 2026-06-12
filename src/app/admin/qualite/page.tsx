@@ -84,6 +84,18 @@ export default async function QualityPage({
 
   const total = Number(stats.total);
 
+  // ── Monétisation : clics sortants vers revendeurs (30 derniers jours) ──────
+  const clickStats = await db.execute(sql`
+    SELECT seller_slug,
+           count(*)::int AS clicks,
+           count(*) FILTER (WHERE affiliated)::int AS affiliated_clicks
+    FROM outbound_clicks
+    WHERE created_at > now() - interval '30 days'
+    GROUP BY seller_slug
+    ORDER BY clicks DESC
+  `) as unknown as Array<{ seller_slug: string; clicks: number; affiliated_clicks: number }>;
+  const totalClicks = clickStats.reduce((a, c) => a + Number(c.clicks), 0);
+
   // ── Fabricants suspects (revendeurs ingérés comme marques) ────────────────
   const allManufacturers = await db
     .select({
@@ -159,6 +171,44 @@ export default async function QualityPage({
         <StatCard label="Confiance < 60"       value={Number(stats.lowConfidence)} total={total} tone={Number(stats.lowConfidence) > 0 ? "warn" : "ok"} />
         <StatCard label="À vérifier (review)"  value={Number(stats.needsReview)}   total={total} tone={Number(stats.needsReview) > 0 ? "warn" : "ok"} />
       </div>
+
+      {/* Monétisation — clics revendeurs */}
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold">
+          Clics revendeurs — 30 derniers jours{" "}
+          <span className="text-zinc-400">({totalClicks.toLocaleString("fr-FR")})</span>
+        </h2>
+        {clickStats.length === 0 ? (
+          <p className="mt-2 text-sm text-zinc-500">
+            Aucun clic enregistré. Les liens revendeurs passent par /go dès cette mise en ligne.
+          </p>
+        ) : (
+          <table className="mt-3 w-full max-w-xl text-left text-sm">
+            <thead>
+              <tr className="border-b border-zinc-200 text-zinc-500">
+                <th className="py-2 pr-4 font-medium">Revendeur</th>
+                <th className="py-2 pr-4 font-medium">Clics</th>
+                <th className="py-2 font-medium">Dont affiliés</th>
+              </tr>
+            </thead>
+            <tbody>
+              {clickStats.map((c) => (
+                <tr key={c.seller_slug} className="border-b border-zinc-100">
+                  <td className="py-2 pr-4 font-medium">{c.seller_slug}</td>
+                  <td className="py-2 pr-4">{Number(c.clicks).toLocaleString("fr-FR")}</td>
+                  <td className="py-2">
+                    {Number(c.affiliated_clicks) > 0 ? (
+                      <span className="text-green-600">{Number(c.affiliated_clicks).toLocaleString("fr-FR")}</span>
+                    ) : (
+                      <span className="text-zinc-400">0 — affiliation non configurée</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
 
       {/* Fabricants suspects */}
       <section className="mt-12">

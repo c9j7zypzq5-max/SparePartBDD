@@ -335,6 +335,30 @@ export async function getAllPartPaths() {
   }));
 }
 
+/** Nombre total de pièces — pour calculer le nombre de shards du sitemap. */
+export async function getPartCount(): Promise<number> {
+  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(parts);
+  return Number(row?.n ?? 0);
+}
+
+/**
+ * Pour le sitemap shardé : une tranche d'URLs de pages pièce, triée par id
+ * (pagination stable). `lastModified` = updatedAt de la pièce.
+ */
+export async function getPartPathsPaginated(offset: number, limit: number) {
+  return db
+    .select({
+      manufacturerSlug: manufacturers.slug,
+      partSlug: parts.slug,
+      updatedAt: parts.updatedAt,
+    })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .orderBy(asc(parts.id))
+    .limit(limit)
+    .offset(offset);
+}
+
 export async function getSimilarParts(
   partId: number,
   manufacturerId: number,

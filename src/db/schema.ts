@@ -259,6 +259,30 @@ export const PLAN_QUOTAS: Record<string, number> = {
   business: 250_000,
 };
 
+/**
+ * Clics sortants vers les revendeurs (monétisation par affiliation).
+ * Enregistré par la route /go avant redirection, pour les statistiques.
+ */
+export const outboundClicks = pgTable(
+  "outbound_clicks",
+  {
+    id: serial("id").primaryKey(),
+    /** Pièce d'origine du clic (null si lien hors page pièce) */
+    partId: integer("part_id").references(() => parts.id),
+    /** Slug du revendeur ciblé (ex : "rs-components") */
+    sellerSlug: text("seller_slug").notNull(),
+    /** Référence recherchée au moment du clic */
+    reference: text("reference"),
+    /** true si l'URL a été décorée d'un identifiant d'affiliation */
+    affiliated: boolean("affiliated").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("outbound_clicks_seller_idx").on(t.sellerSlug),
+    index("outbound_clicks_created_idx").on(t.createdAt),
+  ],
+);
+
 /** Clés d'accès à l'API publique. La clé brute n'est jamais stockée — uniquement son hash SHA-256. */
 export const apiKeys = pgTable(
   "api_keys",

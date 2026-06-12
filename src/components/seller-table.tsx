@@ -12,7 +12,8 @@ export interface SellerOffer {
   price: string | null;
   currency: string | null;
   availability: string | null;
-  url: string;
+  /** Lien de clic (déjà résolu : /go traçant si revendeur connu, sinon URL brute) */
+  href: string;
   /** Date du relevé de l'offre */
   scrapedAt: Date;
 }
@@ -33,7 +34,8 @@ function formatPrice(price: string | null, currency: string | null): string {
 /** Lien de recherche direct chez un revendeur (RS, Farnell, Rexel…). */
 export interface ResellerSearchLink {
   name: string;
-  url: string;
+  /** Lien de clic déjà résolu (/go traçant) */
+  href: string;
 }
 
 function ResellerSearchLinks({ links }: { links: ResellerSearchLink[] }) {
@@ -47,7 +49,7 @@ function ResellerSearchLinks({ links }: { links: ResellerSearchLink[] }) {
         {links.map((link) => (
           <a
             key={link.name}
-            href={link.url}
+            href={link.href}
             rel="nofollow sponsored noopener"
             target="_blank"
             className="inline-flex items-center gap-1 rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
@@ -107,7 +109,7 @@ export function SellerTable({
               </td>
               <td className="py-2">
                 <a
-                  href={offer.url}
+                  href={offer.href}
                   rel="nofollow sponsored noopener"
                   target="_blank"
                   className="text-blue-600 hover:underline"
@@ -141,7 +143,7 @@ export function SellerTable({
                 Relevé le {offer.scrapedAt.toLocaleDateString("fr-FR")}
               </span>
               <a
-                href={offer.url}
+                href={offer.href}
                 rel="nofollow sponsored noopener"
                 target="_blank"
                 className="font-medium text-blue-600 hover:underline"

@@ -37,6 +37,27 @@ const CODE_EXAMPLES = {
       { seller: "Radwell",       sellerType: "reconditionne",         price: 220, currency: "EUR", url: "https://www.radwell.com/..." },
     ],
   }, null, 2),
+
+  python: `import requests
+
+API_KEY = "spb_votre_clé"
+r = requests.get(
+    "${siteUrl}/api/v1/part/6ES7214-1AG40-0XB0",
+    headers={"Authorization": f"Bearer {API_KEY}"},
+)
+r.raise_for_status()
+part = r.json()
+print(part["status"], part["offers"])`,
+
+  javascript: `const API_KEY = "spb_votre_clé";
+
+const res = await fetch(
+  "${siteUrl}/api/v1/part/6ES7214-1AG40-0XB0",
+  { headers: { Authorization: \`Bearer \${API_KEY}\` } },
+);
+if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
+const part = await res.json();
+console.log(part.status, part.offers);`,
 };
 
 export default function DevelopersPage() {
@@ -178,6 +199,33 @@ export default function DevelopersPage() {
             <p className="mt-2 text-zinc-600">Catalogue complet d'un fabricant, paginé.</p>
             <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
               <pre className="text-sm text-zinc-100">{CODE_EXAMPLES.manufacturer}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SDK & OpenAPI */}
+      <section className="mb-16">
+        <h2 className="mb-2 text-2xl font-semibold">SDK & spécification OpenAPI</h2>
+        <p className="mb-6 text-zinc-600">
+          L'API est décrite par une spécification{" "}
+          <a href="/api/v1/openapi.json" className="font-medium text-blue-600 hover:underline" target="_blank" rel="noopener">
+            OpenAPI 3.1
+          </a>{" "}
+          — importable dans Postman, Swagger UI ou un générateur de SDK
+          (<code className="rounded bg-zinc-100 px-1 font-mono text-sm">openapi-generator</code>) pour produire un client dans votre langage.
+        </p>
+        <div className="grid gap-6 sm:grid-cols-2">
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-zinc-700">Python</h3>
+            <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
+              <pre className="text-xs text-zinc-100">{CODE_EXAMPLES.python}</pre>
+            </div>
+          </div>
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-zinc-700">JavaScript / TypeScript</h3>
+            <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
+              <pre className="text-xs text-zinc-100">{CODE_EXAMPLES.javascript}</pre>
             </div>
           </div>
         </div>

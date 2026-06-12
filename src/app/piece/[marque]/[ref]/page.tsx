@@ -11,6 +11,7 @@ import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail, getSimilarParts, getAlternativeParts } from "@/lib/queries";
 import { resellersForPart } from "@/lib/resellers";
+import { goHref, resolveResellerHref } from "@/lib/affiliate";
 import { siteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
@@ -74,7 +75,10 @@ export default async function PartPage({ params }: { params: Params }) {
   const resellerSearchLinks = resellersForPart(manufacturer.industry, part.status)
     .filter((r) => !offerSellerSlugs.has(r.slug))
     .slice(0, 5)
-    .map((r) => ({ name: r.name, url: r.searchUrl(part.referenceRaw) }));
+    .map((r) => ({
+      name: r.name,
+      href: goHref({ to: r.searchUrl(part.referenceRaw), seller: r.slug, reference: part.referenceRaw, partId: part.id }),
+    }));
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -369,7 +373,7 @@ export default async function PartPage({ params }: { params: Params }) {
               price: offer.price,
               currency: offer.currency,
               availability: offer.availability,
-              url: offer.url,
+              href: resolveResellerHref(offer.url, part.referenceRaw, part.id),
               scrapedAt: offer.scrapedAt,
             }))}
             searchLinks={resellerSearchLinks}
