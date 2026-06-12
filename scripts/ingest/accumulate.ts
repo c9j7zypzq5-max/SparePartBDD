@@ -677,6 +677,48 @@ function isResellerUrl(url: string): boolean {
 
 const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
+let ddgBackoffAttempt = 0;
+const DDG_BACKOFF_DELAYS_MS = [60_000, 120_000, 240_000, 300_000];
+
+async function fetchDDGWithBackoff(q: string, timeoutMs: number): Promise<string | null> {
+  const doOnce = async (): Promise<string | null> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
+        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
+        signal: controller.signal,
+      });
+      if (!res.ok) return null;
+      const text = await res.text();
+      return (res.status === 202 || !text.includes("uddg=")) ? "" : text;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  };
+
+  let html = await doOnce();
+
+  while (html === "") {
+    if (ddgBackoffAttempt >= DDG_BACKOFF_DELAYS_MS.length) {
+      log(`[DDG] Giving up after ${DDG_BACKOFF_DELAYS_MS.length} attempts, skipping`);
+      ddgBackoffAttempt = 0;
+      return null;
+    }
+    const delayMs = DDG_BACKOFF_DELAYS_MS[ddgBackoffAttempt];
+    log(`[DDG] Rate limited, waiting ${delayMs / 1000}s (attempt ${ddgBackoffAttempt + 1}/${DDG_BACKOFF_DELAYS_MS.length})...`);
+    await new Promise(r => setTimeout(r, delayMs));
+    ddgBackoffAttempt++;
+    html = await doOnce();
+  }
+
+  if (html !== null) ddgBackoffAttempt = 0;
+  return html;
+}
+
 function manufacturerSlug(name: string): string {
   return name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
@@ -720,25 +762,6 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
     reference,
   ];
 
-  const fetchDDG = async (q: string): Promise<string | null> => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), STRATEGY_TIMEOUT_MS);
-    try {
-      const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
-        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
-        signal: controller.signal,
-      });
-      if (!res.ok) return null;
-      const text = await res.text();
-      return (res.status === 202 || !text.includes("uddg=")) ? "" : text;
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timer);
-      await new Promise(r => setTimeout(r, 2000));
-    }
-  };
-
   for (let i = 0; i < strategies.length; i++) {
     if (i > 0) {
       const delay = 3000 + Math.random() * 3000; // 3–6 s between strategies
@@ -746,13 +769,7 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
     }
 
     const q = encodeURIComponent(strategies[i]);
-    let html: string | null = await fetchDDG(q);
-
-    if (html === "") {
-      log(`[DDG] Rate limited, waiting 30s...`);
-      await new Promise(r => setTimeout(r, 30000));
-      html = await fetchDDG(q);
-    }
+    const html: string | null = await fetchDDGWithBackoff(q, STRATEGY_TIMEOUT_MS);
 
     if (!html) continue;
 
@@ -792,32 +809,7 @@ async function findDatasheetUrl(reference: string, manufacturer: string): Promis
   const q = encodeURIComponent(`"${reference}" "${manufacturer}" datasheet filetype:pdf`);
   const SEARCH_BLACKLIST = [...RESELLER_DOMAINS, "etb-tech"];
 
-  const fetchDDG = async (): Promise<string | null> => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), STRATEGY_TIMEOUT_MS);
-    try {
-      const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
-        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
-        signal: controller.signal,
-      });
-      if (!res.ok) return null;
-      const text = await res.text();
-      return (res.status === 202 || !text.includes("uddg=")) ? "" : text;
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timer);
-      await new Promise(r => setTimeout(r, 2000));
-    }
-  };
-
-  let html: string | null = await fetchDDG();
-
-  if (html === "") {
-    log(`[DDG] Rate limited, waiting 30s...`);
-    await new Promise(r => setTimeout(r, 30000));
-    html = await fetchDDG();
-  }
+  const html: string | null = await fetchDDGWithBackoff(q, STRATEGY_TIMEOUT_MS);
 
   if (!html) return null;
 
