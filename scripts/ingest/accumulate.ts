@@ -378,7 +378,7 @@ function generateNewTargets(round: number): Target[] {
 
 function log(message: string): void {
   const line = `[${new Date().toISOString()}] ${message}`;
-  console.log(line);
+  if (process.stdout.isTTY) console.log(line);
   fs.appendFileSync(LOG_FILE, line + "\n");
 }
 
@@ -720,25 +720,41 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
     reference,
   ];
 
-  for (let i = 0; i < strategies.length; i++) {
-    const q = encodeURIComponent(strategies[i]);
+  const fetchDDG = async (q: string): Promise<string | null> => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), STRATEGY_TIMEOUT_MS);
-
-    let html: string;
     try {
       const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
         headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
         signal: controller.signal,
       });
-      if (!res.ok) { clearTimeout(timer); continue; }
-      html = await res.text();
+      if (!res.ok) return null;
+      const text = await res.text();
+      return (res.status === 202 || !text.includes("uddg=")) ? "" : text;
     } catch {
-      clearTimeout(timer);
-      continue;
+      return null;
     } finally {
       clearTimeout(timer);
+      await new Promise(r => setTimeout(r, 2000));
     }
+  };
+
+  for (let i = 0; i < strategies.length; i++) {
+    if (i > 0) {
+      const delay = 3000 + Math.random() * 3000; // 3–6 s between strategies
+      await new Promise(r => setTimeout(r, delay));
+    }
+
+    const q = encodeURIComponent(strategies[i]);
+    let html: string | null = await fetchDDG(q);
+
+    if (html === "") {
+      log(`[DDG] Rate limited, waiting 30s...`);
+      await new Promise(r => setTimeout(r, 30000));
+      html = await fetchDDG(q);
+    }
+
+    if (!html) continue;
 
     // DDG HTML embeds uddg=ENCODED_URL in redirect hrefs — decode them in order
     const uddgRe = /uddg=([^&"'\s>]+)/g;
@@ -776,21 +792,34 @@ async function findDatasheetUrl(reference: string, manufacturer: string): Promis
   const q = encodeURIComponent(`"${reference}" "${manufacturer}" datasheet filetype:pdf`);
   const SEARCH_BLACKLIST = [...RESELLER_DOMAINS, "etb-tech"];
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), STRATEGY_TIMEOUT_MS);
-  let html: string;
-  try {
-    const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
-      headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
-      signal: controller.signal,
-    });
-    if (!res.ok) return null;
-    html = await res.text();
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
+  const fetchDDG = async (): Promise<string | null> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), STRATEGY_TIMEOUT_MS);
+    try {
+      const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
+        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
+        signal: controller.signal,
+      });
+      if (!res.ok) return null;
+      const text = await res.text();
+      return (res.status === 202 || !text.includes("uddg=")) ? "" : text;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  };
+
+  let html: string | null = await fetchDDG();
+
+  if (html === "") {
+    log(`[DDG] Rate limited, waiting 30s...`);
+    await new Promise(r => setTimeout(r, 30000));
+    html = await fetchDDG();
   }
+
+  if (!html) return null;
 
   const uddgRe = /uddg=([^&"'\s>]+)/g;
   let m: RegExpExecArray | null;
@@ -1142,6 +1171,7 @@ async function runRepairMode(model: string): Promise<void> {
           ingestPart.productUrl = found;
           log(`   🔗  ${part.reference} → ${found}`);
         }
+        if (!ingestPart.datasheetUrl) await new Promise(r => setTimeout(r, 2000));
       }
 
       // Search for datasheet only if not already provided by distributor
@@ -1427,6 +1457,7 @@ async function runEnrichMode(model: string): Promise<void> {
       if (!part.productUrl) {
         const productUrl = await findProductUrl(part.reference, part.manufacturer);
         if (productUrl) { part.productUrl = productUrl; log(`   🔗  ${part.reference} → ${productUrl}`); }
+        if (!part.datasheetUrl) await new Promise(r => setTimeout(r, 2000));
       }
       if (!part.datasheetUrl) {
         const datasheetUrl = await findDatasheetUrl(part.reference, part.manufacturer);
