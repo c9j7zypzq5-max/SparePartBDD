@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getCategoriesWithCounts } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+// ISR : liste des catégories rafraîchie toutes les heures depuis le cache Edge
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Toutes les catégories",
@@ -21,7 +22,12 @@ const INDUSTRY_LABELS: Record<string, string> = {
 };
 
 export default async function CategoriesPage() {
-  const rawRows = await getCategoriesWithCounts();
+  // Base indisponible (ex : build sans BDD) : page vide servie, le prochain
+  // cycle de revalidation ISR la régénère avec les données.
+  let rawRows: Awaited<ReturnType<typeof getCategoriesWithCounts>> = [];
+  try {
+    rawRows = await getCategoriesWithCounts();
+  } catch {}
   const rows = [...rawRows].sort((a, b) => b.partsCount - a.partsCount);
 
   const byIndustry = new Map<string, typeof rows>();

@@ -1,5 +1,7 @@
 import { NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { ingestParts } from "@/lib/ingest-pipeline";
+import { referenceSlug, slugify } from "@/lib/normalize";
 import type { IngestPayload } from "@/lib/ingest-types";
 
 export const runtime = "nodejs";
@@ -35,6 +37,14 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await ingestParts(payload.parts, payload.source);
+
+  // Les pages pièces sont en ISR (1 h) : purge immédiate du cache des pièces
+  // touchées pour que le site reflète l'ingestion sans attendre la revalidation.
+  for (const p of payload.parts) {
+    try {
+      revalidatePath(`/piece/${slugify(p.manufacturer)}/${referenceSlug(p.reference)}`);
+    } catch { /* revalidation best-effort */ }
+  }
 
   return Response.json(result, {
     status: result.errors.length > 0 ? 207 : 200,

@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 export const runtime = "nodejs";
@@ -81,6 +82,23 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       errors.push(`[partId ${r.partId}] ${String(err)}`);
     }
+  }
+
+  // Pages pièces en ISR : purge du cache des pièces modifiées (URL morte
+  // effacée ou redirection suivie — pas besoin pour un simple "ok").
+  const touchedIds = body.results
+    .filter((r) => r.outcome === "dead" || (r.outcome === "redirect" && r.newUrl))
+    .map((r) => r.partId)
+    .filter((id) => typeof id === "number");
+  if (touchedIds.length > 0) {
+    try {
+      const rows = await db
+        .select({ partSlug: schema.parts.slug, mfgSlug: schema.manufacturers.slug })
+        .from(schema.parts)
+        .innerJoin(schema.manufacturers, eq(schema.parts.manufacturerId, schema.manufacturers.id))
+        .where(inArray(schema.parts.id, touchedIds));
+      for (const r of rows) revalidatePath(`/piece/${r.mfgSlug}/${r.partSlug}`);
+    } catch { /* revalidation best-effort */ }
   }
 
   return Response.json(

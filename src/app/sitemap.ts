@@ -7,7 +7,9 @@ import {
 } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
 
-export const dynamic = "force-dynamic";
+// ISR : le sitemap est une requête BDD lourde (pagination de toute la table
+// parts) frappée par Googlebot et le script d'enrichissement — cache 1 h.
+export const revalidate = 3600;
 
 /**
  * Sitemap shardé. Next.js sert un index à /sitemap.xml et chaque tranche à

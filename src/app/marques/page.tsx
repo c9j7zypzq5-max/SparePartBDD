@@ -3,7 +3,8 @@ import Link from "next/link";
 import { getManufacturersWithCounts } from "@/lib/queries";
 import { BrandLogo } from "@/components/brand-logo";
 
-export const dynamic = "force-dynamic";
+// ISR : liste des marques rafraîchie toutes les heures depuis le cache Edge
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Toutes les marques",
@@ -22,7 +23,12 @@ const INDUSTRY_LABELS: Record<string, string> = {
 };
 
 export default async function BrandsPage() {
-  const rows = await getManufacturersWithCounts();
+  // Base indisponible (ex : build sans BDD) : page vide servie, le prochain
+  // cycle de revalidation ISR la régénère avec les données.
+  let rows: Awaited<ReturnType<typeof getManufacturersWithCounts>> = [];
+  try {
+    rows = await getManufacturersWithCounts();
+  } catch {}
 
   const byIndustry = new Map<string, typeof rows>();
   for (const row of rows) {

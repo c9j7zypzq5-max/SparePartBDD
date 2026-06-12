@@ -3,7 +3,8 @@ import { SearchBar } from "@/components/search-bar";
 import { BrandLogo } from "@/components/brand-logo";
 import { getHomepageData, getRecentSupersessions } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+// ISR : stats d'accueil rafraîchies toutes les 30 min, servies depuis le cache
+export const revalidate = 1800;
 
 export default async function HomePage() {
   let data: Awaited<ReturnType<typeof getHomepageData>> = {

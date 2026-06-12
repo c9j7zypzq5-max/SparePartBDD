@@ -14,7 +14,17 @@ import { resellersForPart } from "@/lib/resellers";
 import { goHref, resolveResellerHref } from "@/lib/affiliate";
 import { siteUrl } from "@/lib/site-url";
 
-export const dynamic = "force-dynamic";
+// ISR : la page est rendue à la première visite puis servie depuis le cache
+// Edge de Vercel pendant 1 h — fini les requêtes BDD à chaque hit Googlebot.
+export const revalidate = 3600;
+export const dynamicParams = true;
+
+// Aucune page pré-rendue au build (la BDD n'y est pas forcément accessible) :
+// tout est généré à la demande puis caché — requis pour activer l'ISR sur
+// une route à segments dynamiques.
+export async function generateStaticParams(): Promise<{ marque: string; ref: string }[]> {
+  return [];
+}
 
 type Params = Promise<{ marque: string; ref: string }>;
 
