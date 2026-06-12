@@ -12,6 +12,14 @@
  *   npx tsx scripts/ingest/accumulate.ts --repair        → répare les pièces incomplètes (description/URL/status/category)
  *   npx tsx scripts/ingest/accumulate.ts --repair --once → test un seul batch de repair
  *
+ * Parallélisation (plusieurs terminaux simultanés sur le Mac mini) :
+ *   Terminal A : npx tsx scripts/ingest/accumulate.ts --segment 0/2     → cibles paires
+ *   Terminal B : npx tsx scripts/ingest/accumulate.ts --segment 1/2     → cibles impaires
+ *   Terminal C : npx tsx scripts/ingest/verify-links.ts                 → vérifie les URLs (sans Ollama)
+ *   Terminal D : npx tsx scripts/ingest/accumulate.ts --repair --segment 0/2
+ *
+ * Chaque worker --segment utilise son propre fichier d'état (pas de conflit).
+ *
  * Chaque référence ingérée reçoit AU MOINS une offre revendeur (RS Components,
  * Farnell, Rexel, Conrad, Radwell, eBay… — voir src/lib/resellers.ts) : page
  * produit directe si la recherche en trouve une, sinon URL de recherche du
@@ -51,7 +59,6 @@ const BATCH_PAUSE_MS      = 7_000;
 const OLLAMA_TIMEOUT_MS   = 300_000;
 const UPDATE_BATCH_SIZE   = 8;
 const LOG_FILE      = path.resolve(__dirname, "accumulate.log");
-const STATE_FILE    = path.resolve(__dirname, ".accumulate-state.json");
 
 const ONCE_MODE   = process.argv.includes("--once");
 const UPDATE_MODE = process.argv.includes("--update");
@@ -59,6 +66,18 @@ const CLEAN_MODE  = process.argv.includes("--clean");
 const STATS_MODE  = process.argv.includes("--stats");
 const REPAIR_MODE = process.argv.includes("--repair");
 const ENRICH_MODE = !UPDATE_MODE && !CLEAN_MODE && !STATS_MODE && !REPAIR_MODE; // default
+
+// Parallélisation : --segment N/M (ex: --segment 0/3, --segment 1/3, --segment 2/3)
+// Chaque worker traite les targets/pièces dont l'index % M === N.
+// Utilise un fichier d'état séparé — les workers ne se marchent pas dessus.
+const segmentMatch = process.argv.join(" ").match(/--segment[= ](\d+)\/(\d+)/);
+const WORKER_ID    = segmentMatch ? parseInt(segmentMatch[1]) : null;
+const WORKER_COUNT = segmentMatch ? parseInt(segmentMatch[2]) : null;
+
+// Fichier d'état par segment (null = comportement original)
+const STATE_FILE = WORKER_ID != null
+  ? path.resolve(__dirname, `.accumulate-state-seg${WORKER_ID}of${WORKER_COUNT}.json`)
+  : path.resolve(__dirname, ".accumulate-state.json");
 
 // ---------------------------------------------------------------------------
 // Manufacturer domains & reseller detection
@@ -1065,17 +1084,23 @@ async function runRepairMode(model: string): Promise<void> {
 
   log(`[Repair] Found ${allParts.length} parts to repair (${missingDesc} missing description, ${missingUrl} missing URL, ${unknownStatus} unknown status, ${missingCat} missing category)`);
 
-  if (allParts.length === 0) { log("✅  Nothing to repair."); return; }
+  // Filtrage par segment : chaque worker prend 1 pièce sur WORKER_COUNT
+  const parts = WORKER_ID != null && WORKER_COUNT != null
+    ? allParts.filter((_, i) => i % WORKER_COUNT! === WORKER_ID)
+    : allParts;
+  if (WORKER_ID != null) log(`⚙️  Worker ${WORKER_ID}/${WORKER_COUNT} — ${parts.length}/${allParts.length} pièces`);
+
+  if (parts.length === 0) { log("✅  Nothing to repair for this segment."); return; }
 
   // Resume from cursor (offset into fetched list)
-  let cursor = repairCursor >= allParts.length ? 0 : repairCursor;
-  if (cursor > 0) log(`▶  Resuming from offset ${cursor}/${allParts.length}`);
+  let cursor = repairCursor >= parts.length ? 0 : repairCursor;
+  if (cursor > 0) log(`▶  Resuming from offset ${cursor}/${parts.length}`);
 
   let totalUpdated = 0, totalErrors = 0;
 
-  while (cursor < allParts.length) {
-    const batch = allParts.slice(cursor, cursor + REPAIR_BATCH_SIZE);
-    log(`▶  [repair] batch ${Math.floor(cursor / REPAIR_BATCH_SIZE) + 1}/${Math.ceil(allParts.length / REPAIR_BATCH_SIZE)} — ${batch.map((p) => p.reference).join(", ")}`);
+  while (cursor < parts.length) {
+    const batch = parts.slice(cursor, cursor + REPAIR_BATCH_SIZE);
+    log(`▶  [repair] batch ${Math.floor(cursor / REPAIR_BATCH_SIZE) + 1}/${Math.ceil(parts.length / REPAIR_BATCH_SIZE)} — ${batch.map((p) => p.reference).join(", ")}`);
     const batchStart = Date.now();
 
     // For each part: few-shot single-part Ollama call + datasheet + URL
@@ -1144,7 +1169,7 @@ async function runRepairMode(model: string): Promise<void> {
     await pause();
   }
 
-  if (!ONCE_MODE && cursor >= allParts.length) {
+  if (!ONCE_MODE && cursor >= parts.length) {
     saveState({ ...state, repair: { cursor: 0 }, lastRun: new Date().toISOString() });
     log(`\n🏁  Repair cycle complete. ~${totalUpdated} updated, ${totalErrors} errors`);
   } else {
@@ -1314,9 +1339,16 @@ async function runEnrichMode(model: string): Promise<void> {
   const state = loadState();
   let { batchIndex, generationRound } = state.enrich;
 
-  let targets = batchIndex < BASE_TARGETS.length
+  let allTargets = batchIndex < BASE_TARGETS.length
     ? [...BASE_TARGETS]
     : [...BASE_TARGETS, ...generateNewTargets(generationRound)];
+
+  // Filtrage par segment (--segment N/M) : chaque worker traite un sous-ensemble
+  let targets = WORKER_ID != null && WORKER_COUNT != null
+    ? allTargets.filter((_, i) => i % WORKER_COUNT! === WORKER_ID)
+    : allTargets;
+
+  if (WORKER_ID != null) log(`⚙️  Worker ${WORKER_ID}/${WORKER_COUNT} — ${targets.length}/${allTargets.length} cibles`);
 
   const excluded = await fetchExclusionSet();
   log(`📋  ${excluded.size} references in catalogue (exclusion list)`);
@@ -1328,7 +1360,10 @@ async function runEnrichMode(model: string): Promise<void> {
     if (batchIndex >= targets.length) {
       if (ONCE_MODE) break;
       generationRound++;
-      targets = [...BASE_TARGETS, ...generateNewTargets(generationRound)];
+      const allNextTargets = [...BASE_TARGETS, ...generateNewTargets(generationRound)];
+      targets = WORKER_ID != null && WORKER_COUNT != null
+        ? allNextTargets.filter((_, i) => i % WORKER_COUNT! === WORKER_ID)
+        : allNextTargets;
       batchIndex = 0;
       tracker.totalTargets = targets.length;
       const refreshed = await fetchExclusionSet();
@@ -1693,9 +1728,10 @@ async function detectResellerParts(): Promise<void> {
 
 async function main(): Promise<void> {
   const modeLabel = STATS_MODE ? "--stats" : UPDATE_MODE ? "--update" : CLEAN_MODE ? "--clean" : REPAIR_MODE ? "--repair" : "--enrich";
+  const segLabel  = WORKER_ID != null ? ` --segment ${WORKER_ID}/${WORKER_COUNT}` : "";
   console.log("═══════════════════════════════════════════════════════════");
   console.log("   SparePartSearch — Catalog Accumulator");
-  console.log(`   Mode: ${modeLabel}${ONCE_MODE ? " --once" : STATS_MODE ? "" : " (continuous)"}`);
+  console.log(`   Mode: ${modeLabel}${segLabel}${ONCE_MODE ? " --once" : STATS_MODE ? "" : " (continuous)"}`);
   console.log("═══════════════════════════════════════════════════════════\n");
 
   await detectResellerParts();
