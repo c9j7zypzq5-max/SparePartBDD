@@ -69,15 +69,13 @@ export default function DevelopersPage() {
               )}
               <h3 className="text-lg font-semibold">{plan.name}</h3>
               <p className="mt-1 text-2xl font-bold">
-                {plan.price === 0 ? "Gratuit" : plan.price != null ? `${plan.price} €` : "Sur devis"}
-                {plan.price != null && plan.price > 0 && (
+                {plan.price === 0 ? "Gratuit" : `${plan.price} €`}
+                {plan.price > 0 && (
                   <span className="text-base font-normal text-zinc-500">/mois</span>
                 )}
               </p>
               <p className="mt-1 text-sm text-zinc-500">
-                {plan.quota >= 10_000_000
-                  ? "Illimité"
-                  : `${plan.quota.toLocaleString("fr-FR")} req/mois`}
+                {plan.quota.toLocaleString("fr-FR")} req/mois
               </p>
               <ul className="mt-4 space-y-2">
                 {plan.features.map((f) => (

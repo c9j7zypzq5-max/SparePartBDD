@@ -43,12 +43,12 @@ export async function POST(req: NextRequest) {
       if (!apiKeyId || !plan) break;
 
       const id    = parseInt(apiKeyId, 10);
-      const quota = plan === "enterprise" ? PLAN_QUOTAS.enterprise : PLAN_QUOTAS.pro;
+      const quota = plan === "business" ? PLAN_QUOTAS.business : PLAN_QUOTAS.pro;
 
       if (keyHash && keyPrefix) {
         await db.update(schema.apiKeys)
           .set({
-            plan:                 plan as "pro" | "enterprise",
+            plan:                 plan as "pro" | "business",
             monthlyQuota:         quota,
             active:               true,
             overageEnabled:       overage === "1",
@@ -61,14 +61,16 @@ export async function POST(req: NextRequest) {
     }
 
     case "customer.subscription.updated": {
-      const sub    = event.data.object as Stripe.Subscription;
-      const planId = sub.items.data[0]?.price.id;
-      const isPro  = planId === process.env.STRIPE_PRICE_PRO;
-      const plan   = isPro ? "pro" : "enterprise";
-      const quota  = isPro ? PLAN_QUOTAS.pro : PLAN_QUOTAS.enterprise;
+      const sub = event.data.object as Stripe.Subscription;
+      // Le prix metered (overage) peut être en première position — chercher
+      // le line item correspondant à un plan connu
+      const priceIds = sub.items.data.map((i) => i.price.id);
+      const isPro    = priceIds.includes(process.env.STRIPE_PRICE_PRO ?? "");
+      const plan     = isPro ? "pro" : "business";
+      const quota    = isPro ? PLAN_QUOTAS.pro : PLAN_QUOTAS.business;
 
       await db.update(schema.apiKeys)
-        .set({ plan: plan as "pro" | "enterprise", monthlyQuota: quota })
+        .set({ plan: plan as "pro" | "business", monthlyQuota: quota })
         .where(eq(schema.apiKeys.stripeSubscriptionId, sub.id));
       break;
     }

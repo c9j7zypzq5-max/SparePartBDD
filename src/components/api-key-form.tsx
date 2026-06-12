@@ -13,7 +13,7 @@ interface KeyResult {
 
 export function ApiKeyForm() {
   const [email,   setEmail]   = useState("");
-  const [plan,    setPlan]    = useState<"free" | "pro" | "enterprise">("free");
+  const [plan,    setPlan]    = useState<"free" | "pro" | "business">("free");
   const [overage, setOverage] = useState(false);
   const [step,    setStep]    = useState<Step>("idle");
   const [result,  setResult]  = useState<KeyResult | null>(null);
@@ -114,12 +114,9 @@ export function ApiKeyForm() {
               }`}
             >
               {p.name}
-              {p.price != null && (
-                <span className="block text-xs font-normal">
-                  {p.price === 0 ? "Gratuit" : `${p.price} €/mois`}
-                </span>
-              )}
-              {p.price == null && <span className="block text-xs font-normal">Sur devis</span>}
+              <span className="block text-xs font-normal">
+                {p.price === 0 ? "Gratuit" : `${p.price} €/mois`}
+              </span>
             </button>
           ))}
         </div>
@@ -158,7 +155,7 @@ export function ApiKeyForm() {
           ? "Création en cours…"
           : plan === "free"
             ? "Obtenir ma clé gratuite"
-            : `Passer au plan ${plan === "pro" ? "Pro" : "Enterprise"} →`}
+            : `Passer au plan ${plan === "pro" ? "Pro" : "Business"} →`}
       </button>
     </form>
   );

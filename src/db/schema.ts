@@ -248,15 +248,15 @@ export const watchlistSubscriptions = pgTable("watchlist_subscriptions", {
 // ── API publique payante ───────────────────────────────────────────────────────
 
 export const apiKeyPlanEnum = pgEnum("api_key_plan", [
-  "free",       // 1 000 req/mois — gratuit
-  "pro",        // 50 000 req/mois — 49 €/mois
-  "enterprise", // illimité — sur devis
+  "free",     // 1 000 req/mois — gratuit
+  "pro",      // 50 000 req/mois — 49 €/mois
+  "business", // 250 000 req/mois — 149 €/mois
 ]);
 
 export const PLAN_QUOTAS: Record<string, number> = {
-  free:       1_000,
-  pro:        50_000,
-  enterprise: 10_000_000,
+  free:     1_000,
+  pro:      50_000,
+  business: 250_000,
 };
 
 /** Clés d'accès à l'API publique. La clé brute n'est jamais stockée — uniquement son hash SHA-256. */

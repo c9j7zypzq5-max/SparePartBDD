@@ -14,7 +14,7 @@ function getStripe(): Stripe {
   return new Stripe(key, { apiVersion: "2026-05-27.dahlia" });
 }
 
-/** POST /api/stripe/checkout — crée une session Stripe Checkout pour pro/enterprise. */
+/** POST /api/stripe/checkout — crée une session Stripe Checkout pour pro/business. */
 export async function POST(req: NextRequest) {
   let body: { email?: string; plan?: string; overage?: boolean };
   try { body = await req.json(); } catch {
@@ -27,13 +27,13 @@ export async function POST(req: NextRequest) {
   }
 
   const plan = body.plan;
-  if (plan !== "pro" && plan !== "enterprise") {
-    return Response.json({ error: "Plan invalide (pro | enterprise)" }, { status: 400 });
+  if (plan !== "pro" && plan !== "business") {
+    return Response.json({ error: "Plan invalide (pro | business)" }, { status: 400 });
   }
 
   const priceId = plan === "pro"
     ? process.env.STRIPE_PRICE_PRO
-    : process.env.STRIPE_PRICE_ENTERPRISE;
+    : process.env.STRIPE_PRICE_BUSINESS;
 
   if (!priceId) {
     return Response.json({ error: `STRIPE_PRICE_${plan.toUpperCase()} non configuré` }, { status: 500 });
