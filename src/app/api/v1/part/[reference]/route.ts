@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { normalizeReference } from "@/lib/normalize";
-import { checkApiKey, apiError, API_CORS_HEADERS } from "@/lib/api-auth";
+import { checkApiKey, apiError, quotaHeaders, API_CORS_HEADERS } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -92,5 +92,5 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
     },
   };
 
-  return NextResponse.json(body, { headers: API_CORS_HEADERS });
+  return NextResponse.json(body, { headers: quotaHeaders(auth) });
 }

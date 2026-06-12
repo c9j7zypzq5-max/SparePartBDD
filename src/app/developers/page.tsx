@@ -178,6 +178,26 @@ export default function DevelopersPage() {
         </div>
       </section>
 
+      {/* Usage-based billing */}
+      <section className="mb-16">
+        <h2 className="mb-4 text-2xl font-semibold">Facturation à l'usage</h2>
+        <p className="text-zinc-600">
+          Les plans payants peuvent activer la <strong>facturation à l'usage</strong> :
+          au-delà du quota mensuel inclus, les requêtes continuent de passer et le
+          dépassement est facturé <strong>1 € / 1 000 requêtes</strong> sur la facture
+          Stripe du mois. Sans cette option, l'API répond <code className="rounded bg-zinc-100 px-1 font-mono text-sm">429</code> une
+          fois le quota atteint.
+        </p>
+        <p className="mt-3 text-zinc-600">
+          Chaque réponse de l'API inclut vos compteurs en temps réel :
+        </p>
+        <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
+          <pre className="text-sm text-zinc-100">{`X-Quota-Limit:   50000   # quota mensuel inclus dans votre plan
+X-Quota-Used:    52340   # requêtes consommées sur la période
+X-Quota-Overage: 2340    # requêtes facturées à l'usage`}</pre>
+        </div>
+      </section>
+
       {/* Auth + errors */}
       <section className="mb-16">
         <h2 className="mb-4 text-2xl font-semibold">Authentification et erreurs</h2>
@@ -198,7 +218,7 @@ export default function DevelopersPage() {
               ["400", "Paramètre manquant ou invalide"],
               ["401", "Clé API manquante ou invalide"],
               ["404", "Référence ou fabricant introuvable"],
-              ["429", "Quota mensuel dépassé — passez au plan supérieur"],
+              ["429", "Quota mensuel dépassé (sans option à l'usage) — activez-la ou passez au plan supérieur"],
             ].map(([code, msg]) => (
               <tr key={code}>
                 <td className="py-1.5 pr-6 font-mono text-zinc-800">{code}</td>

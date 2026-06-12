@@ -14,6 +14,7 @@ interface KeyResult {
 export function ApiKeyForm() {
   const [email,   setEmail]   = useState("");
   const [plan,    setPlan]    = useState<"free" | "pro" | "enterprise">("free");
+  const [overage, setOverage] = useState(false);
   const [step,    setStep]    = useState<Step>("idle");
   const [result,  setResult]  = useState<KeyResult | null>(null);
   const [copied,  setCopied]  = useState(false);
@@ -39,7 +40,7 @@ export function ApiKeyForm() {
         const res = await fetch("/api/stripe/checkout", {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body:    JSON.stringify({ email, plan }),
+          body:    JSON.stringify({ email, plan, overage }),
         });
         const data = await res.json();
         if (!res.ok) { setStep("error"); setErrMsg(data.error ?? "Erreur inconnue"); return; }
@@ -123,6 +124,24 @@ export function ApiKeyForm() {
           ))}
         </div>
       </div>
+
+      {plan !== "free" && (
+        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={overage}
+            onChange={(e) => setOverage(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span className="text-sm text-zinc-700">
+            <span className="font-medium">Facturation à l'usage au-delà du quota</span>
+            <span className="block text-xs text-zinc-500">
+              1 € / 1 000 requêtes supplémentaires — sans cette option, les
+              requêtes au-delà du quota sont refusées (HTTP 429).
+            </span>
+          </span>
+        </label>
+      )}
 
       {step === "error" && (
         <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">

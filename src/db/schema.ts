@@ -274,6 +274,14 @@ export const apiKeys = pgTable(
     usageThisMonth: integer("usage_this_month").notNull().default(0),
     /** Début de la période de facturation courante */
     usageResetAt: timestamp("usage_reset_at").notNull().defaultNow(),
+    /**
+     * Facturation à l'usage au-delà du quota (plans payants uniquement).
+     * Si false : 429 au dépassement. Si true : les requêtes passent et le
+     * dépassement est facturé via les Billing Meters Stripe.
+     */
+    overageEnabled: boolean("overage_enabled").notNull().default(false),
+    /** Requêtes hors quota déjà rapportées à Stripe (meter events) pour la période courante */
+    overageReported: integer("overage_reported").notNull().default(0),
     active: boolean("active").notNull().default(true),
     stripeCustomerId: text("stripe_customer_id"),
     stripeSubscriptionId: text("stripe_subscription_id"),

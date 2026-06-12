@@ -13,7 +13,7 @@ export const PLANS = [
     name:     "Pro",
     price:    49,
     quota:    50_000,
-    features: ["50 000 requêtes / mois", "Tous les endpoints", "Données d'offres incluses", "Support email"],
+    features: ["50 000 requêtes / mois", "Tous les endpoints", "Données d'offres incluses", "Option à l'usage : 1 €/1 000 req au-delà", "Support email"],
     stripePriceId: null as string | null,
   },
   {

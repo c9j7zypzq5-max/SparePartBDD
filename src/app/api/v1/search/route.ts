@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkApiKey, apiError, API_CORS_HEADERS } from "@/lib/api-auth";
+import { checkApiKey, apiError, quotaHeaders, API_CORS_HEADERS } from "@/lib/api-auth";
 import { searchService } from "@/lib/search/postgres-search";
 
 export const runtime = "nodejs";
@@ -45,5 +45,5 @@ export async function GET(req: NextRequest) {
     _meta: { plan: auth.plan },
   };
 
-  return NextResponse.json(body, { headers: API_CORS_HEADERS });
+  return NextResponse.json(body, { headers: quotaHeaders(auth) });
 }

@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
-      const { apiKeyId, plan, keyHash, keyPrefix } = session.metadata ?? {};
+      const { apiKeyId, plan, keyHash, keyPrefix, overage } = session.metadata ?? {};
       if (!apiKeyId || !plan) break;
 
       const id    = parseInt(apiKeyId, 10);
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
             plan:                 plan as "pro" | "enterprise",
             monthlyQuota:         quota,
             active:               true,
+            overageEnabled:       overage === "1",
             stripeCustomerId:     session.customer as string | null,
             stripeSubscriptionId: session.subscription as string | null,
           })
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.deleted": {
       const sub = event.data.object as Stripe.Subscription;
       await db.update(schema.apiKeys)
-        .set({ plan: "free", monthlyQuota: PLAN_QUOTAS.free })
+        .set({ plan: "free", monthlyQuota: PLAN_QUOTAS.free, overageEnabled: false })
         .where(eq(schema.apiKeys.stripeSubscriptionId, sub.id));
       break;
     }

@@ -6,7 +6,16 @@ import { PLAN_QUOTAS } from "@/db/schema";
 import { siteUrl } from "@/lib/site-url";
 
 export type ApiKeyCheck =
-  | { ok: true;  keyId: number; plan: string }
+  | {
+      ok: true;
+      keyId: number;
+      plan: string;
+      quota: number;
+      /** Requêtes consommées sur la période, celle-ci incluse */
+      used: number;
+      /** Requêtes au-delà du quota (facturées à l'usage si overage activé) */
+      overage: number;
+    }
   | { ok: false; status: 401 | 429; message: string };
 
 /** Génère une clé brute + son hash + son préfixe. */
@@ -36,7 +45,7 @@ export async function checkApiKey(req: NextRequest): Promise<ApiKeyCheck> {
   if (!key)       return { ok: false, status: 401, message: "Clé API invalide." };
   if (!key.active) return { ok: false, status: 401, message: "Clé API désactivée." };
 
-  // Remise à zéro mensuelle
+  // Remise à zéro mensuelle (usage + dépassement rapporté)
   const now      = new Date();
   const resetBase = new Date(key.usageResetAt);
   const nextReset = new Date(resetBase);
@@ -45,15 +54,20 @@ export async function checkApiKey(req: NextRequest): Promise<ApiKeyCheck> {
   if (now >= nextReset) {
     usage = 0;
     await db.update(schema.apiKeys)
-      .set({ usageThisMonth: 0, usageResetAt: nextReset })
+      .set({ usageThisMonth: 0, overageReported: 0, usageResetAt: nextReset })
       .where(eq(schema.apiKeys.id, key.id));
   }
 
   if (usage >= key.monthlyQuota) {
-    return {
-      ok: false, status: 429,
-      message: `Quota mensuel de ${key.monthlyQuota.toLocaleString()} requêtes atteint. Passez au plan supérieur : ${siteUrl}/developers`,
-    };
+    // Plans payants avec facturation à l'usage : la requête passe, le
+    // dépassement sera rapporté à Stripe par le cron /api/cron/report-usage
+    const canOverage = key.overageEnabled && key.plan !== "free";
+    if (!canOverage) {
+      return {
+        ok: false, status: 429,
+        message: `Quota mensuel de ${key.monthlyQuota.toLocaleString()} requêtes atteint. Activez la facturation à l'usage ou passez au plan supérieur : ${siteUrl}/developers`,
+      };
+    }
   }
 
   await db.update(schema.apiKeys)
@@ -63,7 +77,25 @@ export async function checkApiKey(req: NextRequest): Promise<ApiKeyCheck> {
     })
     .where(eq(schema.apiKeys.id, key.id));
 
-  return { ok: true, keyId: key.id, plan: key.plan };
+  const used = usage + 1;
+  return {
+    ok: true,
+    keyId:   key.id,
+    plan:    key.plan,
+    quota:   key.monthlyQuota,
+    used,
+    overage: Math.max(0, used - key.monthlyQuota),
+  };
+}
+
+/** En-têtes de transparence quota/usage à joindre aux réponses de l'API v1. */
+export function quotaHeaders(auth: Extract<ApiKeyCheck, { ok: true }>): Record<string, string> {
+  return {
+    ...API_CORS_HEADERS,
+    "X-Quota-Limit":   String(auth.quota),
+    "X-Quota-Used":    String(auth.used),
+    "X-Quota-Overage": String(auth.overage),
+  };
 }
 
 /** Réponse d'erreur JSON standard pour l'API v1. */

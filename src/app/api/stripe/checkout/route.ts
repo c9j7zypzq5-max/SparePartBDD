@@ -16,7 +16,7 @@ function getStripe(): Stripe {
 
 /** POST /api/stripe/checkout — crée une session Stripe Checkout pour pro/enterprise. */
 export async function POST(req: NextRequest) {
-  let body: { email?: string; plan?: string };
+  let body: { email?: string; plan?: string; overage?: boolean };
   try { body = await req.json(); } catch {
     return Response.json({ error: "JSON invalide" }, { status: 400 });
   }
@@ -67,15 +67,29 @@ export async function POST(req: NextRequest) {
     apiKeyId = inserted.id;
   }
 
+  // Option facturation à l'usage : prix metered Stripe ajouté à l'abonnement
+  // (les line items metered n'ont pas de quantity — Stripe la déduit du meter)
+  const meteredPriceId = process.env.STRIPE_PRICE_OVERAGE;
+  const wantsOverage   = body.overage === true && !!meteredPriceId;
+
   const stripe = getStripe();
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
     mode:                 "subscription",
-    line_items:           [{ price: priceId, quantity: 1 }],
+    line_items: [
+      { price: priceId, quantity: 1 },
+      ...(wantsOverage ? [{ price: meteredPriceId! }] : []),
+    ],
     customer_email:       email,
     success_url:          `${siteUrl}/developers/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url:           `${siteUrl}/developers`,
-    metadata:             { apiKeyId: String(apiKeyId), plan, keyHash: hash, keyPrefix: prefix },
+    metadata: {
+      apiKeyId:  String(apiKeyId),
+      plan,
+      keyHash:   hash,
+      keyPrefix: prefix,
+      overage:   wantsOverage ? "1" : "0",
+    },
   });
 
   return Response.json({ url: session.url }, { status: 200 });
