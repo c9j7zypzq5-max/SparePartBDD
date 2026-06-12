@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   readSearchHistory,
@@ -17,6 +18,11 @@ interface Suggestion {
   url: string;
 }
 
+interface BrandSuggestion {
+  name: string;
+  url: string;
+}
+
 export function SearchBar({
   defaultValue = "",
   autoFocus = false,
@@ -26,19 +32,38 @@ export function SearchBar({
   autoFocus?: boolean;
   large?: boolean;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState(defaultValue);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [brands, setBrands] = useState<BrandSuggestion[]>([]);
   const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  /** Index de l'élément surligné au clavier (-1 = aucun) */
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Liste plate des éléments navigables au clavier, dans l'ordre d'affichage :
+  // pièces, marques, puis « voir tous les résultats »
+  const navigableUrls = useMemo(() => {
+    const urls = [
+      ...suggestions.map((s) => s.url),
+      ...brands.map((b) => b.url),
+    ];
+    if (suggestions.length > 0 || brands.length > 0) {
+      urls.push(`/recherche?q=${encodeURIComponent(query.trim())}`);
+    }
+    return urls;
+  }, [suggestions, brands, query]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = query.trim();
     if (q.length < 2 || q === defaultValue) {
       setSuggestions([]);
+      setBrands([]);
+      setActiveIndex(-1);
       if (focused) setHistory(readSearchHistory());
       return;
     }
@@ -48,9 +73,12 @@ export function SearchBar({
         const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
         const data = await res.json();
         setSuggestions(data.hits ?? []);
+        setBrands(data.brands ?? []);
+        setActiveIndex(-1);
         setOpen(true);
       } catch {
         setSuggestions([]);
+        setBrands([]);
       }
     }, 250);
     return () => {
@@ -90,8 +118,42 @@ export function SearchBar({
     setOpen(false);
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!open || navigableUrls.length === 0) {
+      if (e.key === "Escape") setOpen(false);
+      return;
+    }
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setActiveIndex((i) => (i + 1) % navigableUrls.length);
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setActiveIndex((i) => (i <= 0 ? navigableUrls.length - 1 : i - 1));
+        break;
+      case "Enter":
+        if (activeIndex >= 0 && activeIndex < navigableUrls.length) {
+          e.preventDefault();
+          addSearchHistory(query.trim());
+          setOpen(false);
+          router.push(navigableUrls[activeIndex]);
+        }
+        // sinon : soumission classique du formulaire vers /recherche
+        break;
+      case "Escape":
+        setOpen(false);
+        setActiveIndex(-1);
+        break;
+    }
+  }
+
   const showHistory = open && query.trim().length < 2 && history.length > 0;
-  const showSuggestions = open && suggestions.length > 0 && query.trim().length >= 2;
+  const hasResults = suggestions.length > 0 || brands.length > 0;
+  const showSuggestions = open && hasResults && query.trim().length >= 2;
+  // Index de départ de chaque section dans navigableUrls
+  const brandStartIndex = suggestions.length;
+  const allResultsIndex = suggestions.length + brands.length;
 
   const inputSize = large ? "px-5 py-4 text-lg" : "px-4 py-3 text-base";
   const buttonSize = large ? "px-7 py-4 text-lg" : "px-6 py-3";
@@ -106,9 +168,13 @@ export function SearchBar({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
           required
           autoComplete="off"
+          role="combobox"
+          aria-expanded={showSuggestions}
+          aria-autocomplete="list"
           placeholder="Référence (ex : 6ES7214-1AG40, PWR-C1-715WAC) ou nom de pièce…"
           className={`w-full rounded-xl border border-zinc-300 bg-white text-zinc-900 shadow-sm transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none ${inputSize}`}
         />
@@ -155,13 +221,14 @@ export function SearchBar({
       )}
 
       {showSuggestions && (
-        <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-zinc-200 bg-white text-left shadow-lg">
-          {suggestions.map((s) => (
-            <li key={s.url} className="border-b border-zinc-100 last:border-0">
+        <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-zinc-200 bg-white text-left shadow-lg" role="listbox">
+          {suggestions.map((s, i) => (
+            <li key={s.url} className="border-b border-zinc-100" role="option" aria-selected={activeIndex === i}>
               <Link
                 href={s.url}
-                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-blue-50"
+                className={`flex items-center justify-between gap-3 px-4 py-3 ${activeIndex === i ? "bg-blue-50" : "hover:bg-blue-50"}`}
                 onClick={() => { addSearchHistory(query.trim()); setOpen(false); }}
+                onMouseEnter={() => setActiveIndex(i)}
               >
                 <span className="min-w-0">
                   <span className="block truncate font-mono text-sm font-medium text-zinc-900">
@@ -189,6 +256,42 @@ export function SearchBar({
               </Link>
             </li>
           ))}
+
+          {brands.length > 0 && (
+            <li className="border-b border-zinc-100 bg-zinc-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Marques
+            </li>
+          )}
+          {brands.map((b, i) => {
+            const idx = brandStartIndex + i;
+            return (
+              <li key={b.url} className="border-b border-zinc-100" role="option" aria-selected={activeIndex === idx}>
+                <Link
+                  href={b.url}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-zinc-800 ${activeIndex === idx ? "bg-blue-50" : "hover:bg-blue-50"}`}
+                  onClick={() => { addSearchHistory(query.trim()); setOpen(false); }}
+                  onMouseEnter={() => setActiveIndex(idx)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 shrink-0 text-zinc-400">
+                    <path d="M8 1a.75.75 0 0 1 .75.75V3h4.5A1.75 1.75 0 0 1 15 4.75v8.5A1.75 1.75 0 0 1 13.25 15H2.75A1.75 1.75 0 0 1 1 13.25v-8.5A1.75 1.75 0 0 1 2.75 3h4.5V1.75A.75.75 0 0 1 8 1Z" />
+                  </svg>
+                  {b.name}
+                  <span className="ml-auto text-xs font-normal text-zinc-400">Voir la marque →</span>
+                </Link>
+              </li>
+            );
+          })}
+
+          <li role="option" aria-selected={activeIndex === allResultsIndex}>
+            <Link
+              href={`/recherche?q=${encodeURIComponent(query.trim())}`}
+              className={`block px-4 py-2.5 text-center text-sm font-medium text-blue-600 ${activeIndex === allResultsIndex ? "bg-blue-50" : "hover:bg-blue-50"}`}
+              onClick={() => { addSearchHistory(query.trim()); setOpen(false); }}
+              onMouseEnter={() => setActiveIndex(allResultsIndex)}
+            >
+              Voir tous les résultats pour « {query.trim()} » →
+            </Link>
+          </li>
         </ul>
       )}
     </div>

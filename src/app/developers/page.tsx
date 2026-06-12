@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ApiKeyForm } from "@/components/api-key-form";
 import { PLANS } from "@/lib/plans";
 import { siteUrl } from "@/lib/site-url";
@@ -47,6 +48,12 @@ export default function DevelopersPage() {
         <p className="mt-4 text-lg text-zinc-600">
           Intégrez les données de pièces détachées industrielles et IT directement dans vos applications.
         </p>
+        <Link
+          href="/developers/usage"
+          className="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline"
+        >
+          Déjà client ? Consulter votre consommation →
+        </Link>
       </div>
 
       {/* Pricing */}

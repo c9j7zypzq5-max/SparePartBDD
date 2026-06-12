@@ -341,6 +341,29 @@ const BASE_TARGETS: Target[] = [
   { brand: "Corsair",        family: "iCUE H150i Elite AIO refroidissement", category: "Refroidissement CPU", industry: "informatique", hint: "CW-9060065-WW, CW-9060066-WW, CW-9060047-WW" },
   { brand: "Fractal Design", family: "Define 7 boîtiers PC",                category: "Boîtiers PC",         industry: "informatique", hint: "FD-C-DEF7A-01, FD-C-DEF7A-03, FD-C-DEF7X-01" },
   { brand: "Lian Li",        family: "PC-O11 Dynamic XL boîtiers",          category: "Boîtiers PC",         industry: "informatique", hint: "G99.O11DXL.00, O11D XL-W, G99.O11DXLW.00" },
+  // ── Siemens (extension) ───────────────────────────────────────────────────
+  { brand: "Siemens", family: "LOGO! 8 modules logiques",      category: "Automates / PLC",            industry: "industrie", hint: "6ED1052-1MD08-0BA1, 6ED1052-1CC08-0BA1, 6ED1055-1MB00-0BA2" },
+  { brand: "Siemens", family: "SIRIUS 3RT2 contacteurs",       category: "Contacteurs / Disjoncteurs", industry: "industrie", hint: "3RT2015-1BB41, 3RT2016-1BB42, 3RT2026-1BB40" },
+  { brand: "Siemens", family: "SIRIUS 3RV2 disjoncteurs moteur", category: "Contacteurs / Disjoncteurs", industry: "industrie", hint: "3RV2011-1EA10, 3RV2011-1FA10, 3RV2021-4DA10" },
+  // ── Schneider Electric (extension) ────────────────────────────────────────
+  { brand: "Schneider Electric", family: "Acti9 iC60N disjoncteurs",       category: "Contacteurs / Disjoncteurs", industry: "industrie", hint: "A9F74206, A9F74210, A9F74216, A9F74220" },
+  { brand: "Schneider Electric", family: "Zelio SR3 relais programmables", category: "Automates / PLC",            industry: "industrie", hint: "SR3B101BD, SR3B261BD, SR3B101FU" },
+  // ── Eaton ─────────────────────────────────────────────────────────────────
+  { brand: "Eaton", family: "DILM contacteurs",            category: "Contacteurs / Disjoncteurs", industry: "industrie", hint: "DILM9-10, DILM12-10, DILM17-10, DILM25-10" },
+  { brand: "Eaton", family: "PKZM0 disjoncteurs moteur",   category: "Contacteurs / Disjoncteurs", industry: "industrie", hint: "PKZM0-4, PKZM0-10, PKZM0-16, PKZM0-25" },
+  // ── Capteurs (Turck, Balluff, Banner) ─────────────────────────────────────
+  { brand: "Turck",   family: "BI capteurs inductifs",      category: "Capteurs", industry: "industrie", hint: "BI5-M18-AP6X, BI10-M30-AP6X, BI2-M12-AP6X" },
+  { brand: "Balluff", family: "BES capteurs inductifs",     category: "Capteurs", industry: "industrie", hint: "BES M12MI-PSC40B-S04G, BES M18MI-PSC50B-S04G" },
+  { brand: "Banner",  family: "QS18 capteurs photoélectriques", category: "Capteurs", industry: "industrie", hint: "QS18VN6D, QS18VP6D, QS18VP6LV" },
+  // ── Finder ────────────────────────────────────────────────────────────────
+  { brand: "Finder", family: "Série 40 relais embrochables", category: "Relais", industry: "industrie", hint: "40.52.8.230.0000, 40.61.8.230.0000, 40.31.8.230.0000" },
+  // ── Réseau industriel & pro (Moxa, MikroTik, TP-Link, Meraki) ─────────────
+  { brand: "Moxa",     family: "EDS switches industriels",  category: "Réseau / Switches", industry: "industrie",    hint: "EDS-208A, EDS-308, EDS-408A" },
+  { brand: "MikroTik", family: "CRS/CCR routeurs switches", category: "Réseau / Switches", industry: "informatique", hint: "CRS326-24G-2S+RM, CCR2004-16G-2S+, RB750Gr3" },
+  { brand: "TP-Link",  family: "Omada switches routeurs",   category: "Réseau / Switches", industry: "informatique", hint: "TL-SG3428, ER605, EAP650" },
+  { brand: "Cisco",    family: "Meraki MS/MR/MX",           category: "Réseau / Switches", industry: "informatique", hint: "MS120-24P-HW, MR46-HW, MX68-HW" },
+  // ── Stockage datacenter ───────────────────────────────────────────────────
+  { brand: "Kingston", family: "DC600M SSD datacenter", category: "Stockage SSD SATA", industry: "informatique", hint: "SEDC600M/960G, SEDC600M/1920G, SEDC600M/3840G" },
 ];
 
 function generateNewTargets(round: number): Target[] {
@@ -1088,21 +1111,19 @@ async function runRepairMode(model: string): Promise<void> {
         ...(confidenceScore != null ? { confidenceScore } : {}),
       };
 
-      // Find productUrl only if still missing
-      if (!ingestPart.productUrl) {
-        const found = await findProductUrl(part.reference, part.manufacturer);
-        if (found) {
-          ingestPart.productUrl = found;
-          log(`   🔗  ${part.reference} → ${found}`);
-        }
+      // Les 3 recherches réseau en parallèle (productUrl seulement si manquante)
+      const [foundUrl, datasheet, resellerUrls] = await Promise.all([
+        ingestPart.productUrl ? Promise.resolve(null) : findProductUrl(part.reference, part.manufacturer),
+        findDatasheetUrl(part.reference, part.manufacturer),
+        findResellerProductUrls(part.reference),
+      ]);
+
+      if (foundUrl) {
+        ingestPart.productUrl = foundUrl;
+        log(`   🔗  ${part.reference} → ${foundUrl}`);
       }
-
-      // Always search for datasheet
-      const datasheet = await findDatasheetUrl(part.reference, part.manufacturer);
       if (datasheet) ingestPart.datasheetUrl = datasheet;
-
       // Garantit au moins une offre revendeur (l'API déduplique pièce × vendeur)
-      const resellerUrls = await findResellerProductUrls(part.reference);
       ingestPart.offers = buildResellerOffers(part.reference, ingestPart.industry, ingestPart.status, resellerUrls);
 
       partsToIngest.push(ingestPart);
@@ -1368,11 +1389,15 @@ async function runEnrichMode(model: string): Promise<void> {
     log(`   Validated ${parts.length} parts (${payload.parts.length - parts.length} dropped)`);
 
     for (const part of parts) {
-      const productUrl = await findProductUrl(part.reference, part.manufacturer);
+      // Les 3 recherches (page produit, datasheet, revendeurs) sont
+      // indépendantes — en parallèle, le lot passe de ~18 s à ~6 s par pièce
+      const [productUrl, datasheetUrl, resellerUrls] = await Promise.all([
+        findProductUrl(part.reference, part.manufacturer),
+        findDatasheetUrl(part.reference, part.manufacturer),
+        findResellerProductUrls(part.reference),
+      ]);
       if (productUrl) { part.productUrl = productUrl; log(`   🔗  ${part.reference} → ${productUrl}`); }
-      const datasheetUrl = await findDatasheetUrl(part.reference, part.manufacturer);
       if (datasheetUrl) part.datasheetUrl = datasheetUrl;
-      const resellerUrls = await findResellerProductUrls(part.reference);
       part.offers = buildResellerOffers(part.reference, part.industry, part.status, resellerUrls);
     }
 
@@ -1491,8 +1516,10 @@ async function runUpdateMode(model: string): Promise<void> {
     log(`   Validated ${parts.length}/${batch.length} refs`);
 
     for (const part of parts) {
-      const productUrl = await findProductUrl(part.reference, part.manufacturer);
-      if (productUrl) {
+      // Recherche fabricant (+ vérif HEAD) et recherche revendeurs en parallèle
+      const verifiedProductUrl = async (): Promise<string | null> => {
+        const productUrl = await findProductUrl(part.reference, part.manufacturer);
+        if (!productUrl) return null;
         // HEAD verification before writing URL
         try {
           const headCtrl = new AbortController();
@@ -1501,16 +1528,23 @@ async function runUpdateMode(model: string): Promise<void> {
           clearTimeout(headTimer);
           if (headRes.status === 404 || headRes.status === 410) {
             log(`   ⚠️  ${part.reference}: HEAD ${headRes.status} — URL dropped`);
-          } else {
-            part.productUrl    = productUrl;
-            part.urlVerifiedAt = new Date().toISOString();
-            log(`   🔗  ${part.reference} → ${productUrl}`);
+            return null;
           }
+          return productUrl;
         } catch {
-          // Network error — skip URL
+          return null; // Network error — skip URL
         }
+      };
+
+      const [productUrl, resellerUrls] = await Promise.all([
+        verifiedProductUrl(),
+        findResellerProductUrls(part.reference),
+      ]);
+      if (productUrl) {
+        part.productUrl    = productUrl;
+        part.urlVerifiedAt = new Date().toISOString();
+        log(`   🔗  ${part.reference} → ${productUrl}`);
       }
-      const resellerUrls = await findResellerProductUrls(part.reference);
       part.offers = buildResellerOffers(part.reference, part.industry, part.status, resellerUrls);
     }
 
