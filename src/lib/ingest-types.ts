@@ -49,6 +49,12 @@ export interface IngestPart {
    * Sert au contrôle hebdomadaire « toujours fabriquée ? » du Mac mini.
    */
   productUrl?: string;
+  /** URL du datasheet PDF officiel */
+  datasheetUrl?: string;
+  /** Timestamp ISO de la dernière vérification HEAD de l'URL produit */
+  urlVerifiedAt?: string;
+  /** Score de confiance Ollama [0-100] moyen sur name/description/category/status */
+  confidenceScore?: number;
   /** Attributs techniques libres (ex : {"Tension": "24V DC", "Courant": "5A"}) */
   attributes?: Record<string, string>;
   crossReferences?: {

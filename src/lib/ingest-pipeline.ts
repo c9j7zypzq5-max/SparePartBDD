@@ -94,6 +94,9 @@ export async function ingestParts(
             attributes: raw.attributes ?? null,
             // Ne jamais effacer une URL existante si le batch ne la fournit pas
             ...(raw.productUrl ? { productUrl: raw.productUrl } : {}),
+            ...(raw.datasheetUrl ? { datasheetUrl: raw.datasheetUrl } : {}),
+            ...(raw.urlVerifiedAt ? { urlVerifiedAt: new Date(raw.urlVerifiedAt) } : {}),
+            ...(raw.confidenceScore != null ? { confidenceScore: raw.confidenceScore } : {}),
             updatedAt: new Date(),
           })
           .where(eq(schema.parts.id, partId));
@@ -112,6 +115,9 @@ export async function ingestParts(
             status: raw.status ?? "unknown",
             attributes: raw.attributes,
             productUrl: raw.productUrl,
+            datasheetUrl: raw.datasheetUrl,
+            urlVerifiedAt: raw.urlVerifiedAt ? new Date(raw.urlVerifiedAt) : undefined,
+            confidenceScore: raw.confidenceScore,
           })
           .returning({ id: schema.parts.id });
         partId = inserted.id;

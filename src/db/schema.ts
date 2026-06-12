@@ -99,6 +99,12 @@ export const parts = pgTable(
     attributes: jsonb("attributes").$type<Record<string, string>>(),
     /** URL de la page produit officielle du fabricant (sert à la veille hebdo) */
     productUrl: text("product_url"),
+    /** URL du datasheet PDF officiel */
+    datasheetUrl: text("datasheet_url"),
+    /** Dernière vérification que l'URL produit répond (HEAD request) */
+    urlVerifiedAt: timestamp("url_verified_at"),
+    /** Score de confiance Ollama [0-100] sur les champs name/description/category/status */
+    confidenceScore: integer("confidence_score"),
     /** Dernière vérification du cycle de vie via productUrl */
     lifecycleCheckedAt: timestamp("lifecycle_checked_at"),
     /** Signal ambigu détecté lors de la veille — à vérifier manuellement */

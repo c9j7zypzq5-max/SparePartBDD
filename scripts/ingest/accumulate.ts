@@ -55,6 +55,52 @@ const REPAIR_MODE = process.argv.includes("--repair");
 const ENRICH_MODE = !UPDATE_MODE && !CLEAN_MODE && !STATS_MODE && !REPAIR_MODE; // default
 
 // ---------------------------------------------------------------------------
+// Manufacturer domains & reseller detection
+// ---------------------------------------------------------------------------
+
+const MANUFACTURER_DOMAINS: Record<string, string> = {
+  "siemens":              "mall.industry.siemens.com",
+  "abb":                  "new.abb.com",
+  "schneider-electric":   "se.com",
+  "allen-bradley":        "rockwellautomation.com",
+  "rockwell-automation":  "rockwellautomation.com",
+  "omron":                "industrial.omron.eu",
+  "mitsubishi":           "eu.mitsubishielectric.com",
+  "beckhoff":             "beckhoff.com",
+  "wago":                 "wago.com",
+  "phoenix-contact":      "phoenixcontact.com",
+  "sick":                 "sick.com",
+  "keyence":              "keyence.com",
+  "fluke":                "fluke.com",
+  "cisco":                "cisco.com",
+  "hp":                   "hp.com",
+  "dell":                 "dell.com",
+  "lenovo":               "lenovo.com",
+};
+
+const RESELLER_SLUGS = new Set([
+  "rexel", "rs-components", "rs", "farnell", "arrow", "mouser",
+  "distrelec", "conrad", "element14", "digikey", "digi-key",
+  "avnet", "future-electronics", "wurth", "wurth-elektronik",
+]);
+
+const MANUFACTURER_CONTEXT_MAP: Record<string, string> = {
+  "siemens":            "Siemens fabrique des automates SIMATIC, variateurs SINAMICS, IHM SIMATIC HMI.",
+  "abb":                "ABB fabrique des variateurs ACS/ACH/ACS880, robots IRB, disjoncteurs SACE.",
+  "schneider-electric": "Schneider Electric fabrique des automates Modicon, variateurs Altivar, contacteurs TeSys, onduleurs APC.",
+  "allen-bradley":      "Allen-Bradley (Rockwell) fabrique des automates ControlLogix/CompactLogix, variateurs PowerFlex, IHM PanelView.",
+  "omron":              "Omron fabrique des automates CJ/NJ/NX, capteurs E3Z/E2E, robots SCARA.",
+  "mitsubishi":         "Mitsubishi Electric fabrique des automates MELSEC, variateurs FR-A/FR-E, robots MELFA.",
+  "beckhoff":           "Beckhoff fabrique des contrôleurs TwinCAT CX, modules EtherCAT EL, servos AX.",
+  "wago":               "WAGO fabrique des contrôleurs d'E/S 750, bornes de connexion 221, coupleurs PROFIBUS.",
+  "phoenix-contact":    "Phoenix Contact fabrique des alimentations QUINT, bornes FLKM, relais PLC.",
+  "cisco":              "Cisco fabrique des switches Catalyst, routeurs ISR, pare-feux ASA/Firepower, transceivers SFP.",
+  "dell":               "Dell fabrique des serveurs PowerEdge, stockage PowerVault, postes de travail Precision.",
+  "lenovo":             "Lenovo fabrique des serveurs ThinkSystem, postes ThinkStation, portables ThinkPad.",
+  "fluke":              "Fluke fabrique des multimètres 87V/170, analyseurs réseau 435, testeurs d'isolation 1550.",
+};
+
+// ---------------------------------------------------------------------------
 // Types — exact mirror of src/lib/ingest-types.ts
 // ---------------------------------------------------------------------------
 
@@ -86,6 +132,9 @@ interface IngestPart {
   normalizedCategory?: string;
   industrySector?: string;
   productUrl?: string;
+  datasheetUrl?: string;
+  urlVerifiedAt?: string;
+  confidenceScore?: number;
   attributes?: Record<string, string>;
   crossReferences?: { reference: string; type: ReferenceType; brand?: string }[];
   supersededBy?: string;
@@ -517,6 +566,56 @@ Réponds UNIQUEMENT avec le JSON.`;
 }
 
 // ---------------------------------------------------------------------------
+// Few-shot single-part enrichment
+// ---------------------------------------------------------------------------
+
+interface SinglePartOllamaResponse {
+  name?: string;
+  description?: string;
+  category?: string;
+  industrySector?: string;
+  status?: string;
+  confidence?: { name?: number; description?: number; category?: number; status?: number };
+}
+
+function buildSinglePartEnrichPrompt(reference: string, manufacturer: string): string {
+  const mfgSlug = manufacturer.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const ctx = MANUFACTURER_CONTEXT_MAP[mfgSlug];
+  const contextLine = ctx ? `Contexte : ${ctx}\n` : "";
+
+  return [
+    "Tu es un expert en composants industriels et IT. Retourne UNIQUEMENT du JSON valide, sans texte avant ou après.",
+    "",
+    "Exemples :",
+    `Input: {"reference":"6ES7214-1AG40-0XB0","manufacturer":"Siemens"}`,
+    `Output: {"name":"SIMATIC S7-1200 CPU 1214C","description":"Automate programmable compact avec 14 E/S numériques, 2 analogiques et interface PROFINET.","category":"PLC","industrySector":"Industrial Automation","status":"active","confidence":{"name":0.95,"description":0.90,"category":0.98,"status":0.85}}`,
+    "",
+    `Input: {"reference":"ACS550-01-012A-4","manufacturer":"ABB"}`,
+    `Output: {"name":"Variateur ACS550 5.5kW","description":"Variateur basse tension 400V pour pompes et ventilateurs avec interface opérateur intégrée.","category":"Drive","industrySector":"Industrial Automation","status":"active","confidence":{"name":0.92,"description":0.88,"category":0.97,"status":0.80}}`,
+    "",
+    ...(contextLine ? [contextLine] : []),
+    `Input: {"reference":"${reference}","manufacturer":"${manufacturer}"}`,
+    "Output:",
+  ].join("\n");
+}
+
+function extractSinglePartResponse(raw: string): SinglePartOllamaResponse | null {
+  const start = raw.indexOf("{");
+  const end   = raw.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(raw.slice(start, end + 1)) as SinglePartOllamaResponse;
+  } catch {
+    return null;
+  }
+}
+
+function computeConfidenceScore(c: NonNullable<SinglePartOllamaResponse["confidence"]>): number {
+  const vals = [c.name ?? 0, c.description ?? 0, c.category ?? 0, c.status ?? 0];
+  return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100);
+}
+
+// ---------------------------------------------------------------------------
 // JSON extraction & validation
 // ---------------------------------------------------------------------------
 
@@ -554,14 +653,46 @@ function isResellerUrl(url: string): boolean {
   return RESELLER_DOMAINS.some((d) => lower.includes(d));
 }
 
+const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+
+function manufacturerSlug(name: string): string {
+  return name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+async function validatePageContent(url: string, reference: string): Promise<boolean> {
+  const refNorm = reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6_000);
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
+      signal: controller.signal,
+    });
+    if (!res.ok) return false;
+    const body = await res.text();
+    const titleMatch = body.match(/<title[^>]*>([^<]*)<\/title>/i);
+    const titleNorm = titleMatch ? titleMatch[1].toUpperCase().replace(/[^A-Z0-9]/g, "") : "";
+    const bodyNorm  = body.slice(0, 1_000).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const found = titleNorm.includes(refNorm) || bodyNorm.includes(refNorm);
+    log(`   Content validation ${found ? "✓" : "✗"}: ${url}`);
+    return found;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function findProductUrl(reference: string, manufacturer: string): Promise<string | null> {
-  const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
   const STRATEGY_TIMEOUT_MS = 6_000;
   const refLower = reference.toLowerCase();
   const SEARCH_BLACKLIST = [...RESELLER_DOMAINS, "etb-tech"];
 
+  const mfgSlug = manufacturerSlug(manufacturer);
+  const domain  = MANUFACTURER_DOMAINS[mfgSlug];
+
   const strategies = [
-    `${reference} ${manufacturer}`,
+    domain ? `site:${domain} "${reference}"` : `${reference} ${manufacturer}`,
     `${reference} ${manufacturer} datasheet`,
     `${reference} ${manufacturer} buy`,
     reference,
@@ -575,7 +706,7 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
     let html: string;
     try {
       const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
-        headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9" },
+        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
         signal: controller.signal,
       });
       if (!res.ok) { clearTimeout(timer); continue; }
@@ -599,16 +730,59 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
       const urlLower = url.toLowerCase();
       if (SEARCH_BLACKLIST.some((d) => urlLower.includes(d))) continue;
 
-      // Accept if reference is in URL or in surrounding HTML context (link title + snippet)
+      // Accept if reference is in URL or in surrounding HTML context
       const ctxStart = Math.max(0, m.index - 500);
       const context = html.slice(ctxStart, m.index + 200).toLowerCase();
       if (urlLower.includes(refLower) || context.includes(refLower)) {
-        console.log(`   URL found via strategy ${i + 1}: ${url}`);
+        // Validate that the page actually contains the reference
+        const valid = await validatePageContent(url, reference);
+        if (!valid) {
+          log(`   Content validation failed — trying next strategy`);
+          continue;
+        }
+        log(`   URL found via strategy ${i + 1}: ${url}`);
         return url;
       }
     }
   }
 
+  return null;
+}
+
+async function findDatasheetUrl(reference: string, manufacturer: string): Promise<string | null> {
+  const STRATEGY_TIMEOUT_MS = 6_000;
+  const q = encodeURIComponent(`"${reference}" "${manufacturer}" datasheet filetype:pdf`);
+  const SEARCH_BLACKLIST = [...RESELLER_DOMAINS, "etb-tech"];
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), STRATEGY_TIMEOUT_MS);
+  let html: string;
+  try {
+    const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
+      headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    html = await res.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const uddgRe = /uddg=([^&"'\s>]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = uddgRe.exec(html)) !== null) {
+    let url: string;
+    try { url = decodeURIComponent(m[1]); } catch { continue; }
+    if (!url.startsWith("https://")) continue;
+    const urlLower = url.toLowerCase();
+    if (SEARCH_BLACKLIST.some((d) => urlLower.includes(d))) continue;
+    if (urlLower.includes(".pdf") || urlLower.includes("datasheet") || urlLower.includes("/pdf/")) {
+      log(`   📄  Datasheet found: ${url}`);
+      return url;
+    }
+  }
   return null;
 }
 
@@ -764,43 +938,37 @@ async function runRepairMode(model: string): Promise<void> {
     log(`▶  [repair] batch ${Math.floor(cursor / REPAIR_BATCH_SIZE) + 1}/${Math.ceil(allParts.length / REPAIR_BATCH_SIZE)} — ${batch.map((p) => p.reference).join(", ")}`);
     const batchStart = Date.now();
 
-    // Determine which parts need Ollama (missing description/category/status)
-    const needsOllama = batch.filter((p) => !p.description || p.status === "unknown" || !p.category);
-
-    // Collect Ollama results keyed by normalizedRef
-    const ollamaMap = new Map<string, IngestPart>();
-
-    if (needsOllama.length > 0) {
-      let raw: string;
-      try { raw = await callOllama(buildRepairPrompt(needsOllama), model); }
-      catch (err) { log(`❌  Ollama: ${err}`); totalErrors++; cursor += REPAIR_BATCH_SIZE; saveState({ ...state, repair: { cursor }, lastRun: new Date().toISOString() }); if (ONCE_MODE) break; await pause(); continue; }
-
-      let payload: IngestPayload;
-      try { payload = extractPayload(raw); }
-      catch (err) { log(`❌  JSON parse: ${err}\n   Raw (500): ${raw.slice(0, 500)}`); totalErrors++; cursor += REPAIR_BATCH_SIZE; saveState({ ...state, repair: { cursor }, lastRun: new Date().toISOString() }); if (ONCE_MODE) break; await pause(); continue; }
-
-      for (const p of validateParts(payload.parts)) {
-        ollamaMap.set(normalizeRef(p.reference), p);
-      }
-    }
-
-    // Build merged IngestParts (preserve existing values, fill only missing)
+    // For each part: few-shot single-part Ollama call + datasheet + URL
     const partsToIngest: IngestPart[] = [];
     for (const part of batch) {
-      const refNorm = normalizeRef(part.reference);
-      const ollama  = ollamaMap.get(refNorm);
+      const needsOllama = !part.description || part.status === "unknown" || !part.category;
+      let ollamaResult: SinglePartOllamaResponse | null = null;
+
+      if (needsOllama) {
+        try {
+          const raw = await callOllama(buildSinglePartEnrichPrompt(part.reference, part.manufacturer), model, 512);
+          ollamaResult = extractSinglePartResponse(raw);
+          if (!ollamaResult) log(`⚠️  Could not parse single-part response for ${part.reference}`);
+        } catch (err) {
+          log(`⚠️  Ollama single-part failed for ${part.reference}: ${err}`);
+        }
+      }
+
+      const confidenceScore = ollamaResult?.confidence ? computeConfidenceScore(ollamaResult.confidence) : undefined;
+      const ollamaStatus = ollamaResult?.status && VALID_STATUSES.has(ollamaResult.status as PartStatus)
+        ? ollamaResult.status as PartStatus : undefined;
 
       const ingestPart: IngestPart = {
         manufacturer: part.manufacturer,
         industry:     part.industry as Industry,
         reference:    part.reference,
         name:         part.name,
-        status:       (part.status !== "unknown" ? part.status : (ollama?.status ?? "unknown")) as PartStatus,
-        // Preserve existing; fill from Ollama only if missing
-        ...(part.description ? { description: part.description } : ollama?.description ? { description: ollama.description } : {}),
-        ...(part.category    ? { category:    part.category    } : ollama?.category    ? { category:    ollama.category    } : {}),
-        ...(part.attributes  ? { attributes:  part.attributes  } : {}),
-        ...(part.productUrl  ? { productUrl:  part.productUrl  } : {}),
+        status:       (part.status !== "unknown" ? part.status : (ollamaStatus ?? "unknown")) as PartStatus,
+        ...(part.description  ? { description: part.description  } : ollamaResult?.description  ? { description: ollamaResult.description  } : {}),
+        ...(part.category     ? { category:    part.category     } : ollamaResult?.category     ? { category:    ollamaResult.category     } : {}),
+        ...(part.attributes   ? { attributes:  part.attributes   } : {}),
+        ...(part.productUrl   ? { productUrl:  part.productUrl   } : {}),
+        ...(confidenceScore != null ? { confidenceScore } : {}),
       };
 
       // Find productUrl only if still missing
@@ -811,6 +979,10 @@ async function runRepairMode(model: string): Promise<void> {
           log(`   🔗  ${part.reference} → ${found}`);
         }
       }
+
+      // Always search for datasheet
+      const datasheet = await findDatasheetUrl(part.reference, part.manufacturer);
+      if (datasheet) ingestPart.datasheetUrl = datasheet;
 
       partsToIngest.push(ingestPart);
     }
@@ -1077,6 +1249,8 @@ async function runEnrichMode(model: string): Promise<void> {
     for (const part of parts) {
       const productUrl = await findProductUrl(part.reference, part.manufacturer);
       if (productUrl) { part.productUrl = productUrl; log(`   🔗  ${part.reference} → ${productUrl}`); }
+      const datasheetUrl = await findDatasheetUrl(part.reference, part.manufacturer);
+      if (datasheetUrl) part.datasheetUrl = datasheetUrl;
       part.offers = [{
         sellerName: "Radwell",
         sellerType: "reconditionne",
@@ -1201,7 +1375,24 @@ async function runUpdateMode(model: string): Promise<void> {
 
     for (const part of parts) {
       const productUrl = await findProductUrl(part.reference, part.manufacturer);
-      if (productUrl) { part.productUrl = productUrl; log(`   🔗  ${part.reference} → ${productUrl}`); }
+      if (productUrl) {
+        // HEAD verification before writing URL
+        try {
+          const headCtrl = new AbortController();
+          const headTimer = setTimeout(() => headCtrl.abort(), 6_000);
+          const headRes = await fetch(productUrl, { method: "HEAD", signal: headCtrl.signal, headers: { "User-Agent": BROWSER_UA } });
+          clearTimeout(headTimer);
+          if (headRes.status === 404 || headRes.status === 410) {
+            log(`   ⚠️  ${part.reference}: HEAD ${headRes.status} — URL dropped`);
+          } else {
+            part.productUrl    = productUrl;
+            part.urlVerifiedAt = new Date().toISOString();
+            log(`   🔗  ${part.reference} → ${productUrl}`);
+          }
+        } catch {
+          // Network error — skip URL
+        }
+      }
       part.offers = [{
         sellerName: "Radwell",
         sellerType: "reconditionne",
@@ -1319,12 +1510,48 @@ process.on("SIGINT", () => {
   process.exit(0);
 });
 
+async function detectResellerParts(): Promise<void> {
+  try {
+    const res = await fetch(SITEMAP_URL);
+    if (!res.ok) return;
+    const xml = await res.text();
+    const slugCounts = new Map<string, string[]>();
+    const re = /\/piece\/([^/<\s]+)\/([^/<\s]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(xml)) !== null) {
+      const brandSlug = m[1];
+      const refSlug   = m[2];
+      if (RESELLER_SLUGS.has(brandSlug)) {
+        if (!slugCounts.has(brandSlug)) slugCounts.set(brandSlug, []);
+        slugCounts.get(brandSlug)!.push(refSlug);
+      }
+    }
+    const total = [...slugCounts.values()].reduce((a, b) => a + b.length, 0);
+    if (total > 0) {
+      console.log(`⚠️  WARNING: ${total} parts found with reseller as manufacturer:`);
+      for (const [slug, refs] of slugCounts) {
+        console.log(`   - ${slug}: ${refs.length} parts`);
+      }
+      const report = {
+        generatedAt: new Date().toISOString(),
+        resellerParts: Object.fromEntries([...slugCounts.entries()]),
+      };
+      fs.writeFileSync(path.resolve(__dirname, "resellers-report.json"), JSON.stringify(report, null, 2));
+      console.log("   Consult scripts/ingest/resellers-report.json for details.");
+    }
+  } catch (err) {
+    log(`⚠️  Reseller detection failed: ${err}`);
+  }
+}
+
 async function main(): Promise<void> {
   const modeLabel = STATS_MODE ? "--stats" : UPDATE_MODE ? "--update" : CLEAN_MODE ? "--clean" : REPAIR_MODE ? "--repair" : "--enrich";
   console.log("═══════════════════════════════════════════════════════════");
   console.log("   SparePartSearch — Catalog Accumulator");
   console.log(`   Mode: ${modeLabel}${ONCE_MODE ? " --once" : STATS_MODE ? "" : " (continuous)"}`);
   console.log("═══════════════════════════════════════════════════════════\n");
+
+  await detectResellerParts();
 
   if (STATS_MODE) {
     await runStatsMode();
