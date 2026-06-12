@@ -29,9 +29,31 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Schema.org WebSite + SearchAction : permet à Google d'afficher une barre
+  // de recherche directe vers /recherche dans les résultats (sitelinks).
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "SparePartSearch",
+    url: siteUrl,
+    inLanguage: "fr",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${siteUrl}/recherche?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <html lang="fr" className="overflow-x-hidden">
       <body className="min-h-screen overflow-x-hidden bg-white text-zinc-900 antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
         <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/90 backdrop-blur">
           <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <Link href="/" className="text-lg font-bold tracking-tight">

@@ -89,6 +89,23 @@ export default async function PartPage({ params }: { params: Params }) {
       name: r.name,
       href: goHref({ to: r.searchUrl(part.referenceRaw), seller: r.slug, reference: part.referenceRaw, partId: part.id }),
     }));
+  // ── Schema.org Product (Google Rich Results : prix, dispo, avis…) ────────
+  // Conditions par type de vendeur — schema.org/OfferItemCondition
+  const CONDITION_BY_SELLER_TYPE: Record<string, string> = {
+    constructeur:          "https://schema.org/NewCondition",
+    distributeur_officiel: "https://schema.org/NewCondition",
+    aftermarket:           "https://schema.org/NewCondition",
+    reconditionne:         "https://schema.org/RefurbishedCondition",
+    occasion:              "https://schema.org/UsedCondition",
+  };
+  const availability =
+    part.status === "obsolete"
+      ? "https://schema.org/Discontinued"
+      : "https://schema.org/InStock";
+
+  const partUrl = `${siteUrl}/piece/${manufacturer.slug}/${part.slug}`;
+  const prices = priceOffers.map((o) => parseFloat(o.offer.price!));
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -97,16 +114,51 @@ export default async function PartPage({ params }: { params: Params }) {
     mpn: part.referenceRaw,
     brand: { "@type": "Brand", name: manufacturer.name },
     description: part.description ?? undefined,
-    url: `${siteUrl}/piece/${manufacturer.slug}/${part.slug}`,
+    url: partUrl,
+    ...(part.imageUrl ? { image: part.imageUrl } : {}),
+    ...(category ? { category: category.name } : {}),
+    ...(part.attributes && Object.keys(part.attributes).length > 0
+      ? {
+          additionalProperty: Object.entries(part.attributes).slice(0, 10).map(
+            ([name, value]) => ({ "@type": "PropertyValue", name, value }),
+          ),
+        }
+      : {}),
     offers: priceOffers.length > 0
       ? {
           "@type": "AggregateOffer",
-          lowPrice: Math.min(...priceOffers.map((o) => parseFloat(o.offer.price!))),
+          lowPrice: Math.min(...prices),
+          highPrice: Math.max(...prices),
           priceCurrency: priceOffers[0].offer.currency ?? "EUR",
           offerCount: priceOffers.length,
-          ...(part.status === "obsolete" ? { discontinued: true } : {}),
+          availability,
+          offers: priceOffers.slice(0, 5).map(({ offer, seller }) => ({
+            "@type": "Offer",
+            price: parseFloat(offer.price!),
+            priceCurrency: offer.currency ?? "EUR",
+            availability,
+            itemCondition:
+              CONDITION_BY_SELLER_TYPE[seller.type] ?? "https://schema.org/NewCondition",
+            seller: { "@type": "Organization", name: seller.name },
+            url: partUrl,
+          })),
         }
       : undefined,
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Accueil", item: siteUrl },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: manufacturer.name,
+        item: `${siteUrl}/marque/${manufacturer.slug}`,
+      },
+      { "@type": "ListItem", position: 3, name: part.referenceRaw, item: partUrl },
+    ],
   };
 
   return (
@@ -114,6 +166,10 @@ export default async function PartPage({ params }: { params: Params }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
 
       <Breadcrumb
