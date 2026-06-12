@@ -830,21 +830,34 @@ async function findResellerProductUrls(reference: string): Promise<Map<string, s
   }
 
   const uddgRe = /uddg=([^&"'\s>]+)/g;
+  // Deux niveaux de confiance : réf présente dans l'URL (fiable) > réf
+  // présente seulement dans le HTML voisin (le titre d'un résultat précédent
+  // peut déborder dans la fenêtre de contexte et matcher une variante proche).
+  const byUrl = new Map<string, string>();
+  const byCtx = new Map<string, string>();
   let m: RegExpExecArray | null;
   while ((m = uddgRe.exec(html)) !== null) {
     let url: string;
     try { url = decodeURIComponent(m[1]); } catch { continue; }
     if (!url.startsWith("https://")) continue;
     const reseller = findResellerByUrl(url);
-    if (!reseller || found.has(reseller.slug)) continue;
+    if (!reseller) continue;
 
     const urlLower = url.toLowerCase();
-    const ctxStart = Math.max(0, m.index - 500);
-    const context = html.slice(ctxStart, m.index + 200).toLowerCase();
-    if (urlLower.includes(refLower) || urlLower.includes(refNorm) || context.includes(refLower)) {
-      found.set(reseller.slug, url);
-      log(`   🛒  ${reseller.name} → ${url}`);
+    if (urlLower.includes(refLower) || urlLower.includes(refNorm)) {
+      if (!byUrl.has(reseller.slug)) byUrl.set(reseller.slug, url);
+    } else if (!byCtx.has(reseller.slug)) {
+      const ctxStart = Math.max(0, m.index - 500);
+      const context = html.slice(ctxStart, m.index + 200).toLowerCase();
+      if (context.includes(refLower)) byCtx.set(reseller.slug, url);
     }
+  }
+
+  for (const [slug, url] of byCtx) found.set(slug, url);
+  for (const [slug, url] of byUrl) found.set(slug, url);
+  for (const [slug, url] of found) {
+    const r = RESELLERS.find((x) => x.slug === slug);
+    log(`   🛒  ${r?.name ?? slug} → ${url}`);
   }
   return found;
 }
