@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { normalizeReference, referenceSlug, slugify } from "@/lib/normalize";
 import type { IngestPart, IngestResult } from "@/lib/ingest-types";
@@ -20,6 +20,7 @@ export async function ingestParts(
     partsInserted: 0,
     partsUpdated: 0,
     offersInserted: 0,
+    offersUpdated: 0,
     errors: [],
   };
 
@@ -159,15 +160,45 @@ export async function ingestParts(
           })
           .returning({ id: schema.sellers.id });
 
-        await db.insert(schema.offers).values({
-          partId,
-          sellerId: seller.id,
-          price: offer.price != null ? String(offer.price.toFixed(2)) : null,
-          currency: offer.currency ?? "EUR",
-          availability: offer.availability,
-          url: offer.url,
-        });
-        result.offersInserted++;
+        // Upsert applicatif : une seule offre par (pièce × vendeur) — les
+        // relevés successifs rafraîchissent la ligne au lieu de la dupliquer
+        const [existingOffer] = await db
+          .select({ id: schema.offers.id })
+          .from(schema.offers)
+          .where(
+            and(
+              eq(schema.offers.partId, partId),
+              eq(schema.offers.sellerId, seller.id),
+            ),
+          )
+          .orderBy(desc(schema.offers.scrapedAt))
+          .limit(1);
+
+        if (existingOffer) {
+          await db
+            .update(schema.offers)
+            .set({
+              // Ne jamais écraser un prix relevé par un relevé sans prix
+              ...(offer.price != null
+                ? { price: String(offer.price.toFixed(2)), currency: offer.currency ?? "EUR" }
+                : {}),
+              ...(offer.availability ? { availability: offer.availability } : {}),
+              url: offer.url,
+              scrapedAt: new Date(),
+            })
+            .where(eq(schema.offers.id, existingOffer.id));
+          result.offersUpdated++;
+        } else {
+          await db.insert(schema.offers).values({
+            partId,
+            sellerId: seller.id,
+            price: offer.price != null ? String(offer.price.toFixed(2)) : null,
+            currency: offer.currency ?? "EUR",
+            availability: offer.availability,
+            url: offer.url,
+          });
+          result.offersInserted++;
+        }
       }
     } catch (err) {
       result.errors.push(

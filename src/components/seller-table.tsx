@@ -30,12 +30,51 @@ function formatPrice(price: string | null, currency: string | null): string {
   }
 }
 
-export function SellerTable({ offers }: { offers: SellerOffer[] }) {
+/** Lien de recherche direct chez un revendeur (RS, Farnell, Rexel…). */
+export interface ResellerSearchLink {
+  name: string;
+  url: string;
+}
+
+function ResellerSearchLinks({ links }: { links: ResellerSearchLink[] }) {
+  if (links.length === 0) return null;
+  return (
+    <div className="mt-4">
+      <p className="text-sm text-zinc-500">
+        Rechercher cette référence chez les revendeurs :
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {links.map((link) => (
+          <a
+            key={link.name}
+            href={link.url}
+            rel="nofollow sponsored noopener"
+            target="_blank"
+            className="inline-flex items-center gap-1 rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
+          >
+            {link.name} ↗
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function SellerTable({
+  offers,
+  searchLinks = [],
+}: {
+  offers: SellerOffer[];
+  searchLinks?: ResellerSearchLink[];
+}) {
   if (offers.length === 0) {
     return (
-      <p className="text-sm text-zinc-500">
-        Aucune offre relevée pour cette pièce pour l'instant.
-      </p>
+      <div>
+        <p className="text-sm text-zinc-500">
+          Aucune offre relevée pour cette pièce pour l'instant.
+        </p>
+        <ResellerSearchLinks links={searchLinks} />
+      </div>
     );
   }
   return (
@@ -113,6 +152,8 @@ export function SellerTable({ offers }: { offers: SellerOffer[] }) {
           </div>
         ))}
       </div>
+
+      <ResellerSearchLinks links={searchLinks} />
     </>
   );
 }

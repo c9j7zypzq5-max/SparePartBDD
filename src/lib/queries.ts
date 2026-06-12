@@ -69,13 +69,29 @@ export async function getPartDetail(manufacturerSlug: string, partSlug: string) 
         .orderBy(asc(offers.price)),
     ]);
 
+  // Une seule offre par vendeur : les anciens batchs ont pu insérer des
+  // doublons (pièce × vendeur) — on garde le relevé le plus récent, et la
+  // liste reste triée prix croissant (les offres sans prix en dernier).
+  const bestBySeller = new Map<number, (typeof offerRows)[number]>();
+  for (const r of offerRows) {
+    const prev = bestBySeller.get(r.seller.id);
+    if (!prev || r.offer.scrapedAt > prev.offer.scrapedAt) {
+      bestBySeller.set(r.seller.id, r);
+    }
+  }
+  const dedupedOffers = [...bestBySeller.values()].sort((a, b) => {
+    const pa = a.offer.price != null ? Number(a.offer.price) : Infinity;
+    const pb = b.offer.price != null ? Number(b.offer.price) : Infinity;
+    return pa - pb;
+  });
+
   return {
     ...row,
     references,
     replacedBy,
     replacements,
     compatibles: compatibleLinks,
-    offers: offerRows,
+    offers: dedupedOffers,
   };
 }
 

@@ -86,5 +86,7 @@ export interface IngestResult {
   partsInserted: number;
   partsUpdated: number;
   offersInserted: number;
+  /** Offres existantes (même pièce × même vendeur) rafraîchies au lieu d'être dupliquées */
+  offersUpdated: number;
   errors: string[];
 }

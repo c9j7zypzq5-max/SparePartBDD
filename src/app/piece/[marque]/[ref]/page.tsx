@@ -10,6 +10,7 @@ import { CompareButton } from "@/components/compare-button";
 import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail, getSimilarParts, getAlternativeParts } from "@/lib/queries";
+import { resellersForPart } from "@/lib/resellers";
 import { siteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
@@ -65,6 +66,15 @@ export default async function PartPage({ params }: { params: Params }) {
   const currency = minPriceOffer?.offer.currency ?? "EUR";
 
   const priceOffers = detail.offers.filter((o) => o.offer.price != null);
+
+  // Chaque référence propose au moins un revendeur : pour les vendeurs sans
+  // offre relevée en base, on affiche un lien de recherche direct (RS,
+  // Farnell, Rexel…) adapté à l'industrie et au statut de la pièce.
+  const offerSellerSlugs = new Set(detail.offers.map(({ seller }) => seller.slug));
+  const resellerSearchLinks = resellersForPart(manufacturer.industry, part.status)
+    .filter((r) => !offerSellerSlugs.has(r.slug))
+    .slice(0, 5)
+    .map((r) => ({ name: r.name, url: r.searchUrl(part.referenceRaw) }));
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -362,6 +372,7 @@ export default async function PartPage({ params }: { params: Params }) {
               url: offer.url,
               scrapedAt: offer.scrapedAt,
             }))}
+            searchLinks={resellerSearchLinks}
           />
         </div>
       </section>

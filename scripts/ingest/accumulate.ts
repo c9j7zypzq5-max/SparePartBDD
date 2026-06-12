@@ -12,6 +12,11 @@
  *   npx tsx scripts/ingest/accumulate.ts --repair        → répare les pièces incomplètes (description/URL/status/category)
  *   npx tsx scripts/ingest/accumulate.ts --repair --once → test un seul batch de repair
  *
+ * Chaque référence ingérée reçoit AU MOINS une offre revendeur (RS Components,
+ * Farnell, Rexel, Conrad, Radwell, eBay… — voir src/lib/resellers.ts) : page
+ * produit directe si la recherche en trouve une, sinon URL de recherche du
+ * revendeur. L'API déduplique les offres par (pièce × vendeur).
+ *
  * Requires:
  *   - .env at repo root with INGEST_API_KEY
  *   - Ollama running locally (http://localhost:11434)
@@ -19,6 +24,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { RESELLERS, resellersForPart, findResellerByUrl } from "../../src/lib/resellers";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -151,6 +157,8 @@ interface IngestResult {
   partsInserted: number;
   partsUpdated: number;
   offersInserted: number;
+  /** Optionnel : l'API peut être déployée avant/après cette évolution */
+  offersUpdated?: number;
   errors: string[];
 }
 
@@ -786,6 +794,102 @@ async function findDatasheetUrl(reference: string, manufacturer: string): Promis
   return null;
 }
 
+// ---------------------------------------------------------------------------
+// Reseller offers — chaque référence reçoit AU MOINS une offre revendeur
+// (RS, Farnell, Rexel, Conrad, Radwell, eBay…), voir src/lib/resellers.ts
+// ---------------------------------------------------------------------------
+
+const MAX_OFFERS_PER_PART = 4;
+
+/**
+ * Cherche les pages produit DIRECTES chez les revendeurs connus pour cette
+ * référence (une seule requête DuckDuckGo). Renvoie slug revendeur → URL.
+ * Les revendeurs sont blacklistés dans findProductUrl (réservé au fabricant) ;
+ * ici c'est l'inverse : on ne garde QUE leurs URLs.
+ */
+async function findResellerProductUrls(reference: string): Promise<Map<string, string>> {
+  const found = new Map<string, string>();
+  const refLower = reference.toLowerCase();
+  const refNorm  = normalizeRef(reference).toLowerCase();
+  const q = encodeURIComponent(`"${reference}" acheter prix`);
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6_000);
+  let html: string;
+  try {
+    const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
+      headers: { "User-Agent": BROWSER_UA, "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8" },
+      signal: controller.signal,
+    });
+    if (!res.ok) return found;
+    html = await res.text();
+  } catch {
+    return found;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const uddgRe = /uddg=([^&"'\s>]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = uddgRe.exec(html)) !== null) {
+    let url: string;
+    try { url = decodeURIComponent(m[1]); } catch { continue; }
+    if (!url.startsWith("https://")) continue;
+    const reseller = findResellerByUrl(url);
+    if (!reseller || found.has(reseller.slug)) continue;
+
+    const urlLower = url.toLowerCase();
+    const ctxStart = Math.max(0, m.index - 500);
+    const context = html.slice(ctxStart, m.index + 200).toLowerCase();
+    if (urlLower.includes(refLower) || urlLower.includes(refNorm) || context.includes(refLower)) {
+      found.set(reseller.slug, url);
+      log(`   🛒  ${reseller.name} → ${url}`);
+    }
+  }
+  return found;
+}
+
+/**
+ * Construit les offres revendeurs d'une pièce : les revendeurs pertinents
+ * pour son industrie/statut avec leur URL de recherche garantie, remplacée
+ * par la page produit directe quand la recherche en a trouvé une.
+ * Renvoie toujours au moins une offre.
+ */
+function buildResellerOffers(
+  reference: string,
+  industry: Industry,
+  status: PartStatus | undefined,
+  directUrls: Map<string, string>,
+): IngestOffer[] {
+  const bySlug = new Map<string, IngestOffer>();
+
+  for (const r of resellersForPart(industry, status).slice(0, MAX_OFFERS_PER_PART)) {
+    bySlug.set(r.slug, {
+      sellerName: r.name,
+      sellerType: r.type,
+      sellerWebsite: r.website,
+      ...(r.country ? { sellerCountry: r.country } : {}),
+      url: directUrls.get(r.slug) ?? r.searchUrl(reference),
+    });
+  }
+
+  // Pages produit directes trouvées chez d'autres revendeurs : on les garde aussi
+  for (const [slug, url] of directUrls) {
+    if (bySlug.has(slug)) continue;
+    const r = RESELLERS.find((x) => x.slug === slug);
+    if (!r) continue;
+    bySlug.set(slug, {
+      sellerName: r.name,
+      sellerType: r.type,
+      sellerWebsite: r.website,
+      ...(r.country ? { sellerCountry: r.country } : {}),
+      url,
+    });
+  }
+
+  return [...bySlug.values()];
+}
+
 function validateParts(raw: IngestPart[], defaultIndustry: Industry = "industrie"): IngestPart[] {
   const valid: IngestPart[] = [];
   for (const p of raw) {
@@ -983,6 +1087,10 @@ async function runRepairMode(model: string): Promise<void> {
       // Always search for datasheet
       const datasheet = await findDatasheetUrl(part.reference, part.manufacturer);
       if (datasheet) ingestPart.datasheetUrl = datasheet;
+
+      // Garantit au moins une offre revendeur (l'API déduplique pièce × vendeur)
+      const resellerUrls = await findResellerProductUrls(part.reference);
+      ingestPart.offers = buildResellerOffers(part.reference, ingestPart.industry, ingestPart.status, resellerUrls);
 
       partsToIngest.push(ingestPart);
     }
@@ -1251,12 +1359,8 @@ async function runEnrichMode(model: string): Promise<void> {
       if (productUrl) { part.productUrl = productUrl; log(`   🔗  ${part.reference} → ${productUrl}`); }
       const datasheetUrl = await findDatasheetUrl(part.reference, part.manufacturer);
       if (datasheetUrl) part.datasheetUrl = datasheetUrl;
-      part.offers = [{
-        sellerName: "Radwell",
-        sellerType: "reconditionne",
-        sellerWebsite: "https://www.radwell.com",
-        url: `https://www.radwell.com/en-US/search/?QueryText=${encodeURIComponent(part.reference)}`,
-      }];
+      const resellerUrls = await findResellerProductUrls(part.reference);
+      part.offers = buildResellerOffers(part.reference, part.industry, part.status, resellerUrls);
     }
 
     let result: IngestResult;
@@ -1279,7 +1383,7 @@ async function runEnrichMode(model: string): Promise<void> {
     totalUpdated  += result.partsUpdated  ?? 0;
     totalOffers   += result.offersInserted ?? 0;
 
-    log(`✅  ${target.brand} › ${target.family}: +${result.partsInserted} inserted, ~${result.partsUpdated} updated, ${result.offersInserted} offers${result.errors?.length ? ` (${result.errors.length} API errors)` : ""}`);
+    log(`✅  ${target.brand} › ${target.family}: +${result.partsInserted} inserted, ~${result.partsUpdated} updated, ${result.offersInserted} new offers, ${result.offersUpdated ?? 0} refreshed${result.errors?.length ? ` (${result.errors.length} API errors)` : ""}`);
     console.log(`\n   📊  Session: +${totalInserted} inserted, ~${totalUpdated} updated, ${totalOffers} offers, ${totalErrors} errors\n`);
 
     batchIndex++;
@@ -1393,12 +1497,8 @@ async function runUpdateMode(model: string): Promise<void> {
           // Network error — skip URL
         }
       }
-      part.offers = [{
-        sellerName: "Radwell",
-        sellerType: "reconditionne",
-        sellerWebsite: "https://www.radwell.com",
-        url: `https://www.radwell.com/en-US/search/?QueryText=${encodeURIComponent(part.reference)}`,
-      }];
+      const resellerUrls = await findResellerProductUrls(part.reference);
+      part.offers = buildResellerOffers(part.reference, part.industry, part.status, resellerUrls);
     }
 
     let result: IngestResult;
@@ -1419,7 +1519,7 @@ async function runUpdateMode(model: string): Promise<void> {
     totalUpdated  += result.partsUpdated  ?? 0;
     totalOffers   += result.offersInserted ?? 0;
 
-    log(`✅  Updated ${parts.length} parts: +${result.partsInserted} inserted, ~${result.partsUpdated} updated, ${result.offersInserted} offers${result.errors?.length ? ` (${result.errors.length} API errors)` : ""}`);
+    log(`✅  Updated ${parts.length} parts: +${result.partsInserted} inserted, ~${result.partsUpdated} updated, ${result.offersInserted} new offers, ${result.offersUpdated ?? 0} refreshed${result.errors?.length ? ` (${result.errors.length} API errors)` : ""}`);
     console.log(`\n   📊  Session: +${totalInserted} inserted, ~${totalUpdated} updated, ${totalOffers} offers, ${totalErrors} errors\n`);
 
     offset += UPDATE_BATCH_SIZE;
