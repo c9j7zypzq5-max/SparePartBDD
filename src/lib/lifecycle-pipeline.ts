@@ -38,7 +38,7 @@ export async function applyLifecycleReport(
       }
 
       const existing = await db
-        .select({ id: schema.parts.id })
+        .select({ id: schema.parts.id, status: schema.parts.status })
         .from(schema.parts)
         .where(eq(schema.parts.id, item.partId))
         .limit(1);
@@ -60,6 +60,15 @@ export async function applyLifecycleReport(
               updatedAt: new Date(),
             })
             .where(eq(schema.parts.id, item.partId));
+          // Événement de changement de statut (webhooks Business)
+          if (item.outcome !== existing[0].status) {
+            await db.insert(schema.partStatusEvents).values({
+              partId: item.partId,
+              oldStatus: existing[0].status,
+              newStatus: item.outcome,
+              source,
+            });
+          }
           report.updated++;
           break;
 

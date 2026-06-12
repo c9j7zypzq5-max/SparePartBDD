@@ -72,7 +72,7 @@ export async function ingestParts(
       const partSlug = referenceSlug(raw.reference);
 
       const existing = await db
-        .select({ id: schema.parts.id })
+        .select({ id: schema.parts.id, status: schema.parts.status })
         .from(schema.parts)
         .where(
           and(
@@ -85,6 +85,17 @@ export async function ingestParts(
       let partId: number;
       if (existing.length > 0) {
         partId = existing[0].id;
+        // Changement de statut significatif (pas une régression vers
+        // "unknown") : événement consommé par les webhooks Business
+        const newStatus = raw.status ?? "unknown";
+        if (newStatus !== existing[0].status && newStatus !== "unknown") {
+          await db.insert(schema.partStatusEvents).values({
+            partId,
+            oldStatus: existing[0].status,
+            newStatus,
+            source,
+          });
+        }
         await db
           .update(schema.parts)
           .set({

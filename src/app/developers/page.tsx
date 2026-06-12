@@ -231,6 +231,53 @@ export default function DevelopersPage() {
         </div>
       </section>
 
+      {/* Webhooks (Business) */}
+      <section className="mb-16">
+        <h2 className="mb-2 text-2xl font-semibold">
+          Webhooks{" "}
+          <span className="ml-1 rounded-full bg-zinc-900 px-2 py-0.5 align-middle text-xs font-semibold text-white">
+            Business
+          </span>
+        </h2>
+        <p className="mb-4 text-zinc-600">
+          Soyez notifié en temps réel quand une pièce change de statut
+          (passage en <strong>obsolète</strong> ou retour en production) — sans
+          interroger l&apos;API en boucle. Surveillez des références précises ou
+          tout le catalogue.
+        </p>
+        <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
+          <pre className="text-sm text-zinc-100">{`# Créer un webhook (le secret n'est affiché qu'une fois)
+curl -X POST "${siteUrl}/api/v1/webhooks" \\
+  -H "Authorization: Bearer spb_votre_clé" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url": "https://votre-app.com/hooks/spb",
+       "references": ["6ES7214-1AG40-0XB0", "LC1D09BD"]}'
+
+# Lister / supprimer
+curl "${siteUrl}/api/v1/webhooks" -H "Authorization: Bearer spb_votre_clé"
+curl -X DELETE "${siteUrl}/api/v1/webhooks/1" -H "Authorization: Bearer spb_votre_clé"`}</pre>
+        </div>
+        <p className="mt-4 text-zinc-600">Payload envoyé (POST JSON) :</p>
+        <div className="mt-2 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
+          <pre className="text-xs text-zinc-100">{JSON.stringify({
+            event: "part.status_changed",
+            reference: "6ES7214-1AG40-0XB0",
+            manufacturer: "Siemens",
+            oldStatus: "active",
+            newStatus: "obsolete",
+            url: `${siteUrl}/piece/siemens/6es72141ag400xb0`,
+            occurredAt: "2026-06-12T14:00:00.000Z",
+          }, null, 2)}</pre>
+        </div>
+        <p className="mt-4 text-sm text-zinc-600">
+          Chaque requête porte l&apos;en-tête{" "}
+          <code className="rounded bg-zinc-100 px-1 font-mono">X-SPB-Signature: sha256=&lt;hex&gt;</code>{" "}
+          — HMAC-SHA256 du corps calculé avec votre secret. Vérifiez-la avant de
+          traiter l&apos;événement. Livraison toutes les heures, 3 tentatives par
+          événement, réponse 2xx attendue.
+        </p>
+      </section>
+
       {/* Usage-based billing */}
       <section className="mb-16">
         <h2 className="mb-4 text-2xl font-semibold">Facturation à l'usage</h2>

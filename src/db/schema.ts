@@ -314,6 +314,76 @@ export const outboundClicks = pgTable(
   ],
 );
 
+/**
+ * Changements de statut des pièces (active ↔ obsolete), alimenté par les
+ * pipelines d'ingestion et de veille. Consommé par le cron de livraison
+ * des webhooks (plan Business).
+ */
+export const partStatusEvents = pgTable(
+  "part_status_events",
+  {
+    id: serial("id").primaryKey(),
+    partId: integer("part_id")
+      .notNull()
+      .references(() => parts.id),
+    oldStatus: partStatusEnum("old_status").notNull(),
+    newStatus: partStatusEnum("new_status").notNull(),
+    /** Pipeline à l'origine du changement (source d'ingestion ou veille) */
+    source: text("source"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("part_status_events_created_idx").on(t.createdAt)],
+);
+
+/**
+ * Webhooks des clients API (plan Business) : POST signé HMAC-SHA256 à chaque
+ * changement de statut d'une pièce surveillée. Le secret sert uniquement à
+ * signer les payloads (en-tête X-SPB-Signature) — il est montré une fois à
+ * la création.
+ */
+export const apiWebhooks = pgTable(
+  "api_webhooks",
+  {
+    id: serial("id").primaryKey(),
+    apiKeyId: integer("api_key_id")
+      .notNull()
+      .references(() => apiKeys.id),
+    /** Destination HTTPS du POST */
+    url: text("url").notNull(),
+    /** Secret de signature HMAC (whsec_…) */
+    secret: text("secret").notNull(),
+    /** Références surveillées (normalisées) — vide = tout le catalogue */
+    references: text("references").array().notNull().default([]),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    lastDeliveryAt: timestamp("last_delivery_at"),
+    /** Dernier code HTTP reçu (debug client) */
+    lastDeliveryStatus: integer("last_delivery_status"),
+  },
+  (t) => [index("api_webhooks_key_idx").on(t.apiKeyId)],
+);
+
+/** Suivi de livraison : un événement n'est tenté que 3 fois par webhook. */
+export const webhookDeliveries = pgTable(
+  "webhook_deliveries",
+  {
+    id: serial("id").primaryKey(),
+    webhookId: integer("webhook_id")
+      .notNull()
+      .references(() => apiWebhooks.id),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => partStatusEvents.id),
+    attempts: integer("attempts").notNull().default(0),
+    success: boolean("success").notNull().default(false),
+    responseStatus: integer("response_status"),
+    lastAttemptAt: timestamp("last_attempt_at"),
+  },
+  (t) => [
+    uniqueIndex("webhook_deliveries_pair_idx").on(t.webhookId, t.eventId),
+  ],
+);
+
 /** Clés d'accès à l'API publique. La clé brute n'est jamais stockée — uniquement son hash SHA-256. */
 export const apiKeys = pgTable(
   "api_keys",

@@ -19,7 +19,7 @@ export const PLANS = [
     name:     "Business",
     price:    149,
     quota:    250_000,
-    features: ["250 000 requêtes / mois", "Tous les endpoints", "Données d'offres incluses", "Option à l'usage : 1 €/1 000 req au-delà", "Support prioritaire"],
+    features: ["250 000 requêtes / mois", "Tous les endpoints", "Données d'offres incluses", "Webhooks de changement de statut", "Option à l'usage : 1 €/1 000 req au-delà", "Support prioritaire"],
   },
 ];
 
