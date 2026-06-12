@@ -244,3 +244,44 @@ export const watchlistSubscriptions = pgTable("watchlist_subscriptions", {
   references: text("references").array().notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// ── API publique payante ───────────────────────────────────────────────────────
+
+export const apiKeyPlanEnum = pgEnum("api_key_plan", [
+  "free",       // 1 000 req/mois — gratuit
+  "pro",        // 50 000 req/mois — 49 €/mois
+  "enterprise", // illimité — sur devis
+]);
+
+export const PLAN_QUOTAS: Record<string, number> = {
+  free:       1_000,
+  pro:        50_000,
+  enterprise: 10_000_000,
+};
+
+/** Clés d'accès à l'API publique. La clé brute n'est jamais stockée — uniquement son hash SHA-256. */
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: serial("id").primaryKey(),
+    /** SHA-256 de la clé brute (jamais stockée) */
+    keyHash: text("key_hash").notNull(),
+    /** 12 premiers caractères de la clé (affichage, non secret) */
+    keyPrefix: text("key_prefix").notNull(),
+    ownerEmail: text("owner_email").notNull(),
+    plan: apiKeyPlanEnum("plan").notNull().default("free"),
+    monthlyQuota: integer("monthly_quota").notNull().default(PLAN_QUOTAS.free),
+    usageThisMonth: integer("usage_this_month").notNull().default(0),
+    /** Début de la période de facturation courante */
+    usageResetAt: timestamp("usage_reset_at").notNull().defaultNow(),
+    active: boolean("active").notNull().default(true),
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at"),
+  },
+  (t) => [
+    uniqueIndex("api_keys_hash_idx").on(t.keyHash),
+    index("api_keys_email_idx").on(t.ownerEmail),
+  ],
+);

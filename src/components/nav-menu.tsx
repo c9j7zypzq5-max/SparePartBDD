@@ -20,6 +20,9 @@ export function NavMenu() {
         <Link href="/recherche-lot" className="hover:text-zinc-900">
           Lot
         </Link>
+        <Link href="/developers" className="hover:text-zinc-900">
+          API
+        </Link>
         <WatchlistCount />
         <Link
           href="/recherche?q="
@@ -97,6 +100,13 @@ export function NavMenu() {
               onClick={() => setOpen(false)}
             >
               Recherche par lot
+            </Link>
+            <Link
+              href="/developers"
+              className="border-b border-zinc-100 py-3 hover:text-zinc-900"
+              onClick={() => setOpen(false)}
+            >
+              API développeurs
             </Link>
             <Link
               href="/recherche?q="
