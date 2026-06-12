@@ -47,6 +47,11 @@ const UPDATE_BATCH_SIZE   = 8;
 const LOG_FILE      = path.resolve(__dirname, "accumulate.log");
 const STATE_FILE    = path.resolve(__dirname, ".accumulate-state.json");
 
+const MOUSER_API_KEY  = process.env.MOUSER_API_KEY  || "";
+const FARNELL_API_KEY = process.env.FARNELL_API_KEY || "";
+const RS_API_KEY      = process.env.RS_API_KEY      || "";
+const DISTRIBUTOR_TIMEOUT_MS = 8_000;
+
 const ONCE_MODE   = process.argv.includes("--once");
 const UPDATE_MODE = process.argv.includes("--update");
 const CLEAN_MODE  = process.argv.includes("--clean");
@@ -152,6 +157,23 @@ interface IngestResult {
   partsUpdated: number;
   offersInserted: number;
   errors: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Distributor API types
+// ---------------------------------------------------------------------------
+
+type DistributorSource = "mouser" | "farnell" | "rs";
+
+interface DistributorResult {
+  name?: string;
+  description?: string;
+  manufacturer?: string;
+  datasheetUrl?: string;
+  productUrl?: string;
+  minPrice?: number;
+  currency?: string;
+  source: DistributorSource;
 }
 
 // ---------------------------------------------------------------------------
@@ -832,6 +854,136 @@ async function sendToApi(payload: IngestPayload): Promise<IngestResult> {
 }
 
 // ---------------------------------------------------------------------------
+// Distributor APIs (Mouser → Farnell → RS)
+// ---------------------------------------------------------------------------
+
+async function lookupMouser(reference: string): Promise<DistributorResult | null> {
+  if (!MOUSER_API_KEY) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DISTRIBUTOR_TIMEOUT_MS);
+  try {
+    const res = await fetch(`https://api.mouser.com/api/v1/search/partnumber?apiKey=${MOUSER_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ SearchByPartRequest: { mouserPartNumber: reference, partSearchOptions: "Exact" } }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (await res.json()) as any;
+    const parts = data?.SearchResults?.Parts;
+    if (!Array.isArray(parts) || parts.length === 0) return null;
+    const p = parts[0];
+    const priceBreaks = p.PriceBreaks;
+    const rawPrice = Array.isArray(priceBreaks) && priceBreaks.length > 0
+      ? parseFloat(String(priceBreaks[0].Price).replace(",", "."))
+      : NaN;
+    const productDetailUrl: string = p.ProductDetailUrl ?? "";
+    return {
+      source: "mouser",
+      name: p.ManufacturerPartNumber || undefined,
+      description: p.Description || undefined,
+      manufacturer: p.Manufacturer?.ManufacturerName || undefined,
+      datasheetUrl: p.DataSheetUrl || undefined,
+      productUrl: productDetailUrl
+        ? (productDetailUrl.startsWith("http") ? productDetailUrl : `https://www.mouser.com${productDetailUrl}`)
+        : undefined,
+      minPrice: !isNaN(rawPrice) ? rawPrice : undefined,
+      currency: Array.isArray(priceBreaks) && priceBreaks.length > 0 ? priceBreaks[0].Currency : undefined,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function lookupFarnell(reference: string): Promise<DistributorResult | null> {
+  if (!FARNELL_API_KEY) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DISTRIBUTOR_TIMEOUT_MS);
+  try {
+    const url =
+      `https://api.element14.com/catalog/products;term=${encodeURIComponent(reference)}` +
+      `;storeInfo.id=fr.farnell.com?resultsSettings.offset=0&resultsSettings.numberOfResults=1` +
+      `&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false` +
+      `&callInfo.callback=&callInfo.responseDataFormat=json&callInfo.apiKey=${FARNELL_API_KEY}`;
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (await res.json()) as any;
+    const products = data?.premierFarnellPartNumberReturn?.products;
+    if (!Array.isArray(products) || products.length === 0) return null;
+    const p = products[0];
+    const prices = p.prices;
+    const minPrice = Array.isArray(prices) && prices.length > 0 ? (prices[0].cost as number) : undefined;
+    const datasheetUrl = Array.isArray(p.datasheets) && p.datasheets.length > 0
+      ? (p.datasheets[0].url as string)
+      : undefined;
+    return {
+      source: "farnell",
+      name: p.displayName || p.translatedManufacturerPartNumber || undefined,
+      description: p.productOverview || undefined,
+      manufacturer: p.brandName || undefined,
+      datasheetUrl,
+      productUrl: p.productUrl || undefined,
+      minPrice,
+      currency: Array.isArray(prices) && prices.length > 0 ? (prices[0].currency as string) : undefined,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function lookupRS(reference: string): Promise<DistributorResult | null> {
+  if (!RS_API_KEY) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DISTRIBUTOR_TIMEOUT_MS);
+  try {
+    const res = await fetch(
+      `https://api.rs-online.com/products/v1/product-number/${encodeURIComponent(reference)}`,
+      { headers: { apiKey: RS_API_KEY }, signal: controller.signal },
+    );
+    if (!res.ok) return null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = (await res.json()) as any;
+    const results = data?.results;
+    if (!Array.isArray(results) || results.length === 0) return null;
+    const p = results[0];
+    const datasheetUrl = Array.isArray(p.datasheets) && p.datasheets.length > 0
+      ? (p.datasheets[0].url as string)
+      : undefined;
+    return {
+      source: "rs",
+      name: p.mpn || undefined,
+      description: p.description || undefined,
+      manufacturer: p.brand || undefined,
+      datasheetUrl,
+      minPrice: p.price?.from,
+      currency: p.price?.currency,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function lookupDistributors(reference: string): Promise<DistributorResult | null> {
+  if (!MOUSER_API_KEY && !FARNELL_API_KEY && !RS_API_KEY) return null;
+  const mouser = await lookupMouser(reference);
+  if (mouser) { log(`[Distributor] Found via Mouser: ${reference}`); return mouser; }
+  const farnell = await lookupFarnell(reference);
+  if (farnell) { log(`[Distributor] Found via Farnell: ${reference}`); return farnell; }
+  const rs = await lookupRS(reference);
+  if (rs) { log(`[Distributor] Found via RS: ${reference}`); return rs; }
+  log(`[Distributor] Not found in any API: ${reference}`);
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Mode: --repair
 // ---------------------------------------------------------------------------
 
@@ -938,10 +1090,14 @@ async function runRepairMode(model: string): Promise<void> {
     log(`▶  [repair] batch ${Math.floor(cursor / REPAIR_BATCH_SIZE) + 1}/${Math.ceil(allParts.length / REPAIR_BATCH_SIZE)} — ${batch.map((p) => p.reference).join(", ")}`);
     const batchStart = Date.now();
 
-    // For each part: few-shot single-part Ollama call + datasheet + URL
+    // For each part: distributor lookup first, then Ollama for remaining gaps
     const partsToIngest: IngestPart[] = [];
     for (const part of batch) {
-      const needsOllama = !part.description || part.status === "unknown" || !part.category;
+      const distResult = await lookupDistributors(part.reference);
+
+      const needsOllama = (!part.description && !distResult?.description)
+        || part.status === "unknown"
+        || !part.category;
       let ollamaResult: SinglePartOllamaResponse | null = null;
 
       if (needsOllama) {
@@ -954,7 +1110,9 @@ async function runRepairMode(model: string): Promise<void> {
         }
       }
 
-      const confidenceScore = ollamaResult?.confidence ? computeConfidenceScore(ollamaResult.confidence) : undefined;
+      const confidenceScore = distResult
+        ? 95
+        : (ollamaResult?.confidence ? computeConfidenceScore(ollamaResult.confidence) : undefined);
       const ollamaStatus = ollamaResult?.status && VALID_STATUSES.has(ollamaResult.status as PartStatus)
         ? ollamaResult.status as PartStatus : undefined;
 
@@ -964,11 +1122,17 @@ async function runRepairMode(model: string): Promise<void> {
         reference:    part.reference,
         name:         part.name,
         status:       (part.status !== "unknown" ? part.status : (ollamaStatus ?? "unknown")) as PartStatus,
-        ...(part.description  ? { description: part.description  } : ollamaResult?.description  ? { description: ollamaResult.description  } : {}),
-        ...(part.category     ? { category:    part.category     } : ollamaResult?.category     ? { category:    ollamaResult.category     } : {}),
-        ...(part.attributes   ? { attributes:  part.attributes   } : {}),
-        ...(part.productUrl   ? { productUrl:  part.productUrl   } : {}),
+        ...(part.description   ? { description: part.description   }
+          : distResult?.description  ? { description: distResult.description  }
+          : ollamaResult?.description  ? { description: ollamaResult.description  } : {}),
+        ...(part.category      ? { category:    part.category      }
+          : ollamaResult?.category ? { category: ollamaResult.category } : {}),
+        ...(part.attributes    ? { attributes:  part.attributes    } : {}),
+        ...(part.productUrl    ? { productUrl:  part.productUrl    }
+          : distResult?.productUrl ? { productUrl: distResult.productUrl } : {}),
+        ...(distResult?.datasheetUrl ? { datasheetUrl: distResult.datasheetUrl } : {}),
         ...(confidenceScore != null ? { confidenceScore } : {}),
+        ...(distResult?.productUrl  ? { urlVerifiedAt: new Date().toISOString() } : {}),
       };
 
       // Find productUrl only if still missing
@@ -980,9 +1144,11 @@ async function runRepairMode(model: string): Promise<void> {
         }
       }
 
-      // Always search for datasheet
-      const datasheet = await findDatasheetUrl(part.reference, part.manufacturer);
-      if (datasheet) ingestPart.datasheetUrl = datasheet;
+      // Search for datasheet only if not already provided by distributor
+      if (!ingestPart.datasheetUrl) {
+        const datasheet = await findDatasheetUrl(part.reference, part.manufacturer);
+        if (datasheet) ingestPart.datasheetUrl = datasheet;
+      }
 
       partsToIngest.push(ingestPart);
     }
@@ -1247,10 +1413,25 @@ async function runEnrichMode(model: string): Promise<void> {
     log(`   Validated ${parts.length} parts (${payload.parts.length - parts.length} dropped)`);
 
     for (const part of parts) {
-      const productUrl = await findProductUrl(part.reference, part.manufacturer);
-      if (productUrl) { part.productUrl = productUrl; log(`   🔗  ${part.reference} → ${productUrl}`); }
-      const datasheetUrl = await findDatasheetUrl(part.reference, part.manufacturer);
-      if (datasheetUrl) part.datasheetUrl = datasheetUrl;
+      const distResult = await lookupDistributors(part.reference);
+      if (distResult) {
+        if (distResult.description && !part.description) part.description = distResult.description;
+        if (distResult.datasheetUrl) part.datasheetUrl = distResult.datasheetUrl;
+        if (distResult.productUrl) {
+          part.productUrl    = distResult.productUrl;
+          part.urlVerifiedAt = new Date().toISOString();
+        }
+        part.confidenceScore = 95;
+      }
+
+      if (!part.productUrl) {
+        const productUrl = await findProductUrl(part.reference, part.manufacturer);
+        if (productUrl) { part.productUrl = productUrl; log(`   🔗  ${part.reference} → ${productUrl}`); }
+      }
+      if (!part.datasheetUrl) {
+        const datasheetUrl = await findDatasheetUrl(part.reference, part.manufacturer);
+        if (datasheetUrl) part.datasheetUrl = datasheetUrl;
+      }
       part.offers = [{
         sellerName: "Radwell",
         sellerType: "reconditionne",
