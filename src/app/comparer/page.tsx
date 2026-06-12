@@ -13,6 +13,7 @@ type PartDetail = {
   slug: string;
   categoryName: string | null;
   status: string;
+  attributes: Record<string, string> | null;
   minPrice: number | null;
   offerCount: number;
   currency: string;
@@ -31,31 +32,74 @@ function diffClass(values: (string | number | null)[], current: string | number 
 }
 
 export default function ComparerPage() {
+  // true si la comparaison vient de l'URL (?refs=) — pas de la liste locale
+  const [fromUrl, setFromUrl] = useState(false);
   const [compareList, setCompareList] = useState<CompareEntry[]>([]);
   const [details, setDetails] = useState<PartDetail[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const list = readCompareList();
-    setCompareList(list);
-    if (list.length === 0) return;
-    setLoading(true);
+    // Mode partagé : /comparer?refs=REF1,REF2,REF3 (jusqu'à 3 références).
+    // window.location plutôt que useSearchParams : la page est entièrement
+    // client-side, pas besoin de Suspense boundary.
+    const refsParam = new URLSearchParams(window.location.search).get("refs");
+    const refs = refsParam
+      ? refsParam.split(",").map((r) => r.trim()).filter(Boolean).slice(0, 3)
+      : [];
+
+    const body =
+      refs.length > 0
+        ? refs.map((reference) => ({ reference }))
+        : readCompareList().map((e) => ({ manufacturerSlug: e.manufacturerSlug, slug: e.slug }));
+
+    setFromUrl(refs.length > 0);
+    if (refs.length === 0) setCompareList(readCompareList());
+
+    if (body.length === 0) {
+      setLoading(false);
+      return;
+    }
     fetch("/api/parts/compare-view", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(list.map((e) => ({ manufacturerSlug: e.manufacturerSlug, slug: e.slug }))),
+      body: JSON.stringify(body),
     })
       .then((r) => r.json())
-      .then((data) => setDetails(data))
+      .then((data) => setDetails(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
   }, []);
 
-  if (compareList.length === 0) {
+  const found = details.filter(Boolean) as NonNullable<PartDetail>[];
+
+  function copyShareLink() {
+    const refs = found.map((d) => d.referenceRaw).join(",");
+    const url = `${window.location.origin}/comparer?refs=${encodeURIComponent(refs)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2_000);
+    });
+  }
+
+  if (loading) {
+    return (
+      <div className="mt-16 flex justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-600" />
+      </div>
+    );
+  }
+
+  if (found.length === 0) {
     return (
       <div className="mt-12 text-center">
-        <p className="text-lg font-medium text-zinc-700">Aucune pièce à comparer</p>
+        <p className="text-lg font-medium text-zinc-700">
+          {fromUrl || compareList.length > 0
+            ? "Aucune des références demandées n'a été trouvée"
+            : "Aucune pièce à comparer"}
+        </p>
         <p className="mt-2 text-sm text-zinc-500">
-          Ajoutez des pièces via le bouton &ldquo;Comparer&rdquo; sur les fiches produit ou les listes.
+          Ajoutez des pièces via le bouton &ldquo;Comparer&rdquo; sur les fiches produit, ou
+          partagez un lien <code className="rounded bg-zinc-100 px-1 font-mono text-xs">/comparer?refs=REF1,REF2</code>.
         </p>
         <Link
           href="/recherche?q="
@@ -67,17 +111,10 @@ export default function ComparerPage() {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="mt-16 flex justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-600" />
-      </div>
-    );
-  }
-
-  const found = details.filter(Boolean) as NonNullable<PartDetail>[];
-  const statuses = found.map((d) => d.status);
-  const categories = found.map((d) => d.categoryName);
+  // Union des clés d'attributs techniques présentes sur au moins une pièce
+  const attributeKeys = [
+    ...new Set(found.flatMap((d) => Object.keys(d.attributes ?? {}))),
+  ].slice(0, 15);
 
   const ROWS: { label: string; render: (d: NonNullable<PartDetail>) => React.ReactNode; values: (d: NonNullable<PartDetail>) => string | number | null }[] = [
     {
@@ -128,19 +165,36 @@ export default function ComparerPage() {
         ),
       values: (d) => d.offerUrls.length,
     },
+    // Attributs techniques : une ligne par clé, valeurs divergentes surlignées
+    ...attributeKeys.map((key) => ({
+      label: key,
+      render: (d: NonNullable<PartDetail>) => d.attributes?.[key] ?? <span className="text-zinc-400">—</span>,
+      values: (d: NonNullable<PartDetail>) => d.attributes?.[key] ?? null,
+    })),
   ];
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold tracking-tight">Comparaison</h1>
-        <button
-          type="button"
-          onClick={() => { clearCompareList(); setCompareList([]); setDetails([]); }}
-          className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-700"
-        >
-          Vider la comparaison
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={copyShareLink}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-500 transition hover:border-blue-400 hover:text-blue-700"
+          >
+            {copied ? "✓ Lien copié" : "Partager la comparaison"}
+          </button>
+          {!fromUrl && (
+            <button
+              type="button"
+              onClick={() => { clearCompareList(); setCompareList([]); setDetails([]); }}
+              className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-700"
+            >
+              Vider la comparaison
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200">

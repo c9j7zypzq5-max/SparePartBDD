@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  customType,
   index,
   integer,
   jsonb,
@@ -12,6 +14,13 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+/** Type tsvector PostgreSQL (recherche full-text) — non géré nativement par Drizzle. */
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 /**
  * Modèle de données du moteur de recherche de pièces détachées.
@@ -111,6 +120,15 @@ export const parts = pgTable(
     needsReview: boolean("needs_review").notNull().default(false),
     /** Trace du dernier contrôle (ex : "HTTP 404", "mot-clé 'discontinued'") */
     lifecycleNote: text("lifecycle_note"),
+    /**
+     * Vecteur full-text (français) sur name + description, maintenu par
+     * PostgreSQL (colonne générée). Interrogé via l'opérateur @@ avec
+     * websearch_to_tsquery — voir src/lib/search/postgres-search.ts.
+     */
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      (): ReturnType<typeof sql> =>
+        sql`to_tsvector('french', name || ' ' || coalesce(description, ''))`,
+    ),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -120,6 +138,14 @@ export const parts = pgTable(
       t.referenceNormalized,
     ),
     index("parts_ref_normalized_idx").on(t.referenceNormalized),
+    // Recherche full-text : index GIN sur le tsvector généré
+    index("parts_search_vector_idx").using("gin", t.searchVector),
+    // Recherche approchée de référence : index GIN trigram (opérateur %)
+    // Nécessite l'extension pg_trgm : CREATE EXTENSION IF NOT EXISTS pg_trgm;
+    index("parts_ref_trgm_idx").using(
+      "gin",
+      t.referenceNormalized.op("gin_trgm_ops"),
+    ),
   ],
 );
 
@@ -143,6 +169,11 @@ export const partReferences = pgTable(
     uniqueIndex("part_references_part_ref_idx").on(
       t.partId,
       t.referenceNormalized,
+    ),
+    // Recherche approchée sur les cross-références (opérateur % de pg_trgm)
+    index("part_references_ref_trgm_idx").using(
+      "gin",
+      t.referenceNormalized.op("gin_trgm_ops"),
     ),
   ],
 );
