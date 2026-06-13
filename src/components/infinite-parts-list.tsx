@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PartCard } from "./part-card";
+import { PartCardSkeleton } from "./skeleton";
 
 type PartSummary = {
   id: number;
@@ -113,10 +114,12 @@ export function InfinitePartsList({
           />
         ))}
       </div>
-      <div ref={sentinelRef} className="flex justify-center py-6">
-        {loading && (
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
-        )}
+      {loading && (
+        <div className="mt-3 grid gap-3">
+          {[0, 1, 2].map((i) => <PartCardSkeleton key={i} />)}
+        </div>
+      )}
+      <div ref={sentinelRef} className="flex justify-center py-4">
         {exhausted && !loading && (
           <p className="text-sm text-zinc-400">Fin des résultats</p>
         )}
