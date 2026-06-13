@@ -13,6 +13,7 @@ type PartDetail = {
   slug: string;
   categoryName: string | null;
   status: string;
+  attributes: Record<string, string> | null;
   minPrice: number | null;
   offerCount: number;
   currency: string;
@@ -76,8 +77,9 @@ export default function ComparerPage() {
   }
 
   const found = details.filter(Boolean) as NonNullable<PartDetail>[];
-  const statuses = found.map((d) => d.status);
-  const categories = found.map((d) => d.categoryName);
+
+  // Collect all attribute keys from all parts
+  const allAttrKeys = [...new Set(found.flatMap((d) => Object.keys(d.attributes ?? {})))];
 
   const ROWS: { label: string; render: (d: NonNullable<PartDetail>) => React.ReactNode; values: (d: NonNullable<PartDetail>) => string | number | null }[] = [
     {
@@ -179,6 +181,32 @@ export default function ComparerPage() {
                       {row.render(d)}
                     </td>
                   ))}
+                </tr>
+              );
+            })}
+            {allAttrKeys.length > 0 && (
+              <tr>
+                <td colSpan={found.length + 1} className="bg-zinc-100 px-4 py-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
+                  Caractéristiques techniques
+                </td>
+              </tr>
+            )}
+            {allAttrKeys.map((key) => {
+              const vals = found.map((d) => d.attributes?.[key] ?? null);
+              return (
+                <tr key={key}>
+                  <td className="bg-zinc-50 px-4 py-3 text-xs font-semibold text-zinc-500">{key}</td>
+                  {found.map((d) => {
+                    const val = d.attributes?.[key] ?? null;
+                    return (
+                      <td
+                        key={`${d.manufacturerSlug}/${d.slug}`}
+                        className={`px-4 py-3 text-sm ${diffClass(vals, val)}`}
+                      >
+                        {val ?? <span className="text-zinc-300">—</span>}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}

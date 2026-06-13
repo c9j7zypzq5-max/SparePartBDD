@@ -500,17 +500,62 @@ export async function getAlternativeParts(
   return [...byCategoryRows, ...byPrefixRows];
 }
 
-/** Pièces à réviser manuellement : signal ambigu ou score de confiance faible. */
-export async function getPartsForReview(limit = 100) {
+/** Pièces mises à jour au cours des 30 derniers jours. */
+export async function getRecentlyUpdatedParts(limit = 50, offset = 0) {
   return db
     .select({ part: parts, manufacturer: manufacturers })
     .from(parts)
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
-    .where(
-      sql`${parts.needsReview} = true OR (${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60)`,
-    )
+    .where(sql`${parts.updatedAt} > NOW() - INTERVAL '30 days'`)
     .orderBy(desc(parts.updatedAt))
-    .limit(limit);
+    .limit(limit)
+    .offset(offset);
+}
+
+/** Nombre de pièces mises à jour dans les 30 derniers jours. */
+export async function getRecentlyUpdatedCount() {
+  const [row] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(parts)
+    .where(sql`${parts.updatedAt} > NOW() - INTERVAL '30 days'`);
+  return row?.total ?? 0;
+}
+
+/** Pièces à réviser manuellement : signal ambigu ou score de confiance faible. */
+export async function getPartsForReview(
+  opts: { limit?: number; offset?: number; reason?: "needsReview" | "lowScore" | "all" } = {},
+) {
+  const { limit = 50, offset = 0, reason = "all" } = opts;
+  const whereClause =
+    reason === "needsReview"
+      ? sql`${parts.needsReview} = true`
+      : reason === "lowScore"
+        ? sql`${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60`
+        : sql`${parts.needsReview} = true OR (${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60)`;
+  return db
+    .select({ part: parts, manufacturer: manufacturers })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .where(whereClause)
+    .orderBy(desc(parts.updatedAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getPartsForReviewCount(
+  reason: "needsReview" | "lowScore" | "all" = "all",
+) {
+  const whereClause =
+    reason === "needsReview"
+      ? sql`${parts.needsReview} = true`
+      : reason === "lowScore"
+        ? sql`${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60`
+        : sql`${parts.needsReview} = true OR (${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60)`;
+  const [row] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(parts)
+    .where(whereClause);
+  return row?.total ?? 0;
 }
 
 /**

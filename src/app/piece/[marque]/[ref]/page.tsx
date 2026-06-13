@@ -39,7 +39,7 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      images: [{ url: "/og-default.jpg" }],
+      images: [{ url: `/api/og/${marque}/${ref}`, width: 1200, height: 630 }],
     },
     twitter: { card: "summary" },
   };

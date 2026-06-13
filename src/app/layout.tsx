@@ -90,6 +90,11 @@ export default function RootLayout({
                     Mode technicien
                   </Link>
                 </li>
+                <li>
+                  <Link href="/recent" className="text-zinc-500 hover:text-zinc-900">
+                    Récemment mis à jour
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

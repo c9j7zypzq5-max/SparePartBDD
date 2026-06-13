@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPartDetail } from "@/lib/queries";
 import { generatePartDescription } from "@/lib/part-description";
+import { siteUrl } from "@/lib/site-url";
 
 type Params = Promise<{ marque: string; ref: string }>;
 
@@ -21,6 +22,8 @@ export default async function PrintPage({ params }: { params: Params }) {
   if (!detail) notFound();
 
   const { part, manufacturer, category } = detail;
+  const partUrl = `${siteUrl}/piece/${manufacturer.slug}/${part.slug}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(partUrl)}&color=1a1a1a&bgcolor=ffffff`;
   const description =
     part.description ??
     generatePartDescription(part.name, manufacturer.name, manufacturer.industry, category?.name);
@@ -71,6 +74,8 @@ export default async function PrintPage({ params }: { params: Params }) {
               )}
             </div>
             <div className="mt-1">{new Date().toLocaleDateString("fr-FR")}</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrUrl} alt="QR code" width={80} height={80} className="mt-2 ml-auto" />
           </div>
         </div>
 
