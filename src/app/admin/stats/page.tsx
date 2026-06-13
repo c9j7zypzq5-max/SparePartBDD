@@ -45,14 +45,10 @@ export default async function AdminStatsPage() {
     return <p className="text-zinc-500">Statistiques indisponibles.</p>;
   }
 
-  const activeRate =
-    stats.totalParts > 0
-      ? Math.round((stats.activeParts / stats.totalParts) * 100)
-      : 0;
-  const obsoleteRate =
-    stats.totalParts > 0
-      ? Math.round((stats.obsoleteParts / stats.totalParts) * 100)
-      : 0;
+  const pct = (n: number) =>
+    stats.totalParts > 0 ? Math.round((n / stats.totalParts) * 100) : 0;
+  const activeRate = pct(stats.activeParts);
+  const obsoleteRate = pct(stats.obsoleteParts);
 
   return (
     <div>

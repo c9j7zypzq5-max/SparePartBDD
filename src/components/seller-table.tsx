@@ -1,4 +1,4 @@
-const SELLER_TYPE_LABELS: Record<string, string> = {
+export const SELLER_TYPE_LABELS: Record<string, string> = {
   constructeur: "Constructeur",
   distributeur_officiel: "Distributeur officiel",
   aftermarket: "Aftermarket",
