@@ -352,7 +352,7 @@ export const apiWebhooks = pgTable(
     url: text("url").notNull(),
     /** Secret de signature HMAC (whsec_…) */
     secret: text("secret").notNull(),
-    /** Références surveillées (normalisées) — vide = tout le catalogue */
+    /** Références normalisées surveillées (1–500, obligatoire à la création) */
     references: text("references").array().notNull().default([]),
     active: boolean("active").notNull().default(true),
     createdAt: timestamp("created_at").notNull().defaultNow(),

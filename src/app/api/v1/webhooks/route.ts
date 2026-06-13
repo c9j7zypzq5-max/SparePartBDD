@@ -14,7 +14,7 @@ const MAX_WATCHED_REFERENCES = 500;
  * POST /api/v1/webhooks — crée un webhook (plan Business uniquement).
  *
  * Body : { "url": "https://...", "references": ["6ES7214-1AG40-0XB0", ...] }
- * references vide ou absent = notifié pour tout le catalogue.
+ * references : 1 à 500 références normalisées — obligatoire.
  *
  * À chaque changement de statut d'une pièce surveillée, un POST JSON signé
  * est envoyé à l'URL (signature HMAC-SHA256 dans X-SPB-Signature, calculée
@@ -57,6 +57,9 @@ export async function POST(req: NextRequest) {
   const references = Array.isArray(body.references)
     ? body.references.map(normalizeReference).filter(Boolean).slice(0, MAX_WATCHED_REFERENCES)
     : [];
+  if (references.length === 0) {
+    return apiError(400, `references doit contenir entre 1 et ${MAX_WATCHED_REFERENCES} références. La surveillance du catalogue entier n'est pas disponible.`);
+  }
 
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
