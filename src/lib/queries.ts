@@ -79,23 +79,6 @@ export async function getPartDetail(manufacturerSlug: string, partSlug: string) 
   };
 }
 
-export async function getManufacturerWithParts(slug: string) {
-  const [manufacturer] = await db
-    .select()
-    .from(manufacturers)
-    .where(eq(manufacturers.slug, slug))
-    .limit(1);
-  if (!manufacturer) return null;
-
-  const partRows = await db
-    .select()
-    .from(parts)
-    .where(eq(parts.manufacturerId, manufacturer.id))
-    .orderBy(asc(parts.referenceNormalized));
-
-  return { manufacturer, parts: partRows };
-}
-
 export async function getManufacturerBySlug(slug: string) {
   const [manufacturer] = await db
     .select()

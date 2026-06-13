@@ -16,14 +16,14 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const reference = body.reference?.trim();
+  const reference = body.reference?.trim().slice(0, 100);
   if (!reference) {
     return Response.json({ error: "reference is required" }, { status: 400 });
   }
 
   await db.insert(suggestions).values({
     reference,
-    manufacturer: body.manufacturer?.trim() || null,
+    manufacturer: body.manufacturer?.trim().slice(0, 100) || null,
   });
 
   return Response.json({ ok: true });

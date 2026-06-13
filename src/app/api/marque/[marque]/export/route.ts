@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic";
 
 type Params = Promise<{ marque: string }>;
 
+function csvCell(value: string): string {
+  const escaped = value.replace(/"/g, '""');
+  return /^[=+\-@\t\r\n]/.test(value) ? `"'${escaped}"` : `"${escaped}"`;
+}
+
 export async function GET(_req: NextRequest, { params }: { params: Params }) {
   const { marque } = await params;
 
@@ -54,13 +59,13 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
   const csvRows = allPartRows.map((r) => {
     const price = priceMap.get(r.id);
     const fields = [
-      `"${r.referenceRaw}"`,
-      `"${r.name.replace(/"/g, '""')}"`,
-      `"${manufacturer.name}"`,
+      csvCell(r.referenceRaw),
+      csvCell(r.name),
+      csvCell(manufacturer.name),
       r.status,
       price?.minPrice ?? "",
       price?.currency ?? "EUR",
-      `"${siteUrl}/piece/${manufacturer.slug}/${r.slug}"`,
+      csvCell(`${siteUrl}/piece/${manufacturer.slug}/${r.slug}`),
     ];
     return fields.join(",");
   });

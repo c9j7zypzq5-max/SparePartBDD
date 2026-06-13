@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic";
 
 type Params = Promise<{ categorie: string }>;
 
+function csvCell(value: string): string {
+  const escaped = value.replace(/"/g, '""');
+  return /^[=+\-@\t\r\n]/.test(value) ? `"'${escaped}"` : `"${escaped}"`;
+}
+
 export async function GET(_req: NextRequest, { params }: { params: Params }) {
   const { categorie } = await params;
 
@@ -57,14 +62,14 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
   const csvRows = rows.map((r) => {
     const price = priceMap.get(r.partId);
     const fields = [
-      `"${r.referenceRaw}"`,
-      `"${r.name.replace(/"/g, '""')}"`,
-      `"${r.manufacturerName}"`,
-      `"${category.name}"`,
+      csvCell(r.referenceRaw),
+      csvCell(r.name),
+      csvCell(r.manufacturerName),
+      csvCell(category.name),
       r.status,
       price?.minPrice ?? "",
       price?.currency ?? "EUR",
-      `"${siteUrl}/piece/${r.manufacturerSlug}/${r.slug}"`,
+      csvCell(`${siteUrl}/piece/${r.manufacturerSlug}/${r.slug}`),
     ];
     return fields.join(",");
   });
