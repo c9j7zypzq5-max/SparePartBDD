@@ -438,19 +438,33 @@ async function callGemini(prompt: string): Promise<string> {
 
 async function findProductUrlGemini(reference: string, manufacturer: string): Promise<string | null> {
   if (!GEMINI_API_KEY) return null;
-  const URL_BLACKLIST = ["ebay", "aliexpress", "amazon", "leboncoin", "datasheets.com", "r.search.yahoo.com"];
+  const URL_BLACKLIST = [
+    "ebay", "aliexpress", "amazon", "leboncoin", "datasheets.com",
+    "r.search.yahoo.com", "vertexaisearch.cloud.google.com",
+  ];
+  const isBlacklisted = (u: string) => URL_BLACKLIST.some((b) => u.toLowerCase().includes(b));
   try {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
     const prompt = `Find the official product page or a reliable reseller URL (RS Components, Farnell, Mouser, Distrelec, or manufacturer site) for industrial part reference: ${reference} by ${manufacturer}. Return only the URL, nothing else.`;
     const result = await model.generateContent(prompt);
+
+    // Prefer actual source URLs from grounding metadata (avoids redirect wrappers)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chunks: any[] = (result.response as any).candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+    for (const chunk of chunks) {
+      const uri: string = chunk?.web?.uri ?? "";
+      if (!uri.startsWith("https://") || isBlacklisted(uri)) continue;
+      return uri;
+    }
+
+    // Fall back to URL in text response
     const text = result.response.text();
     const urlMatch = text.match(/https?:\/\/[^\s"]+/);
     if (!urlMatch) return null;
     const url = urlMatch[0].replace(/[.,;)>]+$/, "");
-    const urlLower = url.toLowerCase();
-    if (URL_BLACKLIST.some((b) => urlLower.includes(b))) return null;
+    if (isBlacklisted(url)) return null;
     return url;
   } catch (err) {
     log(`[Gemini URL] Error: ${err}`);
