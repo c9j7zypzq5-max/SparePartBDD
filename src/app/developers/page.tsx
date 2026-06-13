@@ -58,6 +58,39 @@ const res = await fetch(
 if (!res.ok) throw new Error(\`HTTP \${res.status}\`);
 const part = await res.json();
 console.log(part.status, part.offers);`,
+
+  usage: `curl "${siteUrl}/api/v1/usage" \\
+  -H "Authorization: Bearer spb_votre_clé"`,
+
+  usageResponse: JSON.stringify({
+    plan: "pro",
+    quota: 50000,
+    used: 12345,
+    remaining: 37655,
+    overageEnabled: false,
+    overageRequests: 0,
+    overage: 0,
+    periodStart: "2026-06-01T00:00:00.000Z",
+    periodEnd: "2026-07-01T00:00:00.000Z",
+  }, null, 2),
+
+  webhookManage: `# Modifier l'URL et/ou les références surveillées
+curl -X PATCH "${siteUrl}/api/v1/webhooks/1" \\
+  -H "Authorization: Bearer spb_votre_clé" \\
+  -H "Content-Type: application/json" \\
+  -d '{"references": ["6ES7214-1AG40-0XB0", "6ES7214-1HG40-0XB0"]}'
+
+# Tester la livraison (payload fictif, test: true)
+curl -X POST "${siteUrl}/api/v1/webhooks/1/test" \\
+  -H "Authorization: Bearer spb_votre_clé"
+
+# Voir les 20 dernières tentatives
+curl "${siteUrl}/api/v1/webhooks/1/deliveries" \\
+  -H "Authorization: Bearer spb_votre_clé"
+
+# Régénérer le secret HMAC (si compromis)
+curl -X POST "${siteUrl}/api/v1/webhooks/1/rotate-secret" \\
+  -H "Authorization: Bearer spb_votre_clé"`,
 };
 
 export default function DevelopersPage() {
@@ -201,6 +234,26 @@ export default function DevelopersPage() {
               <pre className="text-sm text-zinc-100">{CODE_EXAMPLES.manufacturer}</pre>
             </div>
           </div>
+
+          {/* GET /api/v1/usage */}
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="rounded bg-green-100 px-2 py-0.5 font-mono text-xs font-bold text-green-800">GET</span>
+              <code className="font-mono text-sm text-zinc-800">/api/v1/usage</code>
+            </div>
+            <p className="mt-2 text-zinc-600">
+              Quota, consommation et dates de la période courante — disponible sur tous les plans.
+            </p>
+            <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
+              <pre className="text-sm text-zinc-100">{CODE_EXAMPLES.usage}</pre>
+            </div>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-sm text-blue-600 hover:underline">Voir la réponse exemple</summary>
+              <div className="mt-2 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
+                <pre className="text-xs text-zinc-100">{CODE_EXAMPLES.usageResponse}</pre>
+              </div>
+            </details>
+          </div>
         </div>
       </section>
 
@@ -247,6 +300,7 @@ export default function DevelopersPage() {
         </p>
         <div className="overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
           <pre className="text-sm text-zinc-100">{`# Créer un webhook (le secret n'est affiché qu'une fois)
+# references obligatoire : 1 à 500 références normalisées
 curl -X POST "${siteUrl}/api/v1/webhooks" \\
   -H "Authorization: Bearer spb_votre_clé" \\
   -H "Content-Type: application/json" \\
@@ -256,6 +310,10 @@ curl -X POST "${siteUrl}/api/v1/webhooks" \\
 # Lister / supprimer
 curl "${siteUrl}/api/v1/webhooks" -H "Authorization: Bearer spb_votre_clé"
 curl -X DELETE "${siteUrl}/api/v1/webhooks/1" -H "Authorization: Bearer spb_votre_clé"`}</pre>
+        </div>
+        <p className="mt-4 text-zinc-600">Gestion du webhook après création :</p>
+        <div className="mt-2 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
+          <pre className="text-sm text-zinc-100">{CODE_EXAMPLES.webhookManage}</pre>
         </div>
         <p className="mt-4 text-zinc-600">Payload envoyé (POST JSON) :</p>
         <div className="mt-2 overflow-x-auto rounded-lg border border-zinc-200 bg-zinc-900 p-4">
