@@ -120,6 +120,10 @@ export const parts = pgTable(
       t.referenceNormalized,
     ),
     index("parts_ref_normalized_idx").on(t.referenceNormalized),
+    index("parts_manufacturer_idx").on(t.manufacturerId),
+    index("parts_category_idx").on(t.categoryId),
+    index("parts_status_idx").on(t.status),
+    index("parts_lifecycle_idx").on(t.lifecycleCheckedAt),
   ],
 );
 
@@ -140,6 +144,7 @@ export const partReferences = pgTable(
   },
   (t) => [
     index("part_references_normalized_idx").on(t.referenceNormalized),
+    index("part_references_part_idx").on(t.partId),
     uniqueIndex("part_references_part_ref_idx").on(
       t.partId,
       t.referenceNormalized,

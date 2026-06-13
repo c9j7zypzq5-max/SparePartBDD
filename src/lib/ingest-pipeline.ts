@@ -191,7 +191,11 @@ export async function ingestParts(
         .insert(schema.supersessions)
         .values({ oldPartId, newPartId, source, note: "Remplacement officiel" })
         .onConflictDoNothing();
-    } catch {}
+    } catch (err) {
+      result.errors.push(
+        `[supersession ${raw.manufacturer} ${raw.reference}→${raw.supersededBy}] ${String(err)}`,
+      );
+    }
   }
 
   for (const raw of parts) {
@@ -214,7 +218,11 @@ export async function ingestParts(
           .insert(schema.compatibilities)
           .values({ partId, compatiblePartId: compatPartId, confidence: 0.7, source })
           .onConflictDoNothing();
-      } catch {}
+      } catch (err) {
+        result.errors.push(
+          `[compat ${raw.manufacturer} ${raw.reference}→${compat}] ${String(err)}`,
+        );
+      }
     }
   }
 

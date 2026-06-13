@@ -1,4 +1,4 @@
-import { aliasedTable, and, asc, desc, eq, ilike, inArray, sql } from "drizzle-orm";
+import { aliasedTable, and, asc, desc, eq, ilike, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { normalizeReference } from "@/lib/normalize";
 
@@ -303,20 +303,10 @@ export async function getCategoriesWithCounts() {
 
 /** Pour le sitemap : toutes les URLs de pages pièce. */
 export async function getAllPartPaths() {
-  const rows = await db
-    .select({ partSlug: parts.slug, manufacturerId: parts.manufacturerId })
-    .from(parts);
-  const manufacturerIds = [...new Set(rows.map((r) => r.manufacturerId))];
-  if (manufacturerIds.length === 0) return [];
-  const mans = await db
-    .select({ id: manufacturers.id, slug: manufacturers.slug })
-    .from(manufacturers)
-    .where(inArray(manufacturers.id, manufacturerIds));
-  const slugById = new Map(mans.map((m) => [m.id, m.slug]));
-  return rows.map((r) => ({
-    manufacturerSlug: slugById.get(r.manufacturerId)!,
-    partSlug: r.partSlug,
-  }));
+  return db
+    .select({ partSlug: parts.slug, manufacturerSlug: manufacturers.slug })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId));
 }
 
 export async function getSimilarParts(
@@ -395,16 +385,27 @@ export async function searchPartsFuzzy(
     OFFSET ${offset}
   `);
 
-  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+  type FuzzyRow = {
+    id: number;
+    name: string;
+    reference_raw: string;
+    slug: string;
+    status: "active" | "obsolete" | "unknown";
+    updated_at: Date | string | null;
+    manufacturer_name: string;
+    manufacturer_slug: string;
+    industry: string;
+  };
+  return (rows as FuzzyRow[]).map((r) => ({
     partId: Number(r.id),
-    name: String(r.name),
-    referenceRaw: String(r.reference_raw),
-    slug: String(r.slug),
-    status: r.status as "active" | "obsolete" | "unknown",
-    manufacturerName: String(r.manufacturer_name),
-    manufacturerSlug: String(r.manufacturer_slug),
-    industry: String(r.industry),
-    updatedAt: r.updated_at ? new Date(r.updated_at as string | Date) : undefined,
+    name: r.name,
+    referenceRaw: r.reference_raw,
+    slug: r.slug,
+    status: r.status,
+    manufacturerName: r.manufacturer_name,
+    manufacturerSlug: r.manufacturer_slug,
+    industry: r.industry,
+    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
   }));
 }
 
@@ -489,7 +490,9 @@ export async function getAlternativeParts(
 
   if (byCategoryRows.length >= limit) return byCategoryRows;
 
-  const prefix = `${referenceNormalized.slice(0, 6)}%`;
+  const prefix = referenceNormalized.length >= 6
+    ? `${referenceNormalized.slice(0, 6)}%`
+    : `${referenceNormalized}%`;
   const excludeIds = [partId, ...byCategoryRows.map((r) => r.part.id)];
   const needed = limit - byCategoryRows.length;
 

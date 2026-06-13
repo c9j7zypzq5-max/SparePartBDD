@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, asc, eq, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 const { manufacturers, offers, parts } = schema;
 
@@ -30,6 +31,10 @@ type CompareResult = {
 };
 
 export async function POST(req: Request) {
+  if (!rateLimit(getClientIp(req.headers), { limit: 30, windowMs: 60_000 })) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   let body: InputItem[];
   try {
     body = await req.json();
@@ -69,7 +74,7 @@ export async function POST(req: Request) {
         return { reference: item.reference, found: false, current: null, changes: [] };
       }
 
-      const currentMinPrice = row.minPrice ? parseFloat(row.minPrice) : undefined;
+      const currentMinPrice = row.minPrice !== null ? parseFloat(row.minPrice) : undefined;
       const changes: string[] = [];
 
       if (row.part.status !== item.status) {

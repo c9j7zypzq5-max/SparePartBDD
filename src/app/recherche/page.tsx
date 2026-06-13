@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { SearchBar } from "@/components/search-bar";
 import { PartCard } from "@/components/part-card";
 import { SuggestionForm } from "@/components/suggestion-form";
 import { searchService } from "@/lib/search/postgres-search";
 import { getAllManufacturers, searchPartsFuzzy, getManufacturersSuggestions } from "@/lib/queries";
 import type { SearchOptions } from "@/lib/search/search-service";
+
+const getCachedManufacturers = unstable_cache(
+  getAllManufacturers,
+  ["all-manufacturers"],
+  { revalidate: 600 },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +105,7 @@ export default async function SearchPage({
           manufacturerSlug: marque || undefined,
           sortBy: (sort as SearchOptions["sortBy"]) || "relevance",
         }),
-        getAllManufacturers(),
+        getCachedManufacturers(),
       ])
     : [[], []];
   const hasNext = rawHits.length > PAGE_SIZE;

@@ -1,10 +1,15 @@
 import { NextRequest } from "next/server";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 const { parts, manufacturers, offers } = schema;
 
 export async function POST(req: NextRequest) {
+  if (!rateLimit(getClientIp(req.headers), { limit: 10, windowMs: 60_000 })) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   let refs: string[];
   try {
     refs = await req.json();
