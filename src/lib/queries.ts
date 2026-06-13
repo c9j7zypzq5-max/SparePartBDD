@@ -379,7 +379,7 @@ export async function searchPartsFuzzy(
     manufacturer_slug: string;
     industry: string;
   };
-  return (rows as FuzzyRow[]).map((r) => ({
+  return (rows as unknown as FuzzyRow[]).map((r) => ({
     partId: Number(r.id),
     name: r.name,
     referenceRaw: r.reference_raw,
@@ -595,7 +595,7 @@ export async function getSupersessionChain(partId: number) {
     JOIN manufacturers m ON m.id = p.manufacturer_id
     ORDER BY c.depth
   `);
-  return (rows as ChainRow[]).map((r) => ({
+  return (rows as unknown as ChainRow[]).map((r) => ({
     id: Number(r.id),
     referenceRaw: r.reference_raw,
     slug: r.slug,

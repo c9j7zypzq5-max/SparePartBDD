@@ -109,7 +109,7 @@ export class PostgresSearchService implements SearchService {
       OFFSET ${offset}
     `);
 
-    return (rows as SearchRow[]).map((r) => ({
+    return (rows as unknown as SearchRow[]).map((r) => ({
       partId: Number(r.part_id),
       name: r.name,
       referenceRaw: r.reference_raw,
