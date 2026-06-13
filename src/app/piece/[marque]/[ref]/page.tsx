@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, cache } from "react";
 import { notFound } from "next/navigation";
 import { PartCard } from "@/components/part-card";
 import { SellerTable } from "@/components/seller-table";
@@ -10,8 +10,11 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { CompareButton } from "@/components/compare-button";
 import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
-import { getPartDetail, getSimilarParts, getAlternativeParts } from "@/lib/queries";
+import { getPartDetail as _getPartDetail, getSimilarParts, getAlternativeParts } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
+
+// Déduplique les appels identiques dans le même cycle de rendu (generateMetadata + PartPage)
+const getPartDetail = cache(_getPartDetail);
 
 export const dynamic = "force-dynamic";
 

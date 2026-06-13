@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { siteUrl } from "@/lib/site-url";
 
@@ -47,11 +47,7 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
             currency: offers.currency,
           })
           .from(offers)
-          .where(
-            ids.length === 1
-              ? eq(offers.partId, ids[0])
-              : sql`${offers.partId} = any(${sql.raw(`array[${ids.join(",")}]`)})`,
-          )
+          .where(inArray(offers.partId, ids))
           .groupBy(offers.partId, offers.currency)
       : [];
 

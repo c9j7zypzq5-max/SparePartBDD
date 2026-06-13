@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
 
   const rows = await db
     .select({
+      id: parts.id,
       referenceNormalized: parts.referenceNormalized,
       referenceRaw: parts.referenceRaw,
       name: parts.name,
@@ -38,13 +39,8 @@ export async function POST(req: NextRequest) {
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
     .where(inArray(parts.referenceNormalized, normalized));
 
-  const partIds = await db
-    .select({ id: parts.id, referenceNormalized: parts.referenceNormalized })
-    .from(parts)
-    .where(inArray(parts.referenceNormalized, normalized));
-
-  const idMap = new Map(partIds.map((p) => [p.referenceNormalized, p.id]));
-  const allIds = [...idMap.values()];
+  const idMap = new Map(rows.map((r) => [r.referenceNormalized, r.id]));
+  const allIds = rows.map((r) => r.id);
 
   const minPrices =
     allIds.length > 0

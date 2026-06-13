@@ -27,7 +27,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "La liste est vide" }, { status: 400 });
   }
 
-  await db.insert(watchlistSubscriptions).values({ email, references });
+  await db
+    .insert(watchlistSubscriptions)
+    .values({ email, references })
+    .onConflictDoUpdate({
+      target: watchlistSubscriptions.email,
+      set: { references },
+    });
 
   return Response.json({ ok: true });
 }

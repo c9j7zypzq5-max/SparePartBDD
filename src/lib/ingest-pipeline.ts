@@ -159,14 +159,27 @@ export async function ingestParts(
           })
           .returning({ id: schema.sellers.id });
 
-        await db.insert(schema.offers).values({
-          partId,
-          sellerId: seller.id,
-          price: offer.price != null ? String(offer.price.toFixed(2)) : null,
-          currency: offer.currency ?? "EUR",
-          availability: offer.availability,
-          url: offer.url,
-        });
+        const offerPrice = offer.price != null ? String(offer.price.toFixed(2)) : null;
+        await db
+          .insert(schema.offers)
+          .values({
+            partId,
+            sellerId: seller.id,
+            price: offerPrice,
+            currency: offer.currency ?? "EUR",
+            availability: offer.availability,
+            url: offer.url,
+          })
+          .onConflictDoUpdate({
+            target: [schema.offers.partId, schema.offers.sellerId],
+            set: {
+              price: offerPrice,
+              currency: offer.currency ?? "EUR",
+              availability: offer.availability,
+              url: offer.url,
+              scrapedAt: new Date(),
+            },
+          });
         result.offersInserted++;
       }
     } catch (err) {

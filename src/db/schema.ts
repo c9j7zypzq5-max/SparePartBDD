@@ -224,7 +224,10 @@ export const offers = pgTable(
     url: text("url").notNull(),
     scrapedAt: timestamp("scraped_at").notNull().defaultNow(),
   },
-  (t) => [index("offers_part_idx").on(t.partId)],
+  (t) => [
+    index("offers_part_idx").on(t.partId),
+    uniqueIndex("offers_part_seller_idx").on(t.partId, t.sellerId),
+  ],
 );
 
 export const suggestionStatusEnum = pgEnum("suggestion_status", [
@@ -243,9 +246,13 @@ export const suggestions = pgTable("suggestions", {
 });
 
 /** Abonnements email aux changements de statut d'une liste de pièces. */
-export const watchlistSubscriptions = pgTable("watchlist_subscriptions", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull(),
-  references: text("references").array().notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const watchlistSubscriptions = pgTable(
+  "watchlist_subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    email: text("email").notNull(),
+    references: text("references").array().notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("watchlist_email_idx").on(t.email)],
+);
