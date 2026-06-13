@@ -1,9 +1,17 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { SearchBar } from "@/components/search-bar";
 import { BrandLogo } from "@/components/brand-logo";
 import { getHomepageData, getRecentSupersessions } from "@/lib/queries";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
+
+const getCachedHomepageData = unstable_cache(getHomepageData, ["homepage-data"], { revalidate: 300 });
+const getCachedRecentSupersessions = unstable_cache(
+  () => getRecentSupersessions(4),
+  ["recent-supersessions"],
+  { revalidate: 300 },
+);
 
 export default async function HomePage() {
   let data: Awaited<ReturnType<typeof getHomepageData>> = {
@@ -14,8 +22,8 @@ export default async function HomePage() {
   let supersessionRows: Awaited<ReturnType<typeof getRecentSupersessions>> = [];
   try {
     [data, supersessionRows] = await Promise.all([
-      getHomepageData(),
-      getRecentSupersessions(4),
+      getCachedHomepageData(),
+      getCachedRecentSupersessions(),
     ]);
   } catch {
     // Base indisponible : la home reste utilisable sans les sections data.

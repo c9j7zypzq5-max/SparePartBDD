@@ -4,15 +4,17 @@
  * deviennent toutes deux "11427953129".
  */
 export function normalizeReference(reference: string): string {
+  if (!reference) return "";
   return reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-/** Slug URL d'une référence : version normalisée en minuscules. */
 export function referenceSlug(reference: string): string {
+  if (!reference) return "";
   return normalizeReference(reference).toLowerCase();
 }
 
 export function slugify(value: string): string {
+  if (!value) return "";
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
