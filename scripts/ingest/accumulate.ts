@@ -679,6 +679,7 @@ const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
 
 let ddgBackoffAttempt = 0;
 const DDG_BACKOFF_DELAYS_MS = [60_000, 120_000, 240_000, 300_000];
+const bannedEngines = new Set<string>();
 
 async function fetchDDGWithBackoff(q: string, timeoutMs: number): Promise<string | null> {
   const doOnce = async (): Promise<string | null> => {
@@ -747,57 +748,181 @@ async function validatePageContent(url: string, reference: string): Promise<bool
   }
 }
 
+function scrapeFirstProductLink(html: string, patterns: string[]): string | null {
+  const hrefRe = /href=["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = hrefRe.exec(html)) !== null) {
+    const href = m[1];
+    if (!href.startsWith("http")) continue;
+    for (const pat of patterns) {
+      if (href.includes(pat)) return href;
+    }
+  }
+  return null;
+}
+
 async function findProductUrl(reference: string, manufacturer: string): Promise<string | null> {
-  const STRATEGY_TIMEOUT_MS = 6_000;
+  const refNorm  = reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
   const refLower = reference.toLowerCase();
+  const mfgSlug  = manufacturerSlug(manufacturer);
+  const domain   = MANUFACTURER_DOMAINS[mfgSlug];
   const SEARCH_BLACKLIST = [...RESELLER_DOMAINS, "etb-tech"];
 
-  const mfgSlug = manufacturerSlug(manufacturer);
-  const domain  = MANUFACTURER_DOMAINS[mfgSlug];
+  // ── Step 1: Direct manufacturer search ──────────────────────────────────────
+  if (domain) {
+    const searchUrl = mfgSlug === "siemens"
+      ? `https://mall.industry.siemens.com/mall/en/us/Catalog/Search?searchTerm=${encodeURIComponent(reference)}`
+      : `https://${domain}/search?q=${encodeURIComponent(reference)}`;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8_000);
+      const res = await fetch(searchUrl, {
+        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (res.ok) {
+        const html = await res.text();
+        const hrefRe = /href=["']([^"']+)["']/gi;
+        let m: RegExpExecArray | null;
+        while ((m = hrefRe.exec(html)) !== null) {
+          const href = m[1];
+          if (href.toUpperCase().replace(/[^A-Z0-9]/g, "").includes(refNorm)) {
+            const url = href.startsWith("http") ? href : `https://${domain}${href.startsWith("/") ? "" : "/"}${href}`;
+            const valid = await validatePageContent(url, reference);
+            if (valid) { log(`[URL] ${mfgSlug}: found ${url}`); return url; }
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    log(`[URL] ${mfgSlug}: not found`);
+  }
 
-  const strategies = [
-    domain ? `site:${domain} "${reference}"` : `${reference} ${manufacturer}`,
-    `${reference} ${manufacturer} datasheet`,
-    `${reference} ${manufacturer} buy`,
-    reference,
+  // ── Step 2: Direct reseller search ──────────────────────────────────────────
+  const resellers: Array<{ name: string; searchUrl: string; patterns: string[] }> = [
+    { name: "RS",        searchUrl: `https://fr.rs-online.com/web/c/?searchTerm=${encodeURIComponent(reference)}`, patterns: ["/web/p/"] },
+    { name: "Farnell",   searchUrl: `https://fr.farnell.com/search?st=${encodeURIComponent(reference)}`,           patterns: ["/farnell/", "/p/"] },
+    { name: "Mouser",    searchUrl: `https://www.mouser.fr/Search/Refine?Keyword=${encodeURIComponent(reference)}`, patterns: ["/ProductDetail/"] },
+    { name: "Distrelec", searchUrl: `https://www.distrelec.fr/en/search?q=${encodeURIComponent(reference)}`,       patterns: ["/p/"] },
+    { name: "Conrad",    searchUrl: `https://www.conrad.fr/search?search=${encodeURIComponent(reference)}`,         patterns: ["/p/"] },
+    { name: "Arrow",     searchUrl: `https://www.arrow.com/en/products/search?q=${encodeURIComponent(reference)}`,  patterns: ["/products/"] },
   ];
 
-  for (let i = 0; i < strategies.length; i++) {
-    if (i > 0) {
-      const delay = 3000 + Math.random() * 3000; // 3–6 s between strategies
-      await new Promise(r => setTimeout(r, delay));
-    }
-
-    const q = encodeURIComponent(strategies[i]);
-    const html: string | null = await fetchDDGWithBackoff(q, STRATEGY_TIMEOUT_MS);
-
-    if (!html) continue;
-
-    // DDG HTML embeds uddg=ENCODED_URL in redirect hrefs — decode them in order
-    const uddgRe = /uddg=([^&"'\s>]+)/g;
-    let m: RegExpExecArray | null;
-
-    while ((m = uddgRe.exec(html)) !== null) {
-      let url: string;
-      try { url = decodeURIComponent(m[1]); } catch { continue; }
-      if (!url.startsWith("https://")) continue;
-
-      const urlLower = url.toLowerCase();
-      if (SEARCH_BLACKLIST.some((d) => urlLower.includes(d))) continue;
-
-      // Accept if reference is in URL or in surrounding HTML context
-      const ctxStart = Math.max(0, m.index - 500);
-      const context = html.slice(ctxStart, m.index + 200).toLowerCase();
-      if (urlLower.includes(refLower) || context.includes(refLower)) {
-        // Validate that the page actually contains the reference
-        const valid = await validatePageContent(url, reference);
-        if (!valid) {
-          log(`   Content validation failed — trying next strategy`);
-          continue;
+  for (const reseller of resellers) {
+    await new Promise(r => setTimeout(r, 2_000));
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8_000);
+      const res = await fetch(reseller.searchUrl, {
+        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) { log(`[URL] ${reseller.name}: not found`); continue; }
+      const html = await res.text();
+      const link = scrapeFirstProductLink(html, reseller.patterns);
+      if (link) {
+        const linkNorm   = link.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+        const titleNorm  = titleMatch ? titleMatch[1].toUpperCase().replace(/[^A-Z0-9]/g, "") : "";
+        if (linkNorm.includes(refNorm) || titleNorm.includes(refNorm)) {
+          const valid = await validatePageContent(link, reference);
+          if (valid) { log(`[URL] ${reseller.name}: found ${link}`); return link; }
         }
-        log(`   URL found via strategy ${i + 1}: ${url}`);
-        return url;
       }
+      log(`[URL] ${reseller.name}: not found`);
+    } catch {
+      log(`[URL] ${reseller.name}: not found`);
+    }
+  }
+
+  // ── Step 3: Search engine rotation fallback ─────────────────────────────────
+  const query = `${reference} ${manufacturer}`;
+
+  if (!bannedEngines.has("DDG")) {
+    const ddgHtml = await fetchDDGWithBackoff(encodeURIComponent(query), 6_000);
+    if (ddgHtml) {
+      const uddgRe = /uddg=([^&"'\s>]+)/g;
+      let m: RegExpExecArray | null;
+      while ((m = uddgRe.exec(ddgHtml)) !== null) {
+        let url: string;
+        try { url = decodeURIComponent(m[1]); } catch { continue; }
+        if (!url.startsWith("https://")) continue;
+        const urlLower = url.toLowerCase();
+        if (SEARCH_BLACKLIST.some((d) => urlLower.includes(d))) continue;
+        if (urlLower.includes(refLower)) {
+          const valid = await validatePageContent(url, reference);
+          if (valid) { log(`[URL] DDG: found ${url}`); return url; }
+        }
+      }
+    }
+    log(`[URL] DDG: not found`);
+  }
+
+  const fallbackEngines: Array<{ name: string; url: string; extract(html: string): string[] }> = [
+    {
+      name: "Bing",
+      url: `https://www.bing.com/search?q=${encodeURIComponent(query)}`,
+      extract(html) {
+        const urls: string[] = [];
+        const re = /href=["'](https?:\/\/(?!(?:www\.)?bing\.com)[^"'&]+)["']/gi;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(html)) !== null) urls.push(m[1]);
+        return urls;
+      },
+    },
+    {
+      name: "Yahoo",
+      url: `https://search.yahoo.com/search?p=${encodeURIComponent(query)}`,
+      extract(html) {
+        const urls: string[] = [];
+        const re = /href=["'](https?:\/\/(?!(?:search|r)\.yahoo\.com)[^"'&]+)["']/gi;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(html)) !== null) urls.push(m[1]);
+        return urls;
+      },
+    },
+    {
+      name: "Startpage",
+      url: `https://www.startpage.com/search?q=${encodeURIComponent(query)}`,
+      extract(html) {
+        const urls: string[] = [];
+        const re = /href=["'](https?:\/\/(?!www\.startpage\.com)[^"'&]+)["']/gi;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(html)) !== null) urls.push(m[1]);
+        return urls;
+      },
+    },
+  ];
+
+  for (const engine of fallbackEngines) {
+    if (bannedEngines.has(engine.name)) continue;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6_000);
+      const res = await fetch(engine.url, {
+        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (res.status === 429) {
+        log(`[URL] ${engine.name}: rate limited — banning`);
+        bannedEngines.add(engine.name);
+        continue;
+      }
+      if (!res.ok) { log(`[URL] ${engine.name}: not found`); continue; }
+      const html = await res.text();
+      for (const url of engine.extract(html)) {
+        const urlLower = url.toLowerCase();
+        if (SEARCH_BLACKLIST.some((d) => urlLower.includes(d))) continue;
+        if (urlLower.includes(refLower)) {
+          const valid = await validatePageContent(url, reference);
+          if (valid) { log(`[URL] ${engine.name}: found ${url}`); return url; }
+        }
+      }
+      log(`[URL] ${engine.name}: not found`);
+    } catch {
+      log(`[URL] ${engine.name}: not found`);
     }
   }
 
