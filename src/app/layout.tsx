@@ -95,6 +95,11 @@ export default function RootLayout({
                     Récemment mis à jour
                   </Link>
                 </li>
+                <li>
+                  <Link href="/vendeurs" className="text-zinc-500 hover:text-zinc-900">
+                    Revendeurs
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

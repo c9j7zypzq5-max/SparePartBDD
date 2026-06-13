@@ -31,6 +31,28 @@ function diffClass(values: (string | number | null)[], current: string | number 
   return "bg-amber-50 font-semibold";
 }
 
+function exportToCSV(found: NonNullable<PartDetail>[], allAttrKeys: string[]) {
+  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const headers = ["Critère", ...found.map((d) => `${d.manufacturerName} ${d.referenceRaw}`)];
+  const rows: string[][] = [
+    ["Référence", ...found.map((d) => d.referenceRaw)],
+    ["Fabricant", ...found.map((d) => d.manufacturerName)],
+    ["Catégorie", ...found.map((d) => d.categoryName ?? "")],
+    ["Statut", ...found.map((d) => d.status)],
+    ["Prix min", ...found.map((d) => d.minPrice !== null ? String(d.minPrice) : "")],
+    ["Offres", ...found.map((d) => String(d.offerCount))],
+    ...allAttrKeys.map((key) => [key, ...found.map((d) => d.attributes?.[key] ?? "")]),
+  ];
+  const csv = [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "comparaison.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function ComparerPage() {
   const [compareList, setCompareList] = useState<CompareEntry[]>([]);
   const [details, setDetails] = useState<PartDetail[]>([]);
@@ -136,13 +158,22 @@ export default function ComparerPage() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Comparaison</h1>
-        <button
-          type="button"
-          onClick={() => { clearCompareList(); setCompareList([]); setDetails([]); }}
-          className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-700"
-        >
-          Vider la comparaison
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => exportToCSV(found, allAttrKeys)}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 transition hover:border-zinc-400 hover:text-zinc-800"
+          >
+            Exporter CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => { clearCompareList(); setCompareList([]); setDetails([]); }}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-700"
+          >
+            Vider
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200">

@@ -607,6 +607,41 @@ export async function getSupersessionChain(partId: number) {
   }));
 }
 
+/** Statistiques des revendeurs : nb offres et références couvertes. */
+export async function getSellerStats() {
+  return db
+    .select({
+      seller: sellers,
+      offerCount: sql<number>`count(${offers.id})::int`,
+      partCount: sql<number>`count(DISTINCT ${offers.partId})::int`,
+    })
+    .from(sellers)
+    .leftJoin(offers, eq(offers.sellerId, sellers.id))
+    .groupBy(sellers.id)
+    .orderBy(desc(sql<number>`count(${offers.id})`));
+}
+
+/** Métriques globales pour le dashboard admin. */
+export async function getAdminStats() {
+  const [row] = await db
+    .select({
+      totalParts: sql<number>`(SELECT count(*) FROM parts)::int`,
+      activeParts: sql<number>`(SELECT count(*) FROM parts WHERE status = 'active')::int`,
+      obsoleteParts: sql<number>`(SELECT count(*) FROM parts WHERE status = 'obsolete')::int`,
+      unknownParts: sql<number>`(SELECT count(*) FROM parts WHERE status = 'unknown')::int`,
+      needsReviewCount: sql<number>`(SELECT count(*) FROM parts WHERE needs_review = true)::int`,
+      totalManufacturers: sql<number>`(SELECT count(*) FROM manufacturers)::int`,
+      totalCategories: sql<number>`(SELECT count(*) FROM categories)::int`,
+      totalOffers: sql<number>`(SELECT count(*) FROM offers)::int`,
+      totalSellers: sql<number>`(SELECT count(*) FROM sellers)::int`,
+      totalSupersessions: sql<number>`(SELECT count(*) FROM supersessions)::int`,
+      totalCompatibilities: sql<number>`(SELECT count(*) FROM compatibilities)::int`,
+      recentParts: sql<number>`(SELECT count(*) FROM parts WHERE updated_at > NOW() - INTERVAL '30 days')::int`,
+    })
+    .from(sql`(SELECT 1) AS dual`);
+  return row ?? null;
+}
+
 /** Pièces obsolètes avec leur remplacement officiel, pour la home. */
 export async function getRecentSupersessions(limit = 4) {
   const oldParts = aliasedTable(parts, "old_parts");

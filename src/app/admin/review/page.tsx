@@ -52,9 +52,17 @@ export default async function AdminReviewPage({ searchParams }: { searchParams: 
             Pièces avec signal ambigu (<code>needsReview</code>) ou score de confiance inférieur à 60.
           </p>
         </div>
-        <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">
-          {total.toLocaleString("fr-FR")} fiche{total > 1 ? "s" : ""}
-        </span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/stats"
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 transition hover:border-zinc-400"
+          >
+            Statistiques
+          </Link>
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-700">
+            {total.toLocaleString("fr-FR")} fiche{total > 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
