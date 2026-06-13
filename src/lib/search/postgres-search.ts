@@ -3,6 +3,19 @@ import { db } from "@/db";
 import { normalizeReference } from "@/lib/normalize";
 import type { SearchHit, SearchOptions, SearchService } from "./search-service";
 
+type SearchRow = {
+  part_id: number;
+  name: string;
+  reference_raw: string;
+  slug: string;
+  status: string;
+  updated_at: Date | string | null;
+  manufacturer_name: string;
+  manufacturer_slug: string;
+  industry: string;
+  score: number;
+};
+
 /**
  * Implémentation MVP de la recherche sur PostgreSQL :
  *  - matching de référence exact puis approché (pg_trgm) sur la référence
@@ -29,6 +42,9 @@ export class PostgresSearchService implements SearchService {
       : sql``;
     const manufacturerFilter = options.manufacturerSlug
       ? sql` AND m.slug = ${options.manufacturerSlug}`
+      : sql``;
+    const inStockFilter = options.inStock
+      ? sql` AND EXISTS (SELECT 1 FROM offers WHERE part_id = p.id AND price IS NOT NULL)`
       : sql``;
 
     const sortBy = options.sortBy ?? "relevance";
@@ -87,23 +103,23 @@ export class PostgresSearchService implements SearchService {
       JOIN manufacturers m ON m.id = p.manufacturer_id
       JOIN ref_matches rm ON rm.id = p.id
       LEFT JOIN text_matches tm ON tm.id = p.id
-      WHERE (rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01)${industryFilter}${statusFilter}${manufacturerFilter}
+      WHERE (rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01)${industryFilter}${statusFilter}${manufacturerFilter}${inStockFilter}
       ${orderClause}
       LIMIT ${limit}
       OFFSET ${offset}
     `);
 
-    return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+    return (rows as unknown as SearchRow[]).map((r) => ({
       partId: Number(r.part_id),
-      name: String(r.name),
-      referenceRaw: String(r.reference_raw),
-      slug: String(r.slug),
+      name: r.name,
+      referenceRaw: r.reference_raw,
+      slug: r.slug,
       status: r.status as SearchHit["status"],
-      manufacturerName: String(r.manufacturer_name),
-      manufacturerSlug: String(r.manufacturer_slug),
-      industry: String(r.industry),
+      manufacturerName: r.manufacturer_name,
+      manufacturerSlug: r.manufacturer_slug,
+      industry: r.industry,
       score: Number(r.score),
-      updatedAt: r.updated_at ? new Date(r.updated_at as string | Date) : undefined,
+      updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
     }));
   }
 }

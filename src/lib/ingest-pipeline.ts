@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { normalizeReference, referenceSlug, slugify } from "@/lib/normalize";
 import type { IngestPart, IngestResult } from "@/lib/ingest-types";
@@ -70,58 +70,50 @@ export async function ingestParts(
       const refNorm = normalizeReference(raw.reference);
       const partSlug = referenceSlug(raw.reference);
 
-      const existing = await db
-        .select({ id: schema.parts.id })
-        .from(schema.parts)
-        .where(
-          and(
-            eq(schema.parts.manufacturerId, manufacturer.id),
-            eq(schema.parts.referenceNormalized, refNorm),
-          ),
-        )
-        .limit(1);
-
-      let partId: number;
-      if (existing.length > 0) {
-        partId = existing[0].id;
-        await db
-          .update(schema.parts)
-          .set({
+      // UPSERT atomique — élimine la race condition du SELECT+UPDATE/INSERT
+      const [upserted] = await db
+        .insert(schema.parts)
+        .values({
+          manufacturerId: manufacturer.id,
+          categoryId: categoryId ?? null,
+          referenceRaw: raw.reference,
+          referenceNormalized: refNorm,
+          slug: partSlug,
+          name: raw.name,
+          description: raw.description ?? null,
+          status: raw.status ?? "unknown",
+          attributes: raw.attributes ?? null,
+          productUrl: raw.productUrl ?? null,
+          datasheetUrl: raw.datasheetUrl ?? null,
+          urlVerifiedAt: raw.urlVerifiedAt ? new Date(raw.urlVerifiedAt) : null,
+          confidenceScore: raw.confidenceScore ?? null,
+        })
+        .onConflictDoUpdate({
+          target: [schema.parts.manufacturerId, schema.parts.referenceNormalized],
+          set: {
             name: raw.name,
             description: raw.description ?? null,
             status: raw.status ?? "unknown",
             categoryId: categoryId ?? null,
             attributes: raw.attributes ?? null,
-            // Ne jamais effacer une URL existante si le batch ne la fournit pas
-            ...(raw.productUrl ? { productUrl: raw.productUrl } : {}),
-            ...(raw.datasheetUrl ? { datasheetUrl: raw.datasheetUrl } : {}),
-            ...(raw.urlVerifiedAt ? { urlVerifiedAt: new Date(raw.urlVerifiedAt) } : {}),
-            ...(raw.confidenceScore != null ? { confidenceScore: raw.confidenceScore } : {}),
+            // COALESCE préserve les URLs existantes si le batch n'en fournit pas
+            productUrl: sql`COALESCE(excluded.product_url, ${schema.parts.productUrl})`,
+            datasheetUrl: sql`COALESCE(excluded.datasheet_url, ${schema.parts.datasheetUrl})`,
+            urlVerifiedAt: sql`COALESCE(excluded.url_verified_at, ${schema.parts.urlVerifiedAt})`,
+            confidenceScore: sql`COALESCE(excluded.confidence_score, ${schema.parts.confidenceScore})`,
             updatedAt: new Date(),
-          })
-          .where(eq(schema.parts.id, partId));
-        result.partsUpdated++;
-      } else {
-        const [inserted] = await db
-          .insert(schema.parts)
-          .values({
-            manufacturerId: manufacturer.id,
-            categoryId: categoryId ?? null,
-            referenceRaw: raw.reference,
-            referenceNormalized: refNorm,
-            slug: partSlug,
-            name: raw.name,
-            description: raw.description,
-            status: raw.status ?? "unknown",
-            attributes: raw.attributes,
-            productUrl: raw.productUrl,
-            datasheetUrl: raw.datasheetUrl,
-            urlVerifiedAt: raw.urlVerifiedAt ? new Date(raw.urlVerifiedAt) : undefined,
-            confidenceScore: raw.confidenceScore,
-          })
-          .returning({ id: schema.parts.id });
-        partId = inserted.id;
+          },
+        })
+        .returning({
+          id: schema.parts.id,
+          wasInserted: sql<boolean>`(xmax = 0)`,
+        });
+
+      const partId = upserted.id;
+      if (upserted.wasInserted) {
         result.partsInserted++;
+      } else {
+        result.partsUpdated++;
       }
 
       partRegistry.set(`${manufacturerSlug}|${refNorm}`, partId);
@@ -159,14 +151,27 @@ export async function ingestParts(
           })
           .returning({ id: schema.sellers.id });
 
-        await db.insert(schema.offers).values({
-          partId,
-          sellerId: seller.id,
-          price: offer.price != null ? String(offer.price.toFixed(2)) : null,
-          currency: offer.currency ?? "EUR",
-          availability: offer.availability,
-          url: offer.url,
-        });
+        const offerPrice = offer.price != null ? String(offer.price.toFixed(2)) : null;
+        await db
+          .insert(schema.offers)
+          .values({
+            partId,
+            sellerId: seller.id,
+            price: offerPrice,
+            currency: offer.currency ?? "EUR",
+            availability: offer.availability,
+            url: offer.url,
+          })
+          .onConflictDoUpdate({
+            target: [schema.offers.partId, schema.offers.sellerId],
+            set: {
+              price: offerPrice,
+              currency: offer.currency ?? "EUR",
+              availability: offer.availability,
+              url: offer.url,
+              scrapedAt: new Date(),
+            },
+          });
         result.offersInserted++;
       }
     } catch (err) {
@@ -191,7 +196,11 @@ export async function ingestParts(
         .insert(schema.supersessions)
         .values({ oldPartId, newPartId, source, note: "Remplacement officiel" })
         .onConflictDoNothing();
-    } catch {}
+    } catch (err) {
+      result.errors.push(
+        `[supersession ${raw.manufacturer} ${raw.reference}→${raw.supersededBy}] ${String(err)}`,
+      );
+    }
   }
 
   for (const raw of parts) {
@@ -214,7 +223,11 @@ export async function ingestParts(
           .insert(schema.compatibilities)
           .values({ partId, compatiblePartId: compatPartId, confidence: 0.7, source })
           .onConflictDoNothing();
-      } catch {}
+      } catch (err) {
+        result.errors.push(
+          `[compat ${raw.manufacturer} ${raw.reference}→${compat}] ${String(err)}`,
+        );
+      }
     }
   }
 

@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { siteUrl } from "@/lib/site-url";
+import { buildSpreadsheetML, spreadsheetMLResponse } from "@/lib/spreadsheet-ml";
 
 const { parts, manufacturers, categories, offers } = schema;
 
@@ -9,8 +10,14 @@ export const dynamic = "force-dynamic";
 
 type Params = Promise<{ categorie: string }>;
 
-export async function GET(_req: NextRequest, { params }: { params: Params }) {
+function csvCell(value: string): string {
+  const escaped = value.replace(/"/g, '""');
+  return /^[=+\-@\t\r\n]/.test(value) ? `"'${escaped}"` : `"${escaped}"`;
+}
+
+export async function GET(req: NextRequest, { params }: { params: Params }) {
   const { categorie } = await params;
+  const format = req.nextUrl.searchParams.get("format");
 
   const [category] = await db
     .select()
@@ -47,39 +54,52 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
             currency: offers.currency,
           })
           .from(offers)
-          .where(
-            ids.length === 1
-              ? eq(offers.partId, ids[0])
-              : sql`${offers.partId} = any(${sql.raw(`array[${ids.join(",")}]`)})`,
-          )
+          .where(inArray(offers.partId, ids))
           .groupBy(offers.partId, offers.currency)
       : [];
 
   const priceMap = new Map(priceRows.map((p) => [p.partId, p]));
 
-  const header = "reference,name,manufacturer,category,status,min_price,currency,product_url\n";
-  const csvRows = rows.map((r) => {
+  const date = new Date().toISOString().slice(0, 10);
+  const dataRows = rows.map((r) => {
     const price = priceMap.get(r.partId);
+    return {
+      ref: r.referenceRaw,
+      name: r.name,
+      manufacturer: r.manufacturerName,
+      category: category.name,
+      status: r.status,
+      minPrice: price?.minPrice ? parseFloat(price.minPrice) : null,
+      currency: price?.currency ?? "EUR",
+      url: `${siteUrl}/piece/${r.manufacturerSlug}/${r.slug}`,
+    };
+  });
+
+  if (format === "xlsx") {
+    const headers = ["Référence", "Désignation", "Fabricant", "Catégorie", "Statut", "Prix min", "Devise", "URL"];
+    const xlsRows = dataRows.map((r) => [r.ref, r.name, r.manufacturer, r.category, r.status, r.minPrice, r.currency, r.url]);
+    return spreadsheetMLResponse(buildSpreadsheetML(headers, xlsRows, category.name), `${category.slug}-${date}.xls`);
+  }
+
+  const header = "reference,name,manufacturer,category,status,min_price,currency,product_url\n";
+  const csvRows = dataRows.map((r) => {
     const fields = [
-      `"${r.referenceRaw}"`,
-      `"${r.name.replace(/"/g, '""')}"`,
-      `"${r.manufacturerName}"`,
-      `"${category.name}"`,
+      csvCell(r.ref),
+      csvCell(r.name),
+      csvCell(r.manufacturer),
+      csvCell(r.category),
       r.status,
-      price?.minPrice ?? "",
-      price?.currency ?? "EUR",
-      `"${siteUrl}/piece/${r.manufacturerSlug}/${r.slug}"`,
+      r.minPrice ?? "",
+      r.currency,
+      csvCell(r.url),
     ];
     return fields.join(",");
   });
 
-  const csv = header + csvRows.join("\n");
-  const filename = `${category.slug}-${new Date().toISOString().slice(0, 10)}.csv`;
-
-  return new Response(csv, {
+  return new Response(header + csvRows.join("\n"), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": `attachment; filename="${category.slug}-${date}.csv"`,
     },
   });
 }

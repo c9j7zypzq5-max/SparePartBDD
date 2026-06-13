@@ -10,6 +10,7 @@ import {
 } from "@/lib/watchlist";
 import { StatusBadge } from "@/components/status-badge";
 import { WatchlistSubscribeForm } from "@/components/watchlist-subscribe-form";
+import { ShareButton } from "@/components/share-button";
 
 type CompareResult = {
   reference: string;
@@ -218,6 +219,7 @@ export default function ListePage() {
         <h1 className="text-2xl font-bold tracking-tight">Ma liste</h1>
         {list.length > 0 && (
           <div className="flex flex-wrap gap-2">
+            <ShareButton />
             <button
               type="button"
               onClick={() => exportCSV(list)}

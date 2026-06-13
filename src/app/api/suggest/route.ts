@@ -23,6 +23,6 @@ export async function GET(req: NextRequest) {
       { headers: { "Cache-Control": "public, max-age=300" } },
     );
   } catch {
-    return Response.json({ hits: [] });
+    return Response.json({ error: "Search unavailable" }, { status: 500 });
   }
 }

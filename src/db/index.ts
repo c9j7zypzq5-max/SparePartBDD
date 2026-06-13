@@ -2,8 +2,8 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const connectionString =
-  process.env.DATABASE_URL ?? "postgres://localhost:5432/sparepart";
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DATABASE_URL is required — check your .env");
 
 // Vercel (et autres environnements serverless) ne gère pas les connexions
 // persistantes — une seule connexion par invocation suffit.

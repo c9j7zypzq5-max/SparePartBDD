@@ -1,10 +1,15 @@
 import { NextRequest } from "next/server";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 const { parts, manufacturers, offers } = schema;
 
 export async function POST(req: NextRequest) {
+  if (!rateLimit(getClientIp(req.headers), { limit: 10, windowMs: 60_000 })) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   let refs: string[];
   try {
     refs = await req.json();
@@ -21,6 +26,7 @@ export async function POST(req: NextRequest) {
 
   const rows = await db
     .select({
+      id: parts.id,
       referenceNormalized: parts.referenceNormalized,
       referenceRaw: parts.referenceRaw,
       name: parts.name,
@@ -33,13 +39,8 @@ export async function POST(req: NextRequest) {
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
     .where(inArray(parts.referenceNormalized, normalized));
 
-  const partIds = await db
-    .select({ id: parts.id, referenceNormalized: parts.referenceNormalized })
-    .from(parts)
-    .where(inArray(parts.referenceNormalized, normalized));
-
-  const idMap = new Map(partIds.map((p) => [p.referenceNormalized, p.id]));
-  const allIds = [...idMap.values()];
+  const idMap = new Map(rows.map((r) => [r.referenceNormalized, r.id]));
+  const allIds = rows.map((r) => r.id);
 
   const minPrices =
     allIds.length > 0

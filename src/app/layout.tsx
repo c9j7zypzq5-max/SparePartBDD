@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   description:
     "Entrez une référence Siemens, Schneider, ABB, Rockwell, Cisco, Dell, HPE ou Lenovo : statut de fabrication, remplacement officiel, compatibles, vendeurs et prix.",
   openGraph: {
+    url: siteUrl,
     type: "website",
     locale: "fr_FR",
     siteName: "SparePartSearch",
@@ -75,13 +76,23 @@ export default function RootLayout({
                   </Link>
                 </li>
                 <li>
-                  <Link href="/recherche?q=" className="text-zinc-500 hover:text-zinc-900">
+                  <Link href="/recherche" className="text-zinc-500 hover:text-zinc-900">
                     Recherche
                   </Link>
                 </li>
                 <li>
                   <Link href="/liste" className="text-zinc-500 hover:text-zinc-900">
                     Ma liste
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/technicien" className="text-zinc-500 hover:text-zinc-900">
+                    Mode technicien
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/recent" className="text-zinc-500 hover:text-zinc-900">
+                    Récemment mis à jour
                   </Link>
                 </li>
               </ul>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   readSearchHistory,
   addSearchHistory,
@@ -26,11 +27,13 @@ export function SearchBar({
   autoFocus?: boolean;
   large?: boolean;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState(defaultValue);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,10 +42,12 @@ export function SearchBar({
     const q = query.trim();
     if (q.length < 2 || q === defaultValue) {
       setSuggestions([]);
+      setActiveIndex(-1);
       if (focused) setHistory(readSearchHistory());
       return;
     }
     setHistory([]);
+    setActiveIndex(-1);
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
@@ -90,6 +95,39 @@ export function SearchBar({
     setOpen(false);
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    const showSug = open && suggestions.length > 0 && query.trim().length >= 2;
+    const showHist = open && query.trim().length < 2 && history.length > 0;
+    const items = showSug ? suggestions : showHist ? history : [];
+    if (items.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, items.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, -1));
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      setActiveIndex(-1);
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      if (showSug) {
+        const s = suggestions[activeIndex];
+        addSearchHistory(query.trim());
+        setOpen(false);
+        setActiveIndex(-1);
+        router.push(s.url);
+      } else if (showHist) {
+        const h = history[activeIndex];
+        addSearchHistory(h.term);
+        setOpen(false);
+        setActiveIndex(-1);
+        router.push(`/recherche?q=${encodeURIComponent(h.term)}`);
+      }
+    }
+  }
+
   const showHistory = open && query.trim().length < 2 && history.length > 0;
   const showSuggestions = open && suggestions.length > 0 && query.trim().length >= 2;
 
@@ -106,6 +144,7 @@ export function SearchBar({
           onChange={(e) => setQuery(e.target.value)}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           autoFocus={autoFocus}
           required
           autoComplete="off"
@@ -125,9 +164,9 @@ export function SearchBar({
           <li className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Recherches récentes
           </li>
-          {history.map((entry) => (
+          {history.map((entry, i) => (
             <li key={entry.term} className="border-b border-zinc-100 last:border-0">
-              <div className="flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-zinc-50">
+              <div className={`flex items-center justify-between gap-2 px-4 py-2.5 ${i === activeIndex ? "bg-blue-50" : "hover:bg-zinc-50"}`}>
                 <Link
                   href={`/recherche?q=${encodeURIComponent(entry.term)}`}
                   className="flex min-w-0 flex-1 items-center gap-2 text-sm text-zinc-700"
@@ -156,11 +195,11 @@ export function SearchBar({
 
       {showSuggestions && (
         <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-zinc-200 bg-white text-left shadow-lg">
-          {suggestions.map((s) => (
+          {suggestions.map((s, i) => (
             <li key={s.url} className="border-b border-zinc-100 last:border-0">
               <Link
                 href={s.url}
-                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-blue-50"
+                className={`flex items-center justify-between gap-3 px-4 py-3 ${i === activeIndex ? "bg-blue-50" : "hover:bg-blue-50"}`}
                 onClick={() => { addSearchHistory(query.trim()); setOpen(false); }}
               >
                 <span className="min-w-0">

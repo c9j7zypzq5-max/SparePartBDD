@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
         slug: row.part.slug,
         categoryName: row.category?.name ?? null,
         status: row.part.status,
+        attributes: row.part.attributes ?? null,
         minPrice: offerStats?.minPrice ? parseFloat(offerStats.minPrice) : null,
         offerCount: offerStats?.count ?? 0,
         currency: offerStats?.currency ?? "EUR",

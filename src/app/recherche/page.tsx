@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { SearchBar } from "@/components/search-bar";
 import { PartCard } from "@/components/part-card";
 import { SuggestionForm } from "@/components/suggestion-form";
 import { searchService } from "@/lib/search/postgres-search";
 import { getAllManufacturers, searchPartsFuzzy, getManufacturersSuggestions } from "@/lib/queries";
 import type { SearchOptions } from "@/lib/search/search-service";
+
+const getCachedManufacturers = unstable_cache(
+  getAllManufacturers,
+  ["all-manufacturers"],
+  { revalidate: 600 },
+);
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +23,7 @@ type Search = Promise<{
   marque?: string;
   page?: string;
   sort?: string;
+  stock?: string;
 }>;
 
 const PAGE_SIZE = 20;
@@ -46,6 +54,7 @@ function buildHref(params: {
   statut?: string;
   marque?: string;
   sort?: string;
+  stock?: boolean;
   page?: number;
 }): string {
   const sp = new URLSearchParams();
@@ -54,6 +63,7 @@ function buildHref(params: {
   if (params.statut) sp.set("statut", params.statut);
   if (params.marque) sp.set("marque", params.marque);
   if (params.sort) sp.set("sort", params.sort);
+  if (params.stock) sp.set("stock", "1");
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   return `/recherche?${sp.toString()}`;
 }
@@ -76,7 +86,7 @@ export default async function SearchPage({
 }: {
   searchParams: Search;
 }) {
-  const { q, industrie, statut, marque, page: pageParam, sort } = await searchParams;
+  const { q, industrie, statut, marque, page: pageParam, sort, stock } = await searchParams;
   const query = q?.trim() ?? "";
   const industry = INDUSTRY_FILTERS.some((f) => f.value === industrie)
     ? industrie
@@ -84,6 +94,7 @@ export default async function SearchPage({
   const status = STATUS_FILTERS.some((f) => f.value === statut)
     ? statut
     : undefined;
+  const inStock = stock === "1";
   const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
 
   // limit+1 : on demande une pièce de plus que la page pour savoir s'il y a
@@ -97,8 +108,9 @@ export default async function SearchPage({
           status: status || undefined,
           manufacturerSlug: marque || undefined,
           sortBy: (sort as SearchOptions["sortBy"]) || "relevance",
+          inStock: inStock || undefined,
         }),
-        getAllManufacturers(),
+        getCachedManufacturers(),
       ])
     : [[], []];
   const hasNext = rawHits.length > PAGE_SIZE;
@@ -118,7 +130,7 @@ export default async function SearchPage({
     : `${(page - 1) * PAGE_SIZE + hits.length} résultat${(page - 1) * PAGE_SIZE + hits.length > 1 ? "s" : ""}`;
 
   const validSort = SORT_FILTERS.some((f) => f.value === sort) ? sort : undefined;
-  const base = { q: query, industrie: industry, statut: status, marque, sort: validSort };
+  const base = { q: query, industrie: industry, statut: status, marque, sort: validSort, stock: inStock || undefined };
 
   return (
     <div>
@@ -163,11 +175,22 @@ export default async function SearchPage({
                 </Link>
               );
             })}
+            <Link
+              href={buildHref({ ...base, stock: !inStock || undefined })}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                inStock
+                  ? "bg-green-700 text-white"
+                  : "border border-zinc-200 text-zinc-600 hover:border-zinc-400"
+              }`}
+            >
+              En stock
+            </Link>
 
             <form action="/recherche" method="get" className="ml-auto flex items-center gap-2">
               <input type="hidden" name="q" value={query} />
               {industry && <input type="hidden" name="industrie" value={industry} />}
               {status && <input type="hidden" name="statut" value={status} />}
+              {inStock && <input type="hidden" name="stock" value="1" />}
               <select
                 name="marque"
                 defaultValue={marque ?? ""}

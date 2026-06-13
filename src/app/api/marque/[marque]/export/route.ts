@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
-import { asc, eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { siteUrl } from "@/lib/site-url";
+import { buildSpreadsheetML, spreadsheetMLResponse } from "@/lib/spreadsheet-ml";
 
 const { parts, manufacturers, offers } = schema;
 
@@ -9,8 +10,14 @@ export const dynamic = "force-dynamic";
 
 type Params = Promise<{ marque: string }>;
 
-export async function GET(_req: NextRequest, { params }: { params: Params }) {
+function csvCell(value: string): string {
+  const escaped = value.replace(/"/g, '""');
+  return /^[=+\-@\t\r\n]/.test(value) ? `"'${escaped}"` : `"${escaped}"`;
+}
+
+export async function GET(req: NextRequest, { params }: { params: Params }) {
   const { marque } = await params;
+  const format = req.nextUrl.searchParams.get("format");
 
   const [manufacturer] = await db
     .select()
@@ -22,25 +29,17 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
     return new Response("Not found", { status: 404 });
   }
 
-  const rows = await db
+  const allPartRows = await db
     .select({
+      id: parts.id,
       referenceRaw: parts.referenceRaw,
       name: parts.name,
       status: parts.status,
-      productUrl: parts.productUrl,
       slug: parts.slug,
     })
     .from(parts)
     .where(eq(parts.manufacturerId, manufacturer.id))
     .orderBy(asc(parts.referenceNormalized));
-
-  const partIds = rows.map((_, i) => i);
-  const slugToId = new Map<string, number>();
-  const allPartRows = await db
-    .select({ id: parts.id, slug: parts.slug })
-    .from(parts)
-    .where(eq(parts.manufacturerId, manufacturer.id));
-  allPartRows.forEach((p) => slugToId.set(p.slug, p.id));
 
   const ids = allPartRows.map((p) => p.id);
   const priceRows =
@@ -52,39 +51,50 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
             currency: offers.currency,
           })
           .from(offers)
-          .where(
-            ids.length === 1
-              ? eq(offers.partId, ids[0])
-              : sql`${offers.partId} = any(${sql.raw(`array[${ids.join(",")}]`)})`,
-          )
+          .where(inArray(offers.partId, ids))
           .groupBy(offers.partId, offers.currency)
       : [];
 
   const priceMap = new Map(priceRows.map((p) => [p.partId, p]));
 
+  const date = new Date().toISOString().slice(0, 10);
+  const dataRows = allPartRows.map((r) => {
+    const price = priceMap.get(r.id);
+    return {
+      ref: r.referenceRaw,
+      name: r.name,
+      manufacturer: manufacturer.name,
+      status: r.status,
+      minPrice: price?.minPrice ? parseFloat(price.minPrice) : null,
+      currency: price?.currency ?? "EUR",
+      url: `${siteUrl}/piece/${manufacturer.slug}/${r.slug}`,
+    };
+  });
+
+  if (format === "xlsx") {
+    const headers = ["Référence", "Désignation", "Fabricant", "Statut", "Prix min", "Devise", "URL"];
+    const rows = dataRows.map((r) => [r.ref, r.name, r.manufacturer, r.status, r.minPrice, r.currency, r.url]);
+    return spreadsheetMLResponse(buildSpreadsheetML(headers, rows, manufacturer.name), `${manufacturer.slug}-${date}.xls`);
+  }
+
   const header = "reference,name,manufacturer,status,min_price,currency,product_url\n";
-  const csvRows = rows.map((r) => {
-    const id = slugToId.get(r.slug);
-    const price = id ? priceMap.get(id) : undefined;
+  const csvRows = dataRows.map((r) => {
     const fields = [
-      `"${r.referenceRaw}"`,
-      `"${r.name.replace(/"/g, '""')}"`,
-      `"${manufacturer.name}"`,
+      csvCell(r.ref),
+      csvCell(r.name),
+      csvCell(r.manufacturer),
       r.status,
-      price?.minPrice ?? "",
-      price?.currency ?? "EUR",
-      `"${siteUrl}/piece/${manufacturer.slug}/${r.slug}"`,
+      r.minPrice ?? "",
+      r.currency,
+      csvCell(r.url),
     ];
     return fields.join(",");
   });
 
-  const csv = header + csvRows.join("\n");
-  const filename = `${manufacturer.slug}-${new Date().toISOString().slice(0, 10)}.csv`;
-
-  return new Response(csv, {
+  return new Response(header + csvRows.join("\n"), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": `attachment; filename="${manufacturer.slug}-${date}.csv"`,
     },
   });
 }

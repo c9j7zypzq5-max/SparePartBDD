@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense, cache } from "react";
 import { notFound } from "next/navigation";
 import { PartCard } from "@/components/part-card";
 import { SellerTable } from "@/components/seller-table";
@@ -9,8 +10,11 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { CompareButton } from "@/components/compare-button";
 import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
-import { getPartDetail, getSimilarParts, getAlternativeParts } from "@/lib/queries";
+import { getPartDetail as _getPartDetail, getSimilarParts, getAlternativeParts, getSupersessionChain } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
+
+// Déduplique les appels identiques dans le même cycle de rendu (generateMetadata + PartPage)
+const getPartDetail = cache(_getPartDetail);
 
 export const dynamic = "force-dynamic";
 
@@ -35,10 +39,141 @@ export async function generateMetadata({
       title,
       description,
       type: "website",
-      images: [{ url: "/og-default.jpg" }],
+      images: [{ url: `/api/og/${marque}/${ref}`, width: 1200, height: 630 }],
     },
     twitter: { card: "summary" },
   };
+}
+
+async function AlternativePartsContent({
+  partId,
+  manufacturerId,
+  categoryId,
+  referenceNormalized,
+}: {
+  partId: number;
+  manufacturerId: number;
+  categoryId: number | null;
+  referenceNormalized: string;
+}) {
+  const parts = await getAlternativeParts(partId, manufacturerId, categoryId, referenceNormalized, 4);
+  if (parts.length > 0) {
+    return (
+      <div className="mt-3 grid gap-3">
+        {parts.map(({ part: p, manufacturer: m }) => (
+          <PartCard
+            key={p.id}
+            href={`/piece/${m.slug}/${p.slug}`}
+            name={p.name}
+            referenceRaw={p.referenceRaw}
+            manufacturerName={m.name}
+            manufacturerSlug={m.slug}
+            status={p.status}
+          />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <p className="mt-2 text-sm text-orange-800">
+      Aucune alternative connue dans notre catalogue.{" "}
+      <Link href="/recherche" className="font-medium underline hover:no-underline">
+        Suggérez une référence de remplacement
+      </Link>
+    </p>
+  );
+}
+
+async function SupersessionChainSection({
+  partId,
+  currentRef,
+  currentManufacturerSlug,
+}: {
+  partId: number;
+  currentRef: string;
+  currentManufacturerSlug: string;
+}) {
+  const chain = await getSupersessionChain(partId);
+  if (chain.length < 2) return null;
+  return (
+    <section className="mt-8">
+      <h2 className="text-xl font-semibold">Chaîne de remplacement complète</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        Succession officielle des remplacements annoncés par le fabricant.
+      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Link
+          href={`/piece/${currentManufacturerSlug}/${currentRef.toLowerCase().replace(/[^a-z0-9]/g, "")}`}
+          className="rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-mono font-medium text-zinc-700 hover:border-zinc-500"
+        >
+          {currentRef}
+          <span className="ml-1.5 rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-sans text-red-700">
+            Obsolète
+          </span>
+        </Link>
+        {chain.map((step) => (
+          <span key={step.id} className="flex items-center gap-2">
+            <span className="text-zinc-400">→</span>
+            <Link
+              href={`/piece/${step.manufacturerSlug}/${step.slug}`}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono font-medium text-zinc-900 hover:border-blue-400 hover:text-blue-700"
+            >
+              {step.referenceRaw}
+              {step.status === "active" && (
+                <span className="ml-1.5 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-sans text-green-700">
+                  Actuelle
+                </span>
+              )}
+            </Link>
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+async function SimilarPartsSection({
+  partId,
+  manufacturerId,
+  categoryId,
+  manufacturerName,
+}: {
+  partId: number;
+  manufacturerId: number;
+  categoryId: number | null;
+  manufacturerName: string;
+}) {
+  const parts = await getSimilarParts(partId, manufacturerId, categoryId, 6);
+  if (parts.length === 0) return null;
+  return (
+    <section className="mt-8 print-hide">
+      <h2 className="text-xl font-semibold">
+        Pièces similaires de {manufacturerName}
+      </h2>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {parts.map(({ part: p, manufacturer: m }) => (
+          <PartCard
+            key={p.id}
+            href={`/piece/${m.slug}/${p.slug}`}
+            name={p.name}
+            referenceRaw={p.referenceRaw}
+            manufacturerName={m.name}
+            manufacturerSlug={m.slug}
+            status={p.status}
+            updatedAt={p.updatedAt}
+            watchlistData={{
+              reference: p.referenceRaw,
+              manufacturer: m.name,
+              manufacturerSlug: m.slug,
+              partSlug: p.slug,
+              name: p.name,
+              status: p.status,
+            }}
+          />
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export default async function PartPage({ params }: { params: Params }) {
@@ -47,13 +182,6 @@ export default async function PartPage({ params }: { params: Params }) {
   if (!detail) notFound();
 
   const { part, manufacturer, category } = detail;
-
-  const [similarParts, alternativeParts] = await Promise.all([
-    getSimilarParts(part.id, manufacturer.id, category?.id ?? null, 6),
-    part.status === "obsolete"
-      ? getAlternativeParts(part.id, manufacturer.id, category?.id ?? null, part.referenceNormalized, 4)
-      : Promise.resolve([]),
-  ]);
   const completenessScore =
     (part.description != null ? 25 : 0) +
     (part.productUrl != null ? 25 : 0) +
@@ -177,7 +305,7 @@ export default async function PartPage({ params }: { params: Params }) {
         <a
           href={part.productUrl}
           target="_blank"
-          rel="noopener"
+          rel="noopener noreferrer"
           className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
         >
           Voir chez le fabricant ↗
@@ -189,29 +317,14 @@ export default async function PartPage({ params }: { params: Params }) {
           <p className="font-semibold text-orange-900">
             ⚠️ Cette pièce est obsolète. Voici des alternatives possibles :
           </p>
-          {alternativeParts.length > 0 ? (
-            <div className="mt-3 grid gap-3">
-              {alternativeParts.map(({ part: p, manufacturer: m }) => (
-                <PartCard
-                  key={p.id}
-                  href={`/piece/${m.slug}/${p.slug}`}
-                  name={p.name}
-                  referenceRaw={p.referenceRaw}
-                  manufacturerName={m.name}
-                  manufacturerSlug={m.slug}
-                  status={p.status}
-                  updatedAt={p.updatedAt}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-orange-800">
-              Aucune alternative connue dans notre catalogue.{" "}
-              <Link href="/recherche" className="font-medium underline hover:no-underline">
-                Suggérez une référence de remplacement
-              </Link>
-            </p>
-          )}
+          <Suspense fallback={<p className="mt-2 text-sm text-orange-800 animate-pulse">Recherche d&apos;alternatives…</p>}>
+            <AlternativePartsContent
+              partId={part.id}
+              manufacturerId={manufacturer.id}
+              categoryId={category?.id ?? null}
+              referenceNormalized={part.referenceNormalized}
+            />
+          </Suspense>
         </div>
       )}
 
@@ -287,6 +400,16 @@ export default async function PartPage({ params }: { params: Params }) {
             ))}
           </div>
         </section>
+      )}
+
+      {detail.replacedBy.length > 0 && (
+        <Suspense fallback={null}>
+          <SupersessionChainSection
+            partId={part.id}
+            currentRef={part.referenceRaw}
+            currentManufacturerSlug={manufacturer.slug}
+          />
+        </Suspense>
       )}
 
       {detail.replacements.length > 0 && (
@@ -366,35 +489,14 @@ export default async function PartPage({ params }: { params: Params }) {
         </div>
       </section>
 
-      {similarParts.length > 0 && (
-        <section className="mt-8 print-hide">
-          <h2 className="text-xl font-semibold">
-            Pièces similaires de {manufacturer.name}
-          </h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {similarParts.map(({ part: p, manufacturer: m }) => (
-              <PartCard
-                key={p.id}
-                href={`/piece/${m.slug}/${p.slug}`}
-                name={p.name}
-                referenceRaw={p.referenceRaw}
-                manufacturerName={m.name}
-                manufacturerSlug={m.slug}
-                status={p.status}
-                updatedAt={p.updatedAt}
-                watchlistData={{
-                  reference: p.referenceRaw,
-                  manufacturer: m.name,
-                  manufacturerSlug: m.slug,
-                  partSlug: p.slug,
-                  name: p.name,
-                  status: p.status,
-                }}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      <Suspense fallback={null}>
+        <SimilarPartsSection
+          partId={part.id}
+          manufacturerId={manufacturer.id}
+          categoryId={category?.id ?? null}
+          manufacturerName={manufacturer.name}
+        />
+      </Suspense>
     </article>
   );
 }

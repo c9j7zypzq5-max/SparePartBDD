@@ -120,6 +120,10 @@ export const parts = pgTable(
       t.referenceNormalized,
     ),
     index("parts_ref_normalized_idx").on(t.referenceNormalized),
+    index("parts_manufacturer_idx").on(t.manufacturerId),
+    index("parts_category_idx").on(t.categoryId),
+    index("parts_status_idx").on(t.status),
+    index("parts_lifecycle_idx").on(t.lifecycleCheckedAt),
   ],
 );
 
@@ -140,6 +144,7 @@ export const partReferences = pgTable(
   },
   (t) => [
     index("part_references_normalized_idx").on(t.referenceNormalized),
+    index("part_references_part_idx").on(t.partId),
     uniqueIndex("part_references_part_ref_idx").on(
       t.partId,
       t.referenceNormalized,
@@ -219,7 +224,10 @@ export const offers = pgTable(
     url: text("url").notNull(),
     scrapedAt: timestamp("scraped_at").notNull().defaultNow(),
   },
-  (t) => [index("offers_part_idx").on(t.partId)],
+  (t) => [
+    index("offers_part_idx").on(t.partId),
+    uniqueIndex("offers_part_seller_idx").on(t.partId, t.sellerId),
+  ],
 );
 
 export const suggestionStatusEnum = pgEnum("suggestion_status", [
@@ -238,9 +246,13 @@ export const suggestions = pgTable("suggestions", {
 });
 
 /** Abonnements email aux changements de statut d'une liste de pièces. */
-export const watchlistSubscriptions = pgTable("watchlist_subscriptions", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull(),
-  references: text("references").array().notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const watchlistSubscriptions = pgTable(
+  "watchlist_subscriptions",
+  {
+    id: serial("id").primaryKey(),
+    email: text("email").notNull(),
+    references: text("references").array().notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("watchlist_email_idx").on(t.email)],
+);

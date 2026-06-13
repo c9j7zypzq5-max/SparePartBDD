@@ -10,7 +10,8 @@ type Params = Promise<{ marque: string }>;
 
 export async function GET(req: NextRequest, { params }: { params: Params }) {
   const { marque } = await params;
-  const offset = parseInt(req.nextUrl.searchParams.get("offset") ?? "0", 10);
+  const rawOffset = parseInt(req.nextUrl.searchParams.get("offset") ?? "0", 10);
+  const offset = Number.isNaN(rawOffset) ? 0 : Math.max(0, Math.min(rawOffset, 100_000));
   const status = req.nextUrl.searchParams.get("status") ?? undefined;
   const sort = req.nextUrl.searchParams.get("sort") ?? undefined;
 

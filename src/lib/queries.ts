@@ -1,4 +1,4 @@
-import { aliasedTable, and, asc, desc, eq, ilike, inArray, sql } from "drizzle-orm";
+import { aliasedTable, and, asc, desc, eq, ilike, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { normalizeReference } from "@/lib/normalize";
 
@@ -77,23 +77,6 @@ export async function getPartDetail(manufacturerSlug: string, partSlug: string) 
     compatibles: compatibleLinks,
     offers: offerRows,
   };
-}
-
-export async function getManufacturerWithParts(slug: string) {
-  const [manufacturer] = await db
-    .select()
-    .from(manufacturers)
-    .where(eq(manufacturers.slug, slug))
-    .limit(1);
-  if (!manufacturer) return null;
-
-  const partRows = await db
-    .select()
-    .from(parts)
-    .where(eq(parts.manufacturerId, manufacturer.id))
-    .orderBy(asc(parts.referenceNormalized));
-
-  return { manufacturer, parts: partRows };
 }
 
 export async function getManufacturerBySlug(slug: string) {
@@ -303,20 +286,10 @@ export async function getCategoriesWithCounts() {
 
 /** Pour le sitemap : toutes les URLs de pages pièce. */
 export async function getAllPartPaths() {
-  const rows = await db
-    .select({ partSlug: parts.slug, manufacturerId: parts.manufacturerId })
-    .from(parts);
-  const manufacturerIds = [...new Set(rows.map((r) => r.manufacturerId))];
-  if (manufacturerIds.length === 0) return [];
-  const mans = await db
-    .select({ id: manufacturers.id, slug: manufacturers.slug })
-    .from(manufacturers)
-    .where(inArray(manufacturers.id, manufacturerIds));
-  const slugById = new Map(mans.map((m) => [m.id, m.slug]));
-  return rows.map((r) => ({
-    manufacturerSlug: slugById.get(r.manufacturerId)!,
-    partSlug: r.partSlug,
-  }));
+  return db
+    .select({ partSlug: parts.slug, manufacturerSlug: manufacturers.slug })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId));
 }
 
 export async function getSimilarParts(
@@ -395,16 +368,27 @@ export async function searchPartsFuzzy(
     OFFSET ${offset}
   `);
 
-  return (rows as unknown as Record<string, unknown>[]).map((r) => ({
+  type FuzzyRow = {
+    id: number;
+    name: string;
+    reference_raw: string;
+    slug: string;
+    status: "active" | "obsolete" | "unknown";
+    updated_at: Date | string | null;
+    manufacturer_name: string;
+    manufacturer_slug: string;
+    industry: string;
+  };
+  return (rows as unknown as FuzzyRow[]).map((r) => ({
     partId: Number(r.id),
-    name: String(r.name),
-    referenceRaw: String(r.reference_raw),
-    slug: String(r.slug),
-    status: r.status as "active" | "obsolete" | "unknown",
-    manufacturerName: String(r.manufacturer_name),
-    manufacturerSlug: String(r.manufacturer_slug),
-    industry: String(r.industry),
-    updatedAt: r.updated_at ? new Date(r.updated_at as string | Date) : undefined,
+    name: r.name,
+    referenceRaw: r.reference_raw,
+    slug: r.slug,
+    status: r.status,
+    manufacturerName: r.manufacturer_name,
+    manufacturerSlug: r.manufacturer_slug,
+    industry: r.industry,
+    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
   }));
 }
 
@@ -489,7 +473,9 @@ export async function getAlternativeParts(
 
   if (byCategoryRows.length >= limit) return byCategoryRows;
 
-  const prefix = `${referenceNormalized.slice(0, 6)}%`;
+  const prefix = referenceNormalized.length >= 6
+    ? `${referenceNormalized.slice(0, 6)}%`
+    : `${referenceNormalized}%`;
   const excludeIds = [partId, ...byCategoryRows.map((r) => r.part.id)];
   const needed = limit - byCategoryRows.length;
 
@@ -512,6 +498,113 @@ export async function getAlternativeParts(
     .limit(needed);
 
   return [...byCategoryRows, ...byPrefixRows];
+}
+
+/** Pièces mises à jour au cours des 30 derniers jours. */
+export async function getRecentlyUpdatedParts(limit = 50, offset = 0) {
+  return db
+    .select({ part: parts, manufacturer: manufacturers })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .where(sql`${parts.updatedAt} > NOW() - INTERVAL '30 days'`)
+    .orderBy(desc(parts.updatedAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+/** Nombre de pièces mises à jour dans les 30 derniers jours. */
+export async function getRecentlyUpdatedCount() {
+  const [row] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(parts)
+    .where(sql`${parts.updatedAt} > NOW() - INTERVAL '30 days'`);
+  return row?.total ?? 0;
+}
+
+/** Pièces à réviser manuellement : signal ambigu ou score de confiance faible. */
+export async function getPartsForReview(
+  opts: { limit?: number; offset?: number; reason?: "needsReview" | "lowScore" | "all" } = {},
+) {
+  const { limit = 50, offset = 0, reason = "all" } = opts;
+  const whereClause =
+    reason === "needsReview"
+      ? sql`${parts.needsReview} = true`
+      : reason === "lowScore"
+        ? sql`${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60`
+        : sql`${parts.needsReview} = true OR (${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60)`;
+  return db
+    .select({ part: parts, manufacturer: manufacturers })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .where(whereClause)
+    .orderBy(desc(parts.updatedAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getPartsForReviewCount(
+  reason: "needsReview" | "lowScore" | "all" = "all",
+) {
+  const whereClause =
+    reason === "needsReview"
+      ? sql`${parts.needsReview} = true`
+      : reason === "lowScore"
+        ? sql`${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60`
+        : sql`${parts.needsReview} = true OR (${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60)`;
+  const [row] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(parts)
+    .where(whereClause);
+  return row?.total ?? 0;
+}
+
+/**
+ * Chaîne complète de remplacements successifs à partir d'une pièce.
+ * Retourne les étapes dans l'ordre (depth 1 = remplacement direct,
+ * depth 2 = remplacement du remplacement, etc.), limité à 10 niveaux.
+ */
+export async function getSupersessionChain(partId: number) {
+  type ChainRow = {
+    id: number;
+    reference_raw: string;
+    slug: string;
+    name: string;
+    status: string;
+    manufacturer_name: string;
+    manufacturer_slug: string;
+    depth: number;
+  };
+  const rows = await db.execute(sql`
+    WITH RECURSIVE chain AS (
+      SELECT new_part_id, 1 AS depth
+      FROM supersessions
+      WHERE old_part_id = ${partId}
+
+      UNION ALL
+
+      SELECT s.new_part_id, c.depth + 1
+      FROM supersessions s
+      JOIN chain c ON s.old_part_id = c.new_part_id
+      WHERE c.depth < 10
+    )
+    SELECT p.id, p.reference_raw, p.slug, p.name, p.status,
+           m.name AS manufacturer_name, m.slug AS manufacturer_slug,
+           c.depth
+    FROM chain c
+    JOIN parts p ON p.id = c.new_part_id
+    JOIN manufacturers m ON m.id = p.manufacturer_id
+    ORDER BY c.depth
+  `);
+  return (rows as unknown as ChainRow[]).map((r) => ({
+    id: Number(r.id),
+    referenceRaw: r.reference_raw,
+    slug: r.slug,
+    name: r.name,
+    status: r.status as "active" | "obsolete" | "unknown",
+    manufacturerName: r.manufacturer_name,
+    manufacturerSlug: r.manufacturer_slug,
+    depth: Number(r.depth),
+  }));
 }
 
 /** Pièces obsolètes avec leur remplacement officiel, pour la home. */
