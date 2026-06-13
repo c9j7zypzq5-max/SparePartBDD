@@ -19,6 +19,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -47,6 +48,7 @@ const UPDATE_BATCH_SIZE   = 8;
 const LOG_FILE      = path.resolve(__dirname, "accumulate.log");
 const STATE_FILE    = path.resolve(__dirname, ".accumulate-state.json");
 
+const GEMINI_API_KEY  = process.env.GEMINI_API_KEY  || "";
 const MOUSER_API_KEY  = process.env.MOUSER_API_KEY  || "";
 const FARNELL_API_KEY = process.env.FARNELL_API_KEY || "";
 const RS_API_KEY      = process.env.RS_API_KEY      || "";
@@ -421,6 +423,47 @@ async function callOllama(prompt: string, model: string, numPredict = 4096): Pro
 }
 
 // ---------------------------------------------------------------------------
+// Gemini
+// ---------------------------------------------------------------------------
+
+async function callGemini(prompt: string): Promise<string> {
+  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: { temperature: 0.2 },
+  });
+  const result = await model.generateContent(prompt);
+  return result.response.text();
+}
+
+async function findProductUrlGemini(reference: string, manufacturer: string): Promise<string | null> {
+  if (!GEMINI_API_KEY) return null;
+  const URL_BLACKLIST = ["ebay", "aliexpress", "amazon", "leboncoin", "datasheets.com", "r.search.yahoo.com"];
+  try {
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
+    const prompt = `Find the official product page or a reliable reseller URL (RS Components, Farnell, Mouser, Distrelec, or manufacturer site) for industrial part reference: ${reference} by ${manufacturer}. Return only the URL, nothing else.`;
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const urlMatch = text.match(/https?:\/\/[^\s"]+/);
+    if (!urlMatch) return null;
+    const url = urlMatch[0].replace(/[.,;)>]+$/, "");
+    const urlLower = url.toLowerCase();
+    if (URL_BLACKLIST.some((b) => urlLower.includes(b))) return null;
+    return url;
+  } catch (err) {
+    log(`[Gemini URL] Error: ${err}`);
+    return null;
+  }
+}
+
+async function callLLM(prompt: string, ollamaModel: string, numPredict = 4096): Promise<string> {
+  if (GEMINI_API_KEY) return callGemini(prompt);
+  return callOllama(prompt, ollamaModel, numPredict);
+}
+
+// ---------------------------------------------------------------------------
 // Sitemap
 // ---------------------------------------------------------------------------
 
@@ -767,6 +810,16 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
   const mfgSlug  = manufacturerSlug(manufacturer);
   const domain   = MANUFACTURER_DOMAINS[mfgSlug];
   const SEARCH_BLACKLIST = [...RESELLER_DOMAINS, "etb-tech"];
+
+  // ── Step 0: Gemini with Google Search grounding ─────────────────────────────
+  const geminiUrl = await findProductUrlGemini(reference, manufacturer);
+  if (geminiUrl) {
+    const valid = await validatePageContent(geminiUrl, reference);
+    if (valid) { log(`[URL] Gemini: found ${geminiUrl}`); return geminiUrl; }
+    log(`[URL] Gemini: found URL but failed content validation — ${geminiUrl}`);
+  } else if (GEMINI_API_KEY) {
+    log(`[URL] Gemini: no URL returned`);
+  }
 
   // ── Step 1: Direct manufacturer search ──────────────────────────────────────
   if (domain) {
@@ -1248,11 +1301,11 @@ async function runRepairMode(model: string): Promise<void> {
 
       if (needsOllama) {
         try {
-          const raw = await callOllama(buildSinglePartEnrichPrompt(part.reference, part.manufacturer), model, 512);
+          const raw = await callLLM(buildSinglePartEnrichPrompt(part.reference, part.manufacturer), model, 512);
           ollamaResult = extractSinglePartResponse(raw);
           if (!ollamaResult) log(`⚠️  Could not parse single-part response for ${part.reference}`);
         } catch (err) {
-          log(`⚠️  Ollama single-part failed for ${part.reference}: ${err}`);
+          log(`⚠️  LLM single-part failed for ${part.reference}: ${err}`);
         }
       }
 
@@ -1409,8 +1462,8 @@ async function runCleanMode(model: string): Promise<void> {
     log(`▶  [clean] batch ${Math.floor(offset / CLEAN_BATCH_SIZE) + 1}/${Math.ceil(badParts.length / CLEAN_BATCH_SIZE)} — ${batch.map((p) => p.reference).join(", ")}`);
 
     let raw: string;
-    try { raw = await callOllama(buildCleanPrompt(batch), model); }
-    catch (err) { log(`❌  Ollama: ${err}`); totalErrors++; offset += CLEAN_BATCH_SIZE; if (ONCE_MODE) break; await pause(); continue; }
+    try { raw = await callLLM(buildCleanPrompt(batch), model); }
+    catch (err) { log(`❌  LLM: ${err}`); totalErrors++; offset += CLEAN_BATCH_SIZE; if (ONCE_MODE) break; await pause(); continue; }
 
     let payload: IngestPayload;
     try { payload = extractPayload(raw); }
@@ -1514,9 +1567,9 @@ async function runEnrichMode(model: string): Promise<void> {
 
     let raw: string;
     try {
-      raw = await callOllama(prompt, model);
+      raw = await callLLM(prompt, model);
     } catch (err) {
-      log(`❌  Ollama: ${err}`);
+      log(`❌  LLM: ${err}`);
       totalErrors++;
       batchIndex++;
       tickProgress(tracker, Date.now() - batchStart, "failed");
@@ -1530,9 +1583,9 @@ async function runEnrichMode(model: string): Promise<void> {
     try {
       payload = extractPayload(raw);
     } catch (parseErr) {
-      log(`⚠️  JSON parse failed, retrying with num_predict: 6000…`);
+      log(`⚠️  JSON parse failed, retrying…`);
       try {
-        raw = await callOllama(prompt, model, 6000);
+        raw = await callLLM(prompt, model, 6000);
         payload = extractPayload(raw);
       } catch (err2) {
         log(`❌  JSON parse retry failed: ${err2}\n   Raw (500): ${raw.slice(0, 500)}`);
@@ -1656,9 +1709,9 @@ async function runUpdateMode(model: string): Promise<void> {
 
     let raw: string;
     try {
-      raw = await callOllama(prompt, model);
+      raw = await callLLM(prompt, model);
     } catch (err) {
-      log(`❌  Ollama: ${err}`);
+      log(`❌  LLM: ${err}`);
       totalErrors++;
       offset += UPDATE_BATCH_SIZE;
       tickProgress(tracker, Date.now() - batchStart, "failed");
@@ -1672,9 +1725,9 @@ async function runUpdateMode(model: string): Promise<void> {
     try {
       payload = extractPayload(raw);
     } catch {
-      log(`⚠️  JSON parse failed, retrying with num_predict: 6000…`);
+      log(`⚠️  JSON parse failed, retrying…`);
       try {
-        raw = await callOllama(prompt, model, 6000);
+        raw = await callLLM(prompt, model, 6000);
         payload = extractPayload(raw);
       } catch (err2) {
         log(`❌  JSON parse retry failed: ${err2}\n   Raw (500): ${raw.slice(0, 500)}`);
@@ -1887,9 +1940,13 @@ async function main(): Promise<void> {
     return;
   }
 
-  let model: string;
-  try { model = await getBestModel(); log(`🤖  Using Ollama model: ${model}`); }
-  catch (err) { console.error(`❌  ${err}`); process.exit(1); }
+  let model = "";
+  if (GEMINI_API_KEY) {
+    log("🤖  Using Gemini gemini-2.5-flash (Google AI)");
+  } else {
+    try { model = await getBestModel(); log(`🤖  Using Ollama model: ${model}`); }
+    catch (err) { console.error(`❌  ${err}`); process.exit(1); }
+  }
 
   if (UPDATE_MODE) {
     await runUpdateMode(model);

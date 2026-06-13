@@ -13,6 +13,7 @@
     "lifecycle": "tsx scripts/lifecycle/check.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "drizzle-orm": "^0.44.2",
     "next": "^15.3.4",
     "postgres": "^3.4.7",
