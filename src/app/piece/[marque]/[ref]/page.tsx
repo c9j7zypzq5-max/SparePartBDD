@@ -10,7 +10,7 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { CompareButton } from "@/components/compare-button";
 import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
-import { getPartDetail as _getPartDetail, getSimilarParts, getAlternativeParts } from "@/lib/queries";
+import { getPartDetail as _getPartDetail, getSimilarParts, getAlternativeParts, getSupersessionChain } from "@/lib/queries";
 import { siteUrl } from "@/lib/site-url";
 
 // Déduplique les appels identiques dans le même cycle de rendu (generateMetadata + PartPage)
@@ -81,6 +81,54 @@ async function AlternativePartsContent({
         Suggérez une référence de remplacement
       </Link>
     </p>
+  );
+}
+
+async function SupersessionChainSection({
+  partId,
+  currentRef,
+  currentManufacturerSlug,
+}: {
+  partId: number;
+  currentRef: string;
+  currentManufacturerSlug: string;
+}) {
+  const chain = await getSupersessionChain(partId);
+  if (chain.length < 2) return null;
+  return (
+    <section className="mt-8">
+      <h2 className="text-xl font-semibold">Chaîne de remplacement complète</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        Succession officielle des remplacements annoncés par le fabricant.
+      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Link
+          href={`/piece/${currentManufacturerSlug}/${currentRef.toLowerCase().replace(/[^a-z0-9]/g, "")}`}
+          className="rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-mono font-medium text-zinc-700 hover:border-zinc-500"
+        >
+          {currentRef}
+          <span className="ml-1.5 rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-sans text-red-700">
+            Obsolète
+          </span>
+        </Link>
+        {chain.map((step) => (
+          <span key={step.id} className="flex items-center gap-2">
+            <span className="text-zinc-400">→</span>
+            <Link
+              href={`/piece/${step.manufacturerSlug}/${step.slug}`}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono font-medium text-zinc-900 hover:border-blue-400 hover:text-blue-700"
+            >
+              {step.referenceRaw}
+              {step.status === "active" && (
+                <span className="ml-1.5 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-sans text-green-700">
+                  Actuelle
+                </span>
+              )}
+            </Link>
+          </span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -352,6 +400,16 @@ export default async function PartPage({ params }: { params: Params }) {
             ))}
           </div>
         </section>
+      )}
+
+      {detail.replacedBy.length > 0 && (
+        <Suspense fallback={null}>
+          <SupersessionChainSection
+            partId={part.id}
+            currentRef={part.referenceRaw}
+            currentManufacturerSlug={manufacturer.slug}
+          />
+        </Suspense>
       )}
 
       {detail.replacements.length > 0 && (

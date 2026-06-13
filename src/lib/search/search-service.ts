@@ -32,6 +32,8 @@ export interface SearchOptions {
   manufacturerSlug?: string;
   /** Tri des résultats */
   sortBy?: "relevance" | "price_asc" | "price_desc" | "name_asc";
+  /** Si true, restreint aux pièces ayant au moins une offre avec un prix */
+  inStock?: boolean;
 }
 
 export interface SearchService {

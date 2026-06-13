@@ -85,6 +85,11 @@ export default function RootLayout({
                     Ma liste
                   </Link>
                 </li>
+                <li>
+                  <Link href="/technicien" className="text-zinc-500 hover:text-zinc-900">
+                    Mode technicien
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

@@ -17,8 +17,8 @@ export function NavMenu() {
         <Link href="/categories" className="hover:text-zinc-900">
           Catégories
         </Link>
-        <Link href="/recherche-lot" className="hover:text-zinc-900">
-          Lot
+        <Link href="/technicien" className="hover:text-zinc-900">
+          Technicien
         </Link>
         <WatchlistCount />
         <Link
@@ -92,11 +92,11 @@ export function NavMenu() {
               Catégories
             </Link>
             <Link
-              href="/recherche-lot"
+              href="/technicien"
               className="border-b border-zinc-100 py-3 hover:text-zinc-900"
               onClick={() => setOpen(false)}
             >
-              Recherche par lot
+              Mode technicien
             </Link>
             <Link
               href="/recherche?q="

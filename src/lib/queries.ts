@@ -500,6 +500,68 @@ export async function getAlternativeParts(
   return [...byCategoryRows, ...byPrefixRows];
 }
 
+/** Pièces à réviser manuellement : signal ambigu ou score de confiance faible. */
+export async function getPartsForReview(limit = 100) {
+  return db
+    .select({ part: parts, manufacturer: manufacturers })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .where(
+      sql`${parts.needsReview} = true OR (${parts.confidenceScore} IS NOT NULL AND ${parts.confidenceScore} < 60)`,
+    )
+    .orderBy(desc(parts.updatedAt))
+    .limit(limit);
+}
+
+/**
+ * Chaîne complète de remplacements successifs à partir d'une pièce.
+ * Retourne les étapes dans l'ordre (depth 1 = remplacement direct,
+ * depth 2 = remplacement du remplacement, etc.), limité à 10 niveaux.
+ */
+export async function getSupersessionChain(partId: number) {
+  type ChainRow = {
+    id: number;
+    reference_raw: string;
+    slug: string;
+    name: string;
+    status: string;
+    manufacturer_name: string;
+    manufacturer_slug: string;
+    depth: number;
+  };
+  const rows = await db.execute(sql`
+    WITH RECURSIVE chain AS (
+      SELECT new_part_id, 1 AS depth
+      FROM supersessions
+      WHERE old_part_id = ${partId}
+
+      UNION ALL
+
+      SELECT s.new_part_id, c.depth + 1
+      FROM supersessions s
+      JOIN chain c ON s.old_part_id = c.new_part_id
+      WHERE c.depth < 10
+    )
+    SELECT p.id, p.reference_raw, p.slug, p.name, p.status,
+           m.name AS manufacturer_name, m.slug AS manufacturer_slug,
+           c.depth
+    FROM chain c
+    JOIN parts p ON p.id = c.new_part_id
+    JOIN manufacturers m ON m.id = p.manufacturer_id
+    ORDER BY c.depth
+  `);
+  return (rows as ChainRow[]).map((r) => ({
+    id: Number(r.id),
+    referenceRaw: r.reference_raw,
+    slug: r.slug,
+    name: r.name,
+    status: r.status as "active" | "obsolete" | "unknown",
+    manufacturerName: r.manufacturer_name,
+    manufacturerSlug: r.manufacturer_slug,
+    depth: Number(r.depth),
+  }));
+}
+
 /** Pièces obsolètes avec leur remplacement officiel, pour la home. */
 export async function getRecentSupersessions(limit = 4) {
   const oldParts = aliasedTable(parts, "old_parts");

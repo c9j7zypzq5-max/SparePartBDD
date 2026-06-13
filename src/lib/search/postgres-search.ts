@@ -43,6 +43,9 @@ export class PostgresSearchService implements SearchService {
     const manufacturerFilter = options.manufacturerSlug
       ? sql` AND m.slug = ${options.manufacturerSlug}`
       : sql``;
+    const inStockFilter = options.inStock
+      ? sql` AND EXISTS (SELECT 1 FROM offers WHERE part_id = p.id AND price IS NOT NULL)`
+      : sql``;
 
     const sortBy = options.sortBy ?? "relevance";
     let orderClause;
@@ -100,7 +103,7 @@ export class PostgresSearchService implements SearchService {
       JOIN manufacturers m ON m.id = p.manufacturer_id
       JOIN ref_matches rm ON rm.id = p.id
       LEFT JOIN text_matches tm ON tm.id = p.id
-      WHERE (rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01)${industryFilter}${statusFilter}${manufacturerFilter}
+      WHERE (rm.ref_score > 0.3 OR COALESCE(tm.text_score, 0) > 0.01)${industryFilter}${statusFilter}${manufacturerFilter}${inStockFilter}
       ${orderClause}
       LIMIT ${limit}
       OFFSET ${offset}
