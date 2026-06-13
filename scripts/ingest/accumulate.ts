@@ -456,6 +456,15 @@ async function findProductUrlGemini(reference: string, manufacturer: string): Pr
     for (const chunk of chunks) {
       const uri: string = chunk?.web?.uri ?? "";
       if (!uri.startsWith("https://") || isBlacklisted(uri)) continue;
+      const resellerName = detectReseller(uri);
+      if (resellerName) {
+        const refNorm = reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        void fetch(REPAIR_OFFERS_URL, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
+          body: JSON.stringify({ referenceNormalized: refNorm, sellerName: resellerName, url: uri }),
+        }).catch(() => {});
+      }
       return uri;
     }
 
@@ -465,6 +474,15 @@ async function findProductUrlGemini(reference: string, manufacturer: string): Pr
     if (!urlMatch) return null;
     const url = urlMatch[0].replace(/[.,;)>]+$/, "");
     if (isBlacklisted(url)) return null;
+    const resellerName = detectReseller(url);
+    if (resellerName) {
+      const refNorm = reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      void fetch(REPAIR_OFFERS_URL, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
+        body: JSON.stringify({ referenceNormalized: refNorm, sellerName: resellerName, url }),
+      }).catch(() => {});
+    }
     return url;
   } catch (err) {
     log(`[Gemini URL] Error: ${err}`);
@@ -816,6 +834,67 @@ function scrapeFirstProductLink(html: string, patterns: string[]): string | null
     }
   }
   return null;
+}
+
+const RESELLER_PATTERNS: Array<{ pattern: string; sellerName: string }> = [
+  { pattern: "rs-online",    sellerName: "RS Components" },
+  { pattern: "farnell",      sellerName: "Farnell" },
+  { pattern: "mouser",       sellerName: "Mouser" },
+  { pattern: "distrelec",    sellerName: "Distrelec" },
+  { pattern: "arrow.com",    sellerName: "Arrow" },
+  { pattern: "automation24", sellerName: "automation24" },
+];
+
+function detectReseller(url: string): string | null {
+  const lower = url.toLowerCase();
+  for (const { pattern, sellerName } of RESELLER_PATTERNS) {
+    if (lower.includes(pattern)) return sellerName;
+  }
+  return null;
+}
+
+function hasSpecificPath(url: string): boolean {
+  try {
+    const segments = new URL(url).pathname.split("/").filter((s) => s.length > 0);
+    return segments.length >= 2;
+  } catch { return false; }
+}
+
+async function findOfferProductUrl(reference: string, sellerName: string, domain: string): Promise<string | null> {
+  if (!GEMINI_API_KEY) return null;
+  const URL_BLACKLIST = [
+    "ebay", "aliexpress", "amazon", "leboncoin", "datasheets.com",
+    "r.search.yahoo.com", "vertexaisearch.cloud.google.com",
+  ];
+  const isBlacklisted = (u: string) => URL_BLACKLIST.some((b) => u.toLowerCase().includes(b));
+  const isDomainRoot   = (u: string): boolean => {
+    try { const p = new URL(u).pathname; return p === "/" || p === ""; } catch { return true; }
+  };
+  try {
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
+    const prompt = `Find the exact product page URL for part reference ${reference} on ${sellerName} website (${domain}). Return only the direct URL to this specific product, nothing else.`;
+    const result = await model.generateContent(prompt);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const chunks: any[] = (result.response as any).candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+    for (const chunk of chunks) {
+      const uri: string = chunk?.web?.uri ?? "";
+      if (!uri.startsWith("https://") || isBlacklisted(uri) || isDomainRoot(uri)) continue;
+      if (hasSpecificPath(uri)) return uri;
+    }
+
+    const text = result.response.text();
+    const urlMatch = text.match(/https?:\/\/[^\s"]+/);
+    if (!urlMatch) return null;
+    const url = urlMatch[0].replace(/[.,;)>]+$/, "");
+    if (isBlacklisted(url) || isDomainRoot(url) || !hasSpecificPath(url)) return null;
+    return url;
+  } catch (err) {
+    log(`[Gemini offer URL] Error: ${err}`);
+    return null;
+  }
 }
 
 async function findProductUrl(reference: string, manufacturer: string): Promise<string | null> {
@@ -1200,7 +1279,8 @@ async function lookupDistributors(reference: string): Promise<DistributorResult 
 // Mode: --repair
 // ---------------------------------------------------------------------------
 
-const REPAIR_API_URL  = "https://spare-part-bdd.vercel.app/api/repair/incomplete";
+const REPAIR_API_URL    = "https://spare-part-bdd.vercel.app/api/repair/incomplete";
+const REPAIR_OFFERS_URL = "https://spare-part-bdd.vercel.app/api/repair/offers";
 const REPAIR_BATCH_SIZE = 8;
 
 interface RepairPart {
@@ -1214,6 +1294,17 @@ interface RepairPart {
   status: string;
   productUrl: string | null;
   attributes: Record<string, string> | null;
+}
+
+interface RepairOffer {
+  id: number;
+  url: string;
+  sellerName: string;
+  sellerWebsite: string | null;
+  referenceRaw: string;
+  referenceNormalized: string;
+  manufacturerName: string;
+  partId: number;
 }
 
 let repairBatchCounter = 0;
@@ -1267,6 +1358,48 @@ ${list}
 - JSON valide uniquement, aucun commentaire
 
 Réponds UNIQUEMENT avec le JSON.`;
+}
+
+async function repairOfferUrls(): Promise<void> {
+  log("[offer] Fetching offers with domain-root URLs…");
+  const fetchRes = await fetch(REPAIR_OFFERS_URL, {
+    headers: { Authorization: `Bearer ${INGEST_API_KEY}` },
+  });
+  if (!fetchRes.ok) {
+    log(`[offer] HTTP ${fetchRes.status}: ${await fetchRes.text()}`);
+    return;
+  }
+  const { offers } = (await fetchRes.json()) as { offers: RepairOffer[] };
+  log(`[offer] ${offers.length} offers to repair`);
+
+  if (offers.length === 0) { log("[offer] Nothing to repair."); return; }
+
+  let repaired = 0;
+  for (const offer of offers) {
+    await new Promise((r) => setTimeout(r, 2_000));
+    let domain: string;
+    try { domain = new URL(offer.url).hostname; } catch { domain = offer.sellerWebsite ?? offer.sellerName; }
+
+    const url = await findOfferProductUrl(offer.referenceRaw, offer.sellerName, domain);
+    if (!url) {
+      log(`[offer] ${offer.sellerName} × ${offer.referenceRaw}: not found`);
+      continue;
+    }
+
+    const patchRes = await fetch(REPAIR_OFFERS_URL, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
+      body: JSON.stringify({ offerId: offer.id, url }),
+    });
+    if (patchRes.ok) {
+      log(`[offer] ${offer.sellerName}: found ${url}`);
+      repaired++;
+    } else {
+      log(`[offer] PATCH failed for offer ${offer.id}: ${patchRes.status}`);
+    }
+  }
+
+  log(`[offer] Done. ${repaired}/${offers.length} offers repaired.`);
 }
 
 async function runRepairMode(model: string): Promise<void> {
@@ -1388,6 +1521,8 @@ async function runRepairMode(model: string): Promise<void> {
   } else {
     log(`\n🏁  Repair done. ~${totalUpdated} updated, ${totalErrors} errors`);
   }
+
+  await repairOfferUrls();
 }
 
 // ---------------------------------------------------------------------------
