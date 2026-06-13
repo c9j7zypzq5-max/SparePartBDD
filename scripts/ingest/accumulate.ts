@@ -447,7 +447,7 @@ async function findProductUrlGemini(reference: string, manufacturer: string): Pr
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
-    const prompt = `Find the official product page or a reliable reseller URL (RS Components, Farnell, Mouser, Distrelec, or manufacturer site) for industrial part reference: ${reference} by ${manufacturer}. Return only the URL, nothing else.`;
+    const prompt = `Find a product page for industrial part "${reference}" by ${manufacturer} on one of these reseller sites: RS Components (rs-online.com or fr.rs-online.com), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), or Arrow (arrow.com). If not found on a reseller, return the official manufacturer product page. Return only the direct URL to the product page, nothing else.`;
     const result = await model.generateContent(prompt);
 
     // Prefer actual source URLs from grounding metadata (avoids redirect wrappers)
