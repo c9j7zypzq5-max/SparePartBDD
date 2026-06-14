@@ -442,8 +442,8 @@ async function callGemini(prompt: string): Promise<string> {
   return result.response.text();
 }
 
-async function findProductUrlGemini(reference: string, manufacturer: string): Promise<string | null> {
-  if (!GEMINI_API_KEY) return null;
+async function findProductUrlGemini(reference: string, manufacturer: string): Promise<{ productUrl?: string; resellerUrls: string[] }> {
+  if (!GEMINI_API_KEY) return { resellerUrls: [] };
   const URL_BLACKLIST = [
     "ebay", "aliexpress", "amazon", "leboncoin", "datasheets.com",
     "r.search.yahoo.com", "vertexaisearch.cloud.google.com",
@@ -454,49 +454,68 @@ async function findProductUrlGemini(reference: string, manufacturer: string): Pr
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
-    const prompt = `Find a product page for industrial part "${reference}" by ${manufacturer} on one of these sites (in order of preference):
-1. Reseller sites: RS Components (rs-online.com or fr.rs-online.com), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com or actu-industrie.fr), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com)
-2. If not found on any reseller, return the official manufacturer product page.
-Return ONLY the direct URL to the product page, nothing else. No explanation.`;
+    const prompt = `Find product pages for industrial part "${reference}" by ${manufacturer}.
+
+Return ONLY a JSON object (no markdown, no explanation):
+{
+  "productUrl": "<official manufacturer product page URL>",
+  "resellerUrls": [
+    "<URL on reseller 1>",
+    "<URL on reseller 2>"
+  ]
+}
+
+For resellerUrls, search these sites: RS Components (rs-online.com or fr.rs-online.com), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com).
+
+Include up to 4 reseller URLs if found. If no reseller page exists, use empty array [].
+For productUrl, use the official manufacturer page. If not found, omit the field.`;
+
     const result = await model.generateContent(prompt);
 
-    // Prefer actual source URLs from grounding metadata (avoids redirect wrappers)
+    // Parse JSON text response
+    let parsedProductUrl: string | undefined;
+    let parsedResellerUrls: string[] = [];
+    try {
+      const text = result.response.text();
+      const clean = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+      const start = clean.indexOf("{");
+      const end   = clean.lastIndexOf("}");
+      if (start !== -1 && end !== -1) {
+        const parsed = JSON.parse(clean.slice(start, end + 1)) as { productUrl?: string; resellerUrls?: string[] };
+        if (parsed.productUrl && typeof parsed.productUrl === "string" && parsed.productUrl.startsWith("https://") && !isBlacklisted(parsed.productUrl)) {
+          parsedProductUrl = parsed.productUrl;
+        }
+        if (Array.isArray(parsed.resellerUrls)) {
+          parsedResellerUrls = parsed.resellerUrls.filter(
+            (u): u is string => typeof u === "string" && u.startsWith("https://") && !isBlacklisted(u)
+          );
+        }
+      }
+    } catch { /* ignore JSON parse errors — fall through to grounding chunks */ }
+
+    // Enrich with grounding metadata URIs (more reliable than text-extracted URLs)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const chunks: any[] = (result.response as any).candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+    const groundingResellerUrls: string[] = [];
+    let groundingProductUrl: string | undefined;
     for (const chunk of chunks) {
       const uri: string = chunk?.web?.uri ?? "";
       if (!uri.startsWith("https://") || isBlacklisted(uri)) continue;
-      const resellerName = detectReseller(uri);
-      if (resellerName) {
-        const refNorm = reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
-        void fetch(REPAIR_OFFERS_URL, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
-          body: JSON.stringify({ referenceNormalized: refNorm, sellerName: resellerName, url: uri }),
-        }).catch(() => {});
+      if (detectReseller(uri)) {
+        groundingResellerUrls.push(uri);
+      } else if (!groundingProductUrl) {
+        groundingProductUrl = uri;
       }
-      return uri;
     }
 
-    // Fall back to URL in text response
-    const text = result.response.text();
-    const urlMatch = text.match(/https?:\/\/[^\s"]+/);
-    if (!urlMatch) return null;
-    const url = urlMatch[0].replace(/[.,;)>]+$/, "");
-    if (isBlacklisted(url)) return null;
-    const resellerName = detectReseller(url);
-    if (resellerName) {
-      const refNorm = reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      void fetch(REPAIR_OFFERS_URL, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
-        body: JSON.stringify({ referenceNormalized: refNorm, sellerName: resellerName, url }),
-      }).catch(() => {});
-    }
-    return url;
+    // Prefer grounding chunks (avoid redirect wrappers), fall back to parsed JSON
+    const finalProductUrl  = groundingProductUrl ?? parsedProductUrl;
+    const finalResellerUrls = (groundingResellerUrls.length > 0 ? groundingResellerUrls : parsedResellerUrls).slice(0, 4);
+
+    return { productUrl: finalProductUrl, resellerUrls: finalResellerUrls };
   } catch (err) {
     log(`[Gemini URL] Error: ${err}`);
-    return null;
+    return { resellerUrls: [] };
   }
 }
 
@@ -935,11 +954,28 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
   const domain   = MANUFACTURER_DOMAINS[mfgSlug];
 
   // ── Step 0: Gemini with Google Search grounding ─────────────────────────────
-  const geminiUrl = await findProductUrlGemini(reference, manufacturer);
-  if (geminiUrl) {
-    const valid = await validatePageContent(geminiUrl, reference);
-    if (valid) { log(`[URL] Gemini: found ${geminiUrl}`); return geminiUrl; }
-    log(`[URL] Gemini: found URL but failed content validation — ${geminiUrl}`);
+  const geminiResult = await findProductUrlGemini(reference, manufacturer);
+
+  // Fire PATCH for each reseller URL found by Gemini
+  for (const resellerUrl of geminiResult.resellerUrls) {
+    if (!isValidUrl(resellerUrl)) continue;
+    const resellerName = detectReseller(resellerUrl);
+    let sellerName: string | null = resellerName;
+    if (!sellerName) {
+      try { sellerName = new URL(resellerUrl).hostname.replace(/^www\./, ""); } catch { sellerName = null; }
+    }
+    if (!sellerName) continue;
+    void fetch(REPAIR_OFFERS_URL, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
+      body: JSON.stringify({ referenceNormalized: refNorm, sellerName, url: resellerUrl }),
+    }).catch(() => {});
+  }
+
+  if (geminiResult.productUrl) {
+    const valid = await validatePageContent(geminiResult.productUrl, reference);
+    if (valid) { log(`[URL] Gemini: found ${geminiResult.productUrl}`); return geminiResult.productUrl; }
+    log(`[URL] Gemini: found URL but failed content validation — ${geminiResult.productUrl}`);
   } else if (GEMINI_API_KEY) {
     log(`[URL] Gemini: no URL returned`);
   }
