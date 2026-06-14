@@ -61,6 +61,11 @@ const STATS_MODE  = process.argv.includes("--stats");
 const REPAIR_MODE = process.argv.includes("--repair");
 const ENRICH_MODE = !UPDATE_MODE && !CLEAN_MODE && !STATS_MODE && !REPAIR_MODE; // default
 
+const MANUFACTURER_FILTER = (() => {
+  const idx = process.argv.indexOf("--manufacturer");
+  return idx !== -1 ? process.argv[idx + 1] : null;
+})();
+
 // ---------------------------------------------------------------------------
 // Manufacturer domains & reseller detection
 // ---------------------------------------------------------------------------
@@ -1469,7 +1474,10 @@ async function runRepairMode(model: string): Promise<void> {
     log(`❌  repair/incomplete HTTP ${fetchRes.status}: ${await fetchRes.text()}`);
     return;
   }
-  const { parts: allParts } = (await fetchRes.json()) as { parts: RepairPart[] };
+  let { parts: allParts } = (await fetchRes.json()) as { parts: RepairPart[] };
+  if (MANUFACTURER_FILTER) {
+    allParts = allParts.filter((p) => p.manufacturer?.toLowerCase().includes(MANUFACTURER_FILTER!.toLowerCase()));
+  }
 
   const missingDesc    = allParts.filter((p) => !p.description).length;
   const missingUrl     = allParts.filter((p) => !p.productUrl).length;
@@ -1742,9 +1750,10 @@ async function runEnrichMode(model: string): Promise<void> {
   const state = loadState();
   let { batchIndex, generationRound } = state.enrich;
 
-  let targets = batchIndex < BASE_TARGETS.length
+  let targets = (batchIndex < BASE_TARGETS.length
     ? [...BASE_TARGETS]
-    : [...BASE_TARGETS, ...generateNewTargets(generationRound)];
+    : [...BASE_TARGETS, ...generateNewTargets(generationRound)])
+    .filter((t) => !MANUFACTURER_FILTER || t.brand.toLowerCase().includes(MANUFACTURER_FILTER.toLowerCase()));
 
   const excluded = await fetchExclusionSet();
   log(`📋  ${excluded.size} references in catalogue (exclusion list)`);
@@ -1756,7 +1765,8 @@ async function runEnrichMode(model: string): Promise<void> {
     if (batchIndex >= targets.length) {
       if (ONCE_MODE) break;
       generationRound++;
-      targets = [...BASE_TARGETS, ...generateNewTargets(generationRound)];
+      targets = [...BASE_TARGETS, ...generateNewTargets(generationRound)]
+        .filter((t) => !MANUFACTURER_FILTER || t.brand.toLowerCase().includes(MANUFACTURER_FILTER.toLowerCase()));
       batchIndex = 0;
       tracker.totalTargets = targets.length;
       const refreshed = await fetchExclusionSet();
@@ -2160,6 +2170,10 @@ async function main(): Promise<void> {
   console.log("   SparePartSearch — Catalog Accumulator");
   console.log(`   Mode: ${modeLabel}${ONCE_MODE ? " --once" : STATS_MODE ? "" : " (continuous)"}`);
   console.log("═══════════════════════════════════════════════════════════\n");
+
+  if (MANUFACTURER_FILTER) {
+    log(`[filter] manufacturer="${MANUFACTURER_FILTER}"`);
+  }
 
   await detectResellerParts();
 
