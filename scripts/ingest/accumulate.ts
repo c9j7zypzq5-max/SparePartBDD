@@ -465,9 +465,9 @@ Return ONLY a JSON object (no markdown, no explanation):
   ]
 }
 
-For resellerUrls, search these sites: RS Components (always use fr.rs-online.com, never uk/us/de variants), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com).
+For resellerUrls, search these sites: RS Components (always use fr.rs-online.com, never uk/us/de variants), Farnell (always use fr.farnell.com, never uk/us variants), Mouser (always use mouser.fr, never mouser.com; return the base product URL without ?qs= or ?search= query parameters), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr; return the direct product page URL, not a search page), Actu-Industrie (actu-industrie.com), Direct Industry (directindustry.fr), IEN (ien.eu), Sonepar (sonepar.fr; return the direct product page URL, not a search page), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com).
 
-Include up to 4 reseller URLs if found. If no reseller page exists, use empty array [].
+Include up to 4 reseller URLs if found. Return only direct product page URLs — never search results pages or URLs with ?qs=, ?search=, or ?q= parameters.
 For productUrl, use the official manufacturer page. If not found, omit the field.`;
 
     const result = await model.generateContent(prompt);
@@ -925,7 +925,7 @@ async function findOfferProductUrl(reference: string, sellerName: string, domain
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
     const prompt = `Find the exact product page URL for part reference ${reference} on one of these sites (in order of preference):
-1. Reseller sites: RS Components (always use fr.rs-online.com, never uk/us/de variants), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com or actu-industrie.fr), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com)
+1. Reseller sites: RS Components (always use fr.rs-online.com, never uk/us/de variants), Farnell (always use fr.farnell.com, never uk/us variants), Mouser (always use mouser.fr, never mouser.com; base product URL only, no ?qs= params), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr; direct product page only), Actu-Industrie (actu-industrie.com), Direct Industry (directindustry.fr), IEN (ien.eu), Sonepar (sonepar.fr; direct product page only), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com)
 2. If not found on any reseller, return the official manufacturer product page.
 Prefer ${sellerName} (${domain}) if available. Return ONLY the direct URL to the product page, nothing else. No explanation.`;
     const result = await model.generateContent(prompt);
@@ -963,6 +963,13 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
     if (!isValidUrl(resellerUrl)) continue;
     // Normalise regional RS Components variants → fr
     resellerUrl = resellerUrl.replace(/^(https?:\/\/)(uk|us|de|es|it|nl|be|at|ch|se|no|dk|fi|pl|cn|sg|au|nz|mx|jp|in|tw|za|hk)\.(rs-online\.com)/, "$1fr.$3");
+    // Normalise regional Farnell variants → fr
+    resellerUrl = resellerUrl.replace(/^(https?:\/\/)(uk|us|de|es|it|nl|be|at|ch|se|no|dk|pl|au|cn|sg|nz|mx|jp|in|tw|za|hk)\.(farnell\.com)/, "$1fr.$3");
+    // Normalise Mouser → mouser.fr + strip unstable ?qs= query params
+    resellerUrl = resellerUrl.replace(/^(https?:\/\/)(www\.)?mouser\.com/, "https://www.mouser.fr");
+    if (resellerUrl.includes("mouser.fr")) {
+      try { const u = new URL(resellerUrl); u.search = ""; resellerUrl = u.toString(); } catch { /* keep as-is */ }
+    }
     const resellerName = detectReseller(resellerUrl);
     let sellerName: string | null = resellerName;
     if (!sellerName) {
