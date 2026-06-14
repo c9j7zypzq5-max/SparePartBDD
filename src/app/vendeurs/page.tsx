@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { getSellerStats } from "@/lib/queries";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { SELLER_TYPE_LABELS } from "@/components/seller-table";
 
 export const metadata: Metadata = {
   title: "Revendeurs",
@@ -8,15 +10,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/vendeurs" },
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
-const TYPE_LABELS: Record<string, string> = {
-  constructeur: "Constructeur",
-  distributeur_officiel: "Distributeur officiel",
-  aftermarket: "Aftermarket",
-  reconditionne: "Reconditionné",
-  occasion: "Occasion",
-};
+const getCachedSellerStats = unstable_cache(getSellerStats, ["seller-stats"], { revalidate: 3600 });
 
 const TYPE_COLORS: Record<string, string> = {
   constructeur: "bg-blue-100 text-blue-700",
@@ -27,7 +23,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default async function VendeursPage() {
-  const rows = await getSellerStats();
+  const rows = await getCachedSellerStats();
 
   return (
     <div>
@@ -81,7 +77,7 @@ export default async function VendeursPage() {
                         TYPE_COLORS[seller.type] ?? "bg-zinc-100 text-zinc-600"
                       }`}
                     >
-                      {TYPE_LABELS[seller.type] ?? seller.type}
+                      {SELLER_TYPE_LABELS[seller.type] ?? seller.type}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-zinc-500">{seller.country ?? "—"}</td>

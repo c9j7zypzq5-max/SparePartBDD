@@ -50,7 +50,7 @@ function exportToCSV(found: NonNullable<PartDetail>[], allAttrKeys: string[]) {
   a.href = url;
   a.download = "comparaison.csv";
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 export default function ComparerPage() {

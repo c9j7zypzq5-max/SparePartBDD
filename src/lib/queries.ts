@@ -292,6 +292,16 @@ export async function getAllPartPaths() {
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId));
 }
 
+/** Pour generateStaticParams : les N pièces les plus récemment mises à jour. */
+export async function getTopPartPaths(limit = 100) {
+  return db
+    .select({ partSlug: parts.slug, manufacturerSlug: manufacturers.slug })
+    .from(parts)
+    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .orderBy(desc(parts.updatedAt))
+    .limit(limit);
+}
+
 export async function getSimilarParts(
   partId: number,
   manufacturerId: number,
