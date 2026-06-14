@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { eq, ilike, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { slugify } from "@/lib/normalize";
+
+/** "rexel.fr" → "Rexel", "conrad.com" → "Conrad", "rs-online.co.uk" → "Rs-online" */
+function normalizeSellerName(raw: string): string {
+  const withoutTld = raw.replace(/\.(fr|com|net|org|co\.uk|de|it|es|be|nl|eu|io|uk|us|ca)$/i, "");
+  return withoutTld.charAt(0).toUpperCase() + withoutTld.slice(1);
+}
 
 export const runtime = "nodejs";
 
@@ -93,9 +100,23 @@ export async function PATCH(req: NextRequest) {
       .from(schema.sellers)
       .where(ilike(schema.sellers.name, `%${body.sellerName}%`))
       .limit(1);
-    if (sellerRows.length === 0) return Response.json({ updated: 0 });
 
-    const sellerId = sellerRows[0].id;
+    let sellerId: number;
+    if (sellerRows.length > 0) {
+      sellerId = sellerRows[0].id;
+    } else {
+      const displayName = normalizeSellerName(body.sellerName);
+      const slug = slugify(displayName);
+      const [created] = await db
+        .insert(schema.sellers)
+        .values({ name: displayName, slug, type: "distributeur_officiel", website: body.sellerName })
+        .onConflictDoUpdate({
+          target: schema.sellers.slug,
+          set: { website: body.sellerName },
+        })
+        .returning({ id: schema.sellers.id });
+      sellerId = created.id;
+    }
 
     await db
       .insert(schema.offers)

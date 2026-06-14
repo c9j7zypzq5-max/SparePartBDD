@@ -968,11 +968,17 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
     }
     if (!sellerName) continue;
     log(`[offer] PATCH reseller ${sellerName} → ${resellerUrl}`);
-    void fetch(REPAIR_OFFERS_URL, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
-      body: JSON.stringify({ referenceNormalized: refNorm, sellerName, url: resellerUrl }),
-    }).catch((e: unknown) => log(`[offer PATCH error] ${e}`));
+    try {
+      const patchRes = await fetch(REPAIR_OFFERS_URL, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
+        body: JSON.stringify({ referenceNormalized: refNorm, sellerName, url: resellerUrl }),
+      });
+      const patchBody = await patchRes.json() as { updated?: number };
+      log(`[offer] PATCH → HTTP ${patchRes.status} updated=${patchBody.updated ?? "?"}`);
+    } catch (e: unknown) {
+      log(`[offer PATCH error] ${e}`);
+    }
   }
 
   if (geminiResult.productUrl) {
