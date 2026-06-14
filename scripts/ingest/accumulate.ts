@@ -819,49 +819,6 @@ function isResellerUrl(url: string): boolean {
 
 const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-let ddgBackoffAttempt = 0;
-const DDG_BACKOFF_DELAYS_MS = [60_000, 120_000, 240_000, 300_000];
-const bannedEngines = new Set<string>();
-
-async function fetchDDGWithBackoff(q: string, timeoutMs: number): Promise<string | null> {
-  const doOnce = async (): Promise<string | null> => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      const res = await fetch(`https://html.duckduckgo.com/html/?q=${q}`, {
-        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
-        signal: controller.signal,
-      });
-      if (!res.ok) return null;
-      const text = await res.text();
-      return (res.status === 202 || !text.includes("uddg=")) ? "" : text;
-    } catch {
-      return null;
-    } finally {
-      clearTimeout(timer);
-      await new Promise(r => setTimeout(r, 2000));
-    }
-  };
-
-  let html = await doOnce();
-
-  while (html === "") {
-    if (ddgBackoffAttempt >= DDG_BACKOFF_DELAYS_MS.length) {
-      log(`[DDG] Giving up after ${DDG_BACKOFF_DELAYS_MS.length} attempts, skipping`);
-      ddgBackoffAttempt = 0;
-      return null;
-    }
-    const delayMs = DDG_BACKOFF_DELAYS_MS[ddgBackoffAttempt];
-    log(`[DDG] Rate limited, waiting ${delayMs / 1000}s (attempt ${ddgBackoffAttempt + 1}/${DDG_BACKOFF_DELAYS_MS.length})...`);
-    await new Promise(r => setTimeout(r, delayMs));
-    ddgBackoffAttempt++;
-    html = await doOnce();
-  }
-
-  if (html !== null) ddgBackoffAttempt = 0;
-  return html;
-}
-
 function manufacturerSlug(name: string): string {
   return name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
@@ -966,10 +923,8 @@ async function findOfferProductUrl(reference: string, sellerName: string, domain
 
 async function findProductUrl(reference: string, manufacturer: string): Promise<string | null> {
   const refNorm  = reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const refLower = reference.toLowerCase();
   const mfgSlug  = manufacturerSlug(manufacturer);
   const domain   = MANUFACTURER_DOMAINS[mfgSlug];
-  const SEARCH_BLACKLIST = [...RESELLER_DOMAINS, "etb-tech"];
 
   // ── Step 0: Gemini with Google Search grounding ─────────────────────────────
   const geminiUrl = await findProductUrlGemini(reference, manufacturer);
@@ -1049,121 +1004,11 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
     }
   }
 
-  // ── Step 3: Search engine rotation fallback ─────────────────────────────────
-  const query = `${reference} ${manufacturer}`;
-
-  if (!bannedEngines.has("DDG")) {
-    const ddgHtml = await fetchDDGWithBackoff(encodeURIComponent(query), 6_000);
-    if (ddgHtml) {
-      const uddgRe = /uddg=([^&"'\s>]+)/g;
-      let m: RegExpExecArray | null;
-      while ((m = uddgRe.exec(ddgHtml)) !== null) {
-        let url: string;
-        try { url = decodeURIComponent(m[1]); } catch { continue; }
-        if (!url.startsWith("https://")) continue;
-        const urlLower = url.toLowerCase();
-        if (SEARCH_BLACKLIST.some((d) => urlLower.includes(d))) continue;
-        if (urlLower.includes(refLower)) {
-          const valid = await validatePageContent(url, reference);
-          if (valid) { log(`[URL] DDG: found ${url}`); return url; }
-        }
-      }
-    }
-    log(`[URL] DDG: not found`);
-  }
-
-  const fallbackEngines: Array<{ name: string; url: string; extract(html: string): string[] }> = [
-    {
-      name: "Bing",
-      url: `https://www.bing.com/search?q=${encodeURIComponent(query)}`,
-      extract(html) {
-        const urls: string[] = [];
-        const re = /href=["'](https?:\/\/(?!(?:www\.)?bing\.com)[^"'&]+)["']/gi;
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(html)) !== null) urls.push(m[1]);
-        return urls;
-      },
-    },
-    {
-      name: "Yahoo",
-      url: `https://search.yahoo.com/search?p=${encodeURIComponent(query)}`,
-      extract(html) {
-        const urls: string[] = [];
-        const re = /href=["'](https?:\/\/(?!(?:search|r)\.yahoo\.com)[^"'&]+)["']/gi;
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(html)) !== null) urls.push(m[1]);
-        return urls;
-      },
-    },
-    {
-      name: "Startpage",
-      url: `https://www.startpage.com/search?q=${encodeURIComponent(query)}`,
-      extract(html) {
-        const urls: string[] = [];
-        const re = /href=["'](https?:\/\/(?!www\.startpage\.com)[^"'&]+)["']/gi;
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(html)) !== null) urls.push(m[1]);
-        return urls;
-      },
-    },
-  ];
-
-  for (const engine of fallbackEngines) {
-    if (bannedEngines.has(engine.name)) continue;
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6_000);
-      const res = await fetch(engine.url, {
-        headers: { "User-Agent": BROWSER_UA, "Accept-Language": "en-US,en;q=0.9" },
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      if (res.status === 429) {
-        log(`[URL] ${engine.name}: rate limited — banning`);
-        bannedEngines.add(engine.name);
-        continue;
-      }
-      if (!res.ok) { log(`[URL] ${engine.name}: not found`); continue; }
-      const html = await res.text();
-      for (const url of engine.extract(html)) {
-        const urlLower = url.toLowerCase();
-        if (SEARCH_BLACKLIST.some((d) => urlLower.includes(d))) continue;
-        if (urlLower.includes(refLower)) {
-          const valid = await validatePageContent(url, reference);
-          if (valid) { log(`[URL] ${engine.name}: found ${url}`); return url; }
-        }
-      }
-      log(`[URL] ${engine.name}: not found`);
-    } catch {
-      log(`[URL] ${engine.name}: not found`);
-    }
-  }
-
   return null;
 }
 
-async function findDatasheetUrl(reference: string, manufacturer: string): Promise<string | null> {
-  const STRATEGY_TIMEOUT_MS = 6_000;
-  const q = encodeURIComponent(`"${reference}" "${manufacturer}" datasheet filetype:pdf`);
-  const SEARCH_BLACKLIST = [...RESELLER_DOMAINS, "etb-tech"];
-
-  const html: string | null = await fetchDDGWithBackoff(q, STRATEGY_TIMEOUT_MS);
-
-  if (!html) return null;
-
-  const uddgRe = /uddg=([^&"'\s>]+)/g;
-  let m: RegExpExecArray | null;
-  while ((m = uddgRe.exec(html)) !== null) {
-    let url: string;
-    try { url = decodeURIComponent(m[1]); } catch { continue; }
-    if (!url.startsWith("https://")) continue;
-    const urlLower = url.toLowerCase();
-    if (SEARCH_BLACKLIST.some((d) => urlLower.includes(d))) continue;
-    if (urlLower.includes(".pdf") || urlLower.includes("datasheet") || urlLower.includes("/pdf/")) {
-      log(`   📄  Datasheet found: ${url}`);
-      return url;
-    }
-  }
+async function findDatasheetUrl(_reference: string, _manufacturer: string): Promise<string | null> {
+  // Datasheet search via DDG has been removed. Datasheets are sourced from distributor APIs only.
   return null;
 }
 
