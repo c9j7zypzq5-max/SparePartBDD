@@ -10,9 +10,11 @@
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed.ts",
     "push": "tsx scripts/ingest/push.ts",
-    "lifecycle": "tsx scripts/lifecycle/check.ts"
+    "lifecycle": "tsx scripts/lifecycle/check.ts",
+    "enrich:urls": "tsx scripts/enrich/url-completion.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
     "@google/generative-ai": "^0.24.1",
     "drizzle-orm": "^0.44.2",
     "next": "^15.3.4",

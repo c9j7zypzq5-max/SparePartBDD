@@ -6,9 +6,17 @@ séquences remises à jour. À exécuter puis coller la sortie dans Neon.
 """
 
 import json
+import os
 import re
 
 TS = "2026-06-10 12:00:00"
+
+# URLs générées par agents Haiku (scripts/enrich/product-urls.json)
+_url_cache_path = os.path.join(os.path.dirname(__file__), "enrich", "product-urls.json")
+with open(_url_cache_path, encoding="utf-8") as _f:
+    _url_data = json.load(_f)
+PRODUCT_URLS: dict[str, str] = _url_data["parts"]
+SELLERS_FR: dict[str, str] = _url_data["sellers_fr"]
 
 
 def norm(ref: str) -> str:
@@ -645,7 +653,9 @@ def main():
         out.append(f"INSERT INTO public.manufacturers VALUES ({m[0]}, {sqlstr(m[1])}, {sqlstr(m[2])}, '{m[3]}', {sqlstr(m[4])});")
     out.append("")
     for s in SELLERS:
-        out.append(f"INSERT INTO public.sellers VALUES ({s[0]}, {sqlstr(s[1])}, {sqlstr(s[2])}, '{s[3]}', {sqlstr(s[4])}, {sqlstr(s[5])});")
+        # Préfère l'URL FR si disponible (définie dans product-urls.json)
+        website = SELLERS_FR.get(s[1], s[4])
+        out.append(f"INSERT INTO public.sellers VALUES ({s[0]}, {sqlstr(s[1])}, {sqlstr(s[2])}, '{s[3]}', {sqlstr(website)}, {sqlstr(s[5])});")
     out.append("")
 
     # parts
@@ -662,9 +672,15 @@ def main():
         id_by_ref[ref] = i
         pool_by_id[i] = (pool, status, price)
         mfr_by_id[i] = mfr
+        prod_url = PRODUCT_URLS.get(ref)
         out.append(
-            f"INSERT INTO public.parts VALUES ({i}, {mfr}, {cat}, {sqlstr(ref)}, '{n}', '{n.lower()}', "
-            f"{sqlstr(name)}, {sqlstr(desc)}, '{status}', NULL, {sqljson(attrs)}, '{TS}', '{TS}');"
+            f"INSERT INTO public.parts "
+            f"(id, manufacturer_id, category_id, reference_raw, reference_normalized, slug, "
+            f"name, description, status, image_url, attributes, specs, product_url, "
+            f"needs_review, created_at, updated_at) "
+            f"VALUES ({i}, {mfr}, {cat}, {sqlstr(ref)}, '{n}', '{n.lower()}', "
+            f"{sqlstr(name)}, {sqlstr(desc)}, '{status}', NULL, {sqljson(attrs)}, '{{}}', "
+            f"{sqlstr(prod_url)}, FALSE, '{TS}', '{TS}');"
         )
     out.append("")
 
