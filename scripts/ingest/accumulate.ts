@@ -447,6 +447,7 @@ async function findProductUrlGemini(reference: string, manufacturer: string): Pr
   const URL_BLACKLIST = [
     "ebay", "aliexpress", "amazon", "leboncoin", "datasheets.com",
     "r.search.yahoo.com", "vertexaisearch.cloud.google.com",
+    "mall.industry.siemens.com", "sieportal.siemens.com",
   ];
   const isBlacklisted = (u: string) => URL_BLACKLIST.some((b) => u.toLowerCase().includes(b));
   try {
@@ -889,6 +890,7 @@ async function findOfferProductUrl(reference: string, sellerName: string, domain
   const URL_BLACKLIST = [
     "ebay", "aliexpress", "amazon", "leboncoin", "datasheets.com",
     "r.search.yahoo.com", "vertexaisearch.cloud.google.com",
+    "mall.industry.siemens.com", "sieportal.siemens.com",
   ];
   const isBlacklisted = (u: string) => URL_BLACKLIST.some((b) => u.toLowerCase().includes(b));
   const isDomainRoot   = (u: string): boolean => {
