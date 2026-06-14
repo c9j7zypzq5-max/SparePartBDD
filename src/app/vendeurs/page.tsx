@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { getSellerStats } from "@/lib/queries";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { SELLER_TYPE_LABELS } from "@/components/seller-table";
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
+const getCachedSellerStats = unstable_cache(getSellerStats, ["seller-stats"], { revalidate: 3600 });
+
 const TYPE_COLORS: Record<string, string> = {
   constructeur: "bg-blue-100 text-blue-700",
   distributeur_officiel: "bg-green-100 text-green-700",
@@ -20,7 +23,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default async function VendeursPage() {
-  const rows = await getSellerStats();
+  const rows = await getCachedSellerStats();
 
   return (
     <div>

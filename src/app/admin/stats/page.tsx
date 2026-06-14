@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { getAdminStats } from "@/lib/queries";
 
 export const metadata: Metadata = {
@@ -8,6 +9,8 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+
+const getCachedAdminStats = unstable_cache(getAdminStats, ["admin-stats"], { revalidate: 60 });
 
 function StatCard({
   label,
@@ -40,7 +43,7 @@ function StatCard({
 }
 
 export default async function AdminStatsPage() {
-  const stats = await getAdminStats();
+  const stats = await getCachedAdminStats();
   if (!stats) {
     return <p className="text-zinc-500">Statistiques indisponibles.</p>;
   }

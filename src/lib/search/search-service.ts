@@ -30,6 +30,8 @@ export interface SearchOptions {
   status?: string;
   /** Restreint à un fabricant (slug) */
   manufacturerSlug?: string;
+  /** Restreint à une catégorie (slug) */
+  categorySlug?: string;
   /** Tri des résultats */
   sortBy?: "relevance" | "price_asc" | "price_desc" | "name_asc";
   /** Si true, restreint aux pièces ayant au moins une offre avec un prix */

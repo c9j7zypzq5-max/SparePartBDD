@@ -10,13 +10,23 @@ import { Breadcrumb } from "@/components/breadcrumb";
 import { CompareButton } from "@/components/compare-button";
 import { PrintButton } from "@/components/print-button";
 import { generatePartDescription } from "@/lib/part-description";
-import { getPartDetail as _getPartDetail, getSimilarParts, getAlternativeParts, getSupersessionChain } from "@/lib/queries";
+import { getPartDetail as _getPartDetail, getSimilarParts, getAlternativeParts, getSupersessionChain, getTopPartPaths } from "@/lib/queries";
+import { CompatibilityMap } from "@/components/compatibility-map";
 import { siteUrl } from "@/lib/site-url";
 
 // Déduplique les appels identiques dans le même cycle de rendu (generateMetadata + PartPage)
 const getPartDetail = cache(_getPartDetail);
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const paths = await getTopPartPaths(100);
+  return paths.map(({ manufacturerSlug, partSlug }) => ({
+    marque: manufacturerSlug,
+    ref: partSlug,
+  }));
+}
 
 type Params = Promise<{ marque: string; ref: string }>;
 
@@ -455,20 +465,16 @@ export default async function PartPage({ params }: { params: Params }) {
           <p className="mt-1 text-sm text-zinc-500">
             Compatibilité non officielle — vérifiez les caractéristiques avant achat.
           </p>
-          <div className="mt-3 grid gap-3">
-            {detail.compatibles.map(({ compatibility, part: p, manufacturer: m }) => (
-              <PartCard
-                key={p.id}
-                href={`/piece/${m.slug}/${p.slug}`}
-                name={p.name}
-                referenceRaw={p.referenceRaw}
-                manufacturerName={m.name}
-                manufacturerSlug={m.slug}
-                status={p.status}
-                confidence={compatibility.confidence}
-              />
-            ))}
-          </div>
+          <CompatibilityMap
+            mainRef={part.referenceRaw}
+            mainName={part.name}
+            mainManufacturer={manufacturer.name}
+            items={detail.compatibles.map(({ compatibility, part: p, manufacturer: m }) => ({
+              confidence: compatibility.confidence,
+              part: { id: p.id, name: p.name, referenceRaw: p.referenceRaw, slug: p.slug, status: p.status },
+              manufacturer: { name: m.name, slug: m.slug },
+            }))}
+          />
         </section>
       )}
 

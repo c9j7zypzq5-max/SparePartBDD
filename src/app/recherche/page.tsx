@@ -4,13 +4,20 @@ import { unstable_cache } from "next/cache";
 import { SearchBar } from "@/components/search-bar";
 import { PartCard } from "@/components/part-card";
 import { SuggestionForm } from "@/components/suggestion-form";
+import { SearchLoadMore } from "@/components/search-load-more";
 import { searchService } from "@/lib/search/postgres-search";
-import { getAllManufacturers, searchPartsFuzzy, getManufacturersSuggestions } from "@/lib/queries";
+import { getAllManufacturers, getAllCategories, searchPartsFuzzy, getManufacturersSuggestions } from "@/lib/queries";
 import type { SearchOptions } from "@/lib/search/search-service";
 
 const getCachedManufacturers = unstable_cache(
   getAllManufacturers,
   ["all-manufacturers"],
+  { revalidate: 600 },
+);
+
+const getCachedCategories = unstable_cache(
+  getAllCategories,
+  ["all-categories"],
   { revalidate: 600 },
 );
 
@@ -21,6 +28,7 @@ type Search = Promise<{
   industrie?: string;
   statut?: string;
   marque?: string;
+  categorie?: string;
   page?: string;
   sort?: string;
   stock?: string;
@@ -53,6 +61,7 @@ function buildHref(params: {
   industrie?: string;
   statut?: string;
   marque?: string;
+  categorie?: string;
   sort?: string;
   stock?: boolean;
   page?: number;
@@ -62,6 +71,7 @@ function buildHref(params: {
   if (params.industrie) sp.set("industrie", params.industrie);
   if (params.statut) sp.set("statut", params.statut);
   if (params.marque) sp.set("marque", params.marque);
+  if (params.categorie) sp.set("categorie", params.categorie);
   if (params.sort) sp.set("sort", params.sort);
   if (params.stock) sp.set("stock", "1");
   if (params.page && params.page > 1) sp.set("page", String(params.page));
@@ -86,7 +96,7 @@ export default async function SearchPage({
 }: {
   searchParams: Search;
 }) {
-  const { q, industrie, statut, marque, page: pageParam, sort, stock } = await searchParams;
+  const { q, industrie, statut, marque, categorie, page: pageParam, sort, stock } = await searchParams;
   const query = q?.trim() ?? "";
   const industry = INDUSTRY_FILTERS.some((f) => f.value === industrie)
     ? industrie
@@ -99,7 +109,7 @@ export default async function SearchPage({
 
   // limit+1 : on demande une pièce de plus que la page pour savoir s'il y a
   // une page suivante, sans requête de comptage séparée.
-  const [rawHits, manufacturers] = query
+  const [rawHits, manufacturers, allCategories] = query
     ? await Promise.all([
         searchService.search(query, {
           limit: PAGE_SIZE + 1,
@@ -107,12 +117,14 @@ export default async function SearchPage({
           industry: industry || undefined,
           status: status || undefined,
           manufacturerSlug: marque || undefined,
+          categorySlug: categorie || undefined,
           sortBy: (sort as SearchOptions["sortBy"]) || "relevance",
           inStock: inStock || undefined,
         }),
         getCachedManufacturers(),
+        getCachedCategories(),
       ])
-    : [[], []];
+    : [[], [], []] as [Awaited<ReturnType<typeof searchService.search>>, Awaited<ReturnType<typeof getCachedManufacturers>>, Awaited<ReturnType<typeof getCachedCategories>>];
   const hasNext = rawHits.length > PAGE_SIZE;
   const hits = rawHits.slice(0, PAGE_SIZE);
 
@@ -130,7 +142,7 @@ export default async function SearchPage({
     : `${(page - 1) * PAGE_SIZE + hits.length} résultat${(page - 1) * PAGE_SIZE + hits.length > 1 ? "s" : ""}`;
 
   const validSort = SORT_FILTERS.some((f) => f.value === sort) ? sort : undefined;
-  const base = { q: query, industrie: industry, statut: status, marque, sort: validSort, stock: inStock || undefined };
+  const base = { q: query, industrie: industry, statut: status, marque, categorie, sort: validSort, stock: inStock || undefined };
 
   return (
     <div>
@@ -186,7 +198,7 @@ export default async function SearchPage({
               En stock
             </Link>
 
-            <form action="/recherche" method="get" className="ml-auto flex items-center gap-2">
+            <form action="/recherche" method="get" className="ml-auto flex flex-wrap items-center gap-2">
               <input type="hidden" name="q" value={query} />
               {industry && <input type="hidden" name="industrie" value={industry} />}
               {status && <input type="hidden" name="statut" value={status} />}
@@ -203,6 +215,20 @@ export default async function SearchPage({
                   </option>
                 ))}
               </select>
+              {allCategories.length > 0 && (
+                <select
+                  name="categorie"
+                  defaultValue={categorie ?? ""}
+                  className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-600"
+                >
+                  <option value="">Toutes les catégories</option>
+                  {allCategories.map((c) => (
+                    <option key={c.id} value={c.slug}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
               <select
                 name="sort"
                 defaultValue={validSort ?? ""}
@@ -249,26 +275,31 @@ export default async function SearchPage({
         ))}
       </div>
 
-      {query && (page > 1 || hasNext) && (
-        <nav className="mt-8 flex items-center justify-center gap-4 text-sm font-medium">
-          {page > 1 && (
-            <Link
-              href={buildHref({ ...base, page: page - 1 })}
-              className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
-            >
-              ← Page précédente
-            </Link>
-          )}
+      {query && page > 1 && (
+        <nav className="mt-4 flex items-center justify-center gap-4 text-sm font-medium">
+          <Link
+            href={buildHref({ ...base, page: page - 1 })}
+            className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
+          >
+            ← Page précédente
+          </Link>
           <span className="text-zinc-500">Page {page}</span>
-          {hasNext && (
-            <Link
-              href={buildHref({ ...base, page: page + 1 })}
-              className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
-            >
-              Page suivante →
-            </Link>
-          )}
         </nav>
+      )}
+
+      {query && hits.length > 0 && (
+        <SearchLoadMore
+          initialHasMore={hasNext}
+          searchQuery={new URLSearchParams({
+            q: query,
+            ...(industry ? { industrie: industry } : {}),
+            ...(status ? { statut: status } : {}),
+            ...(marque ? { marque } : {}),
+            ...(categorie ? { categorie } : {}),
+            ...(validSort ? { sort: validSort } : {}),
+            ...(inStock ? { stock: "1" } : {}),
+          }).toString()}
+        />
       )}
 
       {query && hits.length === 0 && fuzzyHits.length > 0 && (
