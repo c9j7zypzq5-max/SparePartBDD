@@ -71,7 +71,7 @@ const MANUFACTURER_FILTER = (() => {
 // ---------------------------------------------------------------------------
 
 const MANUFACTURER_DOMAINS: Record<string, string> = {
-  "siemens":              "mall.industry.siemens.com",
+  // siemens omitted: mall.industry.siemens.com and sieportal.siemens.com redirect to SSO
   "abb":                  "new.abb.com",
   "schneider-electric":   "se.com",
   "allen-bradley":        "rockwellautomation.com",
@@ -982,9 +982,7 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
 
   // ── Step 1: Direct manufacturer search ──────────────────────────────────────
   if (domain) {
-    const searchUrl = mfgSlug === "siemens"
-      ? `https://mall.industry.siemens.com/mall/en/us/Catalog/Search?searchTerm=${encodeURIComponent(reference)}`
-      : `https://${domain}/search?q=${encodeURIComponent(reference)}`;
+    const searchUrl = `https://${domain}/search?q=${encodeURIComponent(reference)}`;
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 8_000);
