@@ -454,7 +454,10 @@ async function findProductUrlGemini(reference: string, manufacturer: string): Pr
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
-    const prompt = `Find a product page for industrial part "${reference}" by ${manufacturer} on one of these reseller sites: RS Components (rs-online.com or fr.rs-online.com), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), or Arrow (arrow.com). If not found on a reseller, return the official manufacturer product page. Return only the direct URL to the product page, nothing else.`;
+    const prompt = `Find a product page for industrial part "${reference}" by ${manufacturer} on one of these sites (in order of preference):
+1. Reseller sites: RS Components (rs-online.com or fr.rs-online.com), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com or actu-industrie.fr), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com)
+2. If not found on any reseller, return the official manufacturer product page.
+Return ONLY the direct URL to the product page, nothing else. No explanation.`;
     const result = await model.generateContent(prompt);
 
     // Prefer actual source URLs from grounding metadata (avoids redirect wrappers)
@@ -900,7 +903,10 @@ async function findOfferProductUrl(reference: string, sellerName: string, domain
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
-    const prompt = `Find the exact product page URL for part reference ${reference} on ${sellerName} website (${domain}). Return only the direct URL to this specific product, nothing else.`;
+    const prompt = `Find the exact product page URL for part reference ${reference} on one of these sites (in order of preference):
+1. Reseller sites: RS Components (rs-online.com or fr.rs-online.com), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com or actu-industrie.fr), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com)
+2. If not found on any reseller, return the official manufacturer product page.
+Prefer ${sellerName} (${domain}) if available. Return ONLY the direct URL to the product page, nothing else. No explanation.`;
     const result = await model.generateContent(prompt);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
