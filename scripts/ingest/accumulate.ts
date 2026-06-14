@@ -576,7 +576,14 @@ interface SitemapRef { brand: string; refNorm: string; }
 
 async function fetchSitemapRefs(): Promise<SitemapRef[]> {
   try {
-    const res = await fetch(SITEMAP_URL);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15_000);
+    let res: Response;
+    try {
+      res = await fetch(SITEMAP_URL, { signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) throw new Error(`Sitemap HTTP ${res.status}`);
     const xml = await res.text();
     const refs: SitemapRef[] = [];
@@ -2132,7 +2139,14 @@ process.on("SIGINT", () => {
 
 async function detectResellerParts(): Promise<void> {
   try {
-    const res = await fetch(SITEMAP_URL);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15_000);
+    let res: Response;
+    try {
+      res = await fetch(SITEMAP_URL, { signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) return;
     const xml = await res.text();
     const slugCounts = new Map<string, string[]>();
