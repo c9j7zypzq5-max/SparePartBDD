@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { and, eq, ilike, sql } from "drizzle-orm";
+import { eq, ilike, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 
 export const runtime = "nodejs";
@@ -97,17 +97,13 @@ export async function PATCH(req: NextRequest) {
 
     const sellerId = sellerRows[0].id;
 
-    const existing = await db
-      .select({ id: schema.offers.id })
-      .from(schema.offers)
-      .where(and(eq(schema.offers.partId, partId), eq(schema.offers.sellerId, sellerId)))
-      .limit(1);
-    if (existing.length === 0) return Response.json({ updated: 0 });
-
     await db
-      .update(schema.offers)
-      .set({ url: body.url })
-      .where(and(eq(schema.offers.partId, partId), eq(schema.offers.sellerId, sellerId)));
+      .insert(schema.offers)
+      .values({ partId, sellerId, url: body.url, scrapedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [schema.offers.partId, schema.offers.sellerId],
+        set: { url: body.url, scrapedAt: new Date() },
+      });
 
     return Response.json({ updated: 1 });
   }
