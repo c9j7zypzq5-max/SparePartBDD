@@ -83,6 +83,7 @@ export async function ingestParts(
           description: raw.description ?? null,
           status: raw.status ?? "unknown",
           attributes: raw.attributes ?? null,
+          specs: raw.specs ?? {},
           productUrl: raw.productUrl ?? null,
           datasheetUrl: raw.datasheetUrl ?? null,
           urlVerifiedAt: raw.urlVerifiedAt ? new Date(raw.urlVerifiedAt) : null,
@@ -96,6 +97,8 @@ export async function ingestParts(
             status: raw.status ?? "unknown",
             categoryId: categoryId ?? null,
             attributes: raw.attributes ?? null,
+            // COALESCE préserve les specs existantes si le batch n'en fournit pas
+            specs: sql`COALESCE(NULLIF(excluded.specs::text, '{}'), ${schema.parts.specs})`,
             // COALESCE préserve les URLs existantes si le batch n'en fournit pas
             productUrl: sql`COALESCE(excluded.product_url, ${schema.parts.productUrl})`,
             datasheetUrl: sql`COALESCE(excluded.datasheet_url, ${schema.parts.datasheetUrl})`,

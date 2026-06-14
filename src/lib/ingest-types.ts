@@ -57,6 +57,8 @@ export interface IngestPart {
   confidenceScore?: number;
   /** Attributs techniques libres (ex : {"Tension": "24V DC", "Courant": "5A"}) */
   attributes?: Record<string, string>;
+  /** Spécifications techniques enrichies par Gemini (ex : {"Voltage": "24V DC", "Protocol": "PROFIBUS"}) */
+  specs?: Record<string, string>;
   crossReferences?: {
     reference: string;
     type: ReferenceType;

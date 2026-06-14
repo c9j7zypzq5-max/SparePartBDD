@@ -97,6 +97,8 @@ export const parts = pgTable(
     imageUrl: text("image_url"),
     /** Attributs techniques libres (dimensions, voltage, matière…) */
     attributes: jsonb("attributes").$type<Record<string, string>>(),
+    /** Spécifications techniques enrichies par Gemini (ex : {"Voltage": "24V DC", "Protocol": "PROFIBUS"}) */
+    specs: jsonb("specs").$type<Record<string, string>>().default({}),
     /** URL de la page produit officielle du fabricant (sert à la veille hebdo) */
     productUrl: text("product_url"),
     /** URL du datasheet PDF officiel */

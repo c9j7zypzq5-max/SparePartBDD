@@ -143,6 +143,7 @@ interface IngestPart {
   urlVerifiedAt?: string;
   confidenceScore?: number;
   attributes?: Record<string, string>;
+  specs?: Record<string, string>;
   crossReferences?: { reference: string; type: ReferenceType; brand?: string }[];
   supersededBy?: string;
   compatibleWith?: string[];
@@ -493,6 +494,60 @@ async function findProductUrlGemini(reference: string, manufacturer: string): Pr
 async function callLLM(prompt: string, ollamaModel: string, numPredict = 4096): Promise<string> {
   if (GEMINI_API_KEY) return callGemini(prompt);
   return callOllama(prompt, ollamaModel, numPredict);
+}
+
+// ---------------------------------------------------------------------------
+// Batch enrichment (description + category + specs) via Gemini
+// ---------------------------------------------------------------------------
+
+interface EnrichedPart {
+  id: number;
+  description?: string;
+  category?: string;
+  specs?: Record<string, string>;
+}
+
+async function enrichPartsBatch(
+  parts: Array<{ reference: string; manufacturer: string; id: number }>
+): Promise<EnrichedPart[]> {
+  if (!GEMINI_API_KEY || parts.length === 0) return [];
+
+  const prompt = `You are an industrial parts database. For each of these industrial/electronic parts, provide enrichment data.
+Return a JSON array (no markdown, no explanation) with one object per part:
+[
+  {
+    "id": <same id as input>,
+    "description": "<short English description, max 2 sentences>",
+    "category": "<one of: PLC, HMI, Drive, Sensor, Relay, Switch, Cable, Power Supply, Motor, Actuator, Circuit Breaker, Safety, Communication, Other>",
+    "specs": {
+      "<key>": "<value>"
+    }
+  }
+]
+
+Rules:
+- specs should include 2-5 relevant technical specs only (e.g. "Voltage": "24V DC", "Protocol": "PROFIBUS", "IP Rating": "IP67")
+- omit specs entirely if unknown
+- return exactly one object per input part using the same "id"
+
+Parts to enrich:
+${JSON.stringify(parts)}`;
+
+  try {
+    const raw = await callGemini(prompt);
+    // Strip markdown fences if present
+    const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+    const start = clean.indexOf("[");
+    const end   = clean.lastIndexOf("]");
+    if (start === -1 || end === -1) throw new Error("No JSON array found");
+    const parsed = JSON.parse(clean.slice(start, end + 1)) as EnrichedPart[];
+    if (!Array.isArray(parsed)) throw new Error("Response is not an array");
+    // Filter to valid objects with numeric id
+    return parsed.filter((item) => typeof item?.id === "number");
+  } catch (err) {
+    log(`⚠️  [enrichPartsBatch] Failed to parse response: ${err}`);
+    return [];
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1760,6 +1815,30 @@ async function runEnrichMode(model: string): Promise<void> {
     }
 
     log(`   Validated ${parts.length} parts (${payload.parts.length - parts.length} dropped)`);
+
+    // ── Batch enrichment (description + category + specs) via Gemini ──────────
+    if (GEMINI_API_KEY) {
+      const ENRICH_BATCH_SIZE = 8;
+      for (let i = 0; i < parts.length; i += ENRICH_BATCH_SIZE) {
+        const slice = parts.slice(i, i + ENRICH_BATCH_SIZE);
+        const enrichInput = slice.map((p, idx) => ({
+          id: i + idx,
+          reference: p.reference,
+          manufacturer: p.manufacturer,
+        }));
+        const enriched = await enrichPartsBatch(enrichInput);
+        for (const result of enriched) {
+          const part = slice[result.id - i];
+          if (!part) continue;
+          if (result.description && !part.description) part.description = result.description;
+          if (result.category && !part.category) part.category = result.category;
+          if (result.specs && Object.keys(result.specs).length > 0) part.specs = result.specs;
+        }
+        if (enriched.length > 0) {
+          log(`   ✨  Batch enriched ${enriched.length}/${slice.length} parts with specs`);
+        }
+      }
+    }
 
     for (const part of parts) {
       const distResult = await lookupDistributors(part.reference);
