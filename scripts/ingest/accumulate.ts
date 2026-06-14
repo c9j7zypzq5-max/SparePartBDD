@@ -477,6 +477,7 @@ For productUrl, use the official manufacturer page. If not found, omit the field
     let parsedResellerUrls: string[] = [];
     try {
       const text = result.response.text();
+      log(`[Gemini raw] ${text.slice(0, 300)}`);
       const clean = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
       const start = clean.indexOf("{");
       const end   = clean.lastIndexOf("}");
@@ -512,6 +513,7 @@ For productUrl, use the official manufacturer page. If not found, omit the field
     const finalProductUrl  = groundingProductUrl ?? parsedProductUrl;
     const finalResellerUrls = (groundingResellerUrls.length > 0 ? groundingResellerUrls : parsedResellerUrls).slice(0, 4);
 
+    log(`[Gemini result] productUrl=${finalProductUrl ?? "none"} resellerUrls=${finalResellerUrls.length}`);
     return { productUrl: finalProductUrl, resellerUrls: finalResellerUrls };
   } catch (err) {
     log(`[Gemini URL] Error: ${err}`);
@@ -965,11 +967,12 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
       try { sellerName = new URL(resellerUrl).hostname.replace(/^www\./, ""); } catch { sellerName = null; }
     }
     if (!sellerName) continue;
+    log(`[offer] PATCH reseller ${sellerName} → ${resellerUrl}`);
     void fetch(REPAIR_OFFERS_URL, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
       body: JSON.stringify({ referenceNormalized: refNorm, sellerName, url: resellerUrl }),
-    }).catch(() => {});
+    }).catch((e: unknown) => log(`[offer PATCH error] ${e}`));
   }
 
   if (geminiResult.productUrl) {
