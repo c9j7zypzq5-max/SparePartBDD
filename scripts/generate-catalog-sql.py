@@ -93,6 +93,44 @@ SELLERS = [
 ]
 SELLER_URL = {s[0]: s[4] for s in SELLERS}
 
+# Slugs fabricant sur Radwell (utilise la référence fabricant dans l'URL)
+RADWELL_MFR = {
+    1: "SIEMENS", 2: "SCHNEIDER", 3: "ALLEN-BRADLEY", 4: "ABB",
+    5: "FESTO", 6: "SMC", 7: "KEYSIGHT", 8: "FLUKE",
+    9: "OMRON", 10: "PHOENIX", 11: "CISCO", 12: "JUNIPER",
+    13: "DELL", 14: "HP", 15: "LENOVO",
+}
+
+import urllib.parse
+
+def offer_url(seller_id: int, ref: str, mfr_id: int) -> str:
+    """URL exacte (ou recherche précise) d'une offre chez un revendeur."""
+    enc = urllib.parse.quote(ref, safe="")
+    if seller_id == 1:   # Siemens Industry Mall — URL directe produit
+        return PRODUCT_URLS.get(ref, f"https://mall.industry.siemens.com/mall/en/WW/Catalog/product/{enc}")
+    if seller_id == 2:   # RS Components FR — recherche par référence OEM
+        return f"https://fr.rs-online.com/web/c/?searchTerm={enc}&sra=oss"
+    if seller_id == 3:   # Farnell FR — recherche par référence OEM
+        return f"https://fr.farnell.com/search?searchTerm={enc}"
+    if seller_id == 4:   # Radwell — URL directe constructeur/ref
+        mfr_slug = RADWELL_MFR.get(mfr_id, "")
+        return f"https://www.radwell.com/en-US/Used/{mfr_slug}/{enc}"
+    if seller_id == 5:   # EU Automation — recherche
+        return f"https://www.euautomation.com/gb/search?q={enc}"
+    if seller_id == 6:   # Automation24 FR — recherche
+        return f"https://www.automation24.fr/search?q={enc}"
+    if seller_id == 7:   # ServerSupply — recherche
+        return f"https://www.serversupply.com/products/search.asp?q={enc}"
+    if seller_id == 8:   # ETB Technologies — recherche
+        return f"https://www.etb-tech.com/search/?q={enc}"
+    if seller_id == 9:   # eBay FR — recherche
+        return f"https://www.ebay.fr/sch/i.html?_nkw={enc}&LH_BIN=1"
+    if seller_id == 10:  # Keysight Direct — URL directe produit
+        return PRODUCT_URLS.get(ref, f"https://www.keysight.com/fr/fr/search.html#q={enc}")
+    if seller_id == 11:  # TestEquity — recherche
+        return f"https://www.testequity.com/search/?q={enc}"
+    return SELLER_URL[seller_id]
+
 # ---------------------------------------------------------------------- parts
 # (mfr_id, cat_id, ref, name, description, status, attributes|None, base_price, pool)
 # pool : groupe de vendeurs pour les offres
@@ -727,11 +765,14 @@ def main():
             entries = POOLS[pool]["active" if status == "active" else "obsolete"]
         # 2 ou 3 offres selon l'id pour varier
         count = 3 if pid % 3 != 0 else 2
+        ref_raw = next(r for r, i in id_by_ref.items() if i == pid)
+        mfr_id = mfr_by_id[pid]
         for seller_id, factor, avail in entries[:count]:
             oid += 1
             p = round(price * factor, 2)
+            url = offer_url(seller_id, ref_raw, mfr_id)
             out.append(
-                f"INSERT INTO public.offers VALUES ({oid}, {pid}, {seller_id}, {p:.2f}, 'EUR', {sqlstr(avail)}, {sqlstr(SELLER_URL[seller_id])}, '{TS}');"
+                f"INSERT INTO public.offers VALUES ({oid}, {pid}, {seller_id}, {p:.2f}, 'EUR', {sqlstr(avail)}, {sqlstr(url)}, '{TS}');"
             )
     out.append("")
 
