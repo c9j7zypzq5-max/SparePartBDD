@@ -465,7 +465,7 @@ Return ONLY a JSON object (no markdown, no explanation):
   ]
 }
 
-For resellerUrls, search these sites: RS Components (rs-online.com or fr.rs-online.com), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com).
+For resellerUrls, search these sites: RS Components (always use fr.rs-online.com, never uk/us/de variants), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com).
 
 Include up to 4 reseller URLs if found. If no reseller page exists, use empty array [].
 For productUrl, use the official manufacturer page. If not found, omit the field.`;
@@ -925,7 +925,7 @@ async function findOfferProductUrl(reference: string, sellerName: string, domain
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", tools: [{ googleSearch: {} }] as any });
     const prompt = `Find the exact product page URL for part reference ${reference} on one of these sites (in order of preference):
-1. Reseller sites: RS Components (rs-online.com or fr.rs-online.com), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com or actu-industrie.fr), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com)
+1. Reseller sites: RS Components (always use fr.rs-online.com, never uk/us/de variants), Farnell (farnell.com or fr.farnell.com), Mouser (mouser.fr or mouser.com), Distrelec (distrelec.fr), Conrad (conrad.fr), Arrow (arrow.com), Automation24 (automation24.fr or automation24.com), Actu-Industrie (actu-industrie.com or actu-industrie.fr), Direct Industry (directindustry.fr or directindustry.com), IEN (ien.eu), Sonepar (sonepar.fr), Rexel (rexel.fr), MISUMI (misumi-europe.com), Wuerth Industrie (wuerth-industrie.com)
 2. If not found on any reseller, return the official manufacturer product page.
 Prefer ${sellerName} (${domain}) if available. Return ONLY the direct URL to the product page, nothing else. No explanation.`;
     const result = await model.generateContent(prompt);
@@ -959,8 +959,10 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
   const geminiResult = await findProductUrlGemini(reference, manufacturer);
 
   // Fire PATCH for each reseller URL found by Gemini
-  for (const resellerUrl of geminiResult.resellerUrls) {
+  for (let resellerUrl of geminiResult.resellerUrls) {
     if (!isValidUrl(resellerUrl)) continue;
+    // Normalise regional RS Components variants → fr
+    resellerUrl = resellerUrl.replace(/^(https?:\/\/)(uk|us|de|es|it|nl|be|at|ch|se|no|dk|fi|pl|cn|sg|au|nz|mx|jp|in|tw|za|hk)\.(rs-online\.com)/, "$1fr.$3");
     const resellerName = detectReseller(resellerUrl);
     let sellerName: string | null = resellerName;
     if (!sellerName) {
