@@ -20,8 +20,8 @@ L'utilisateur entre une **référence OEM** (ex : `Siemens 6ES7214-1AG40-0XB0`,
 - **Next.js 15** (App Router, TypeScript, Tailwind CSS 4) — SSR pour le SEO
   programmatique
 - **PostgreSQL 16** + **Drizzle ORM**
-- **Recherche** : full-text Postgres (`websearch_to_tsquery` sur une colonne
-  `search_vector` indexée en GIN) + correspondance exacte / préfixe /
+- **Recherche** : full-text Postgres (`websearch_to_tsquery` sur une
+  expression indexée en GIN) + correspondance exacte / préfixe /
   similarité trigramme (`pg_trgm`, index GIN) sur les références normalisées,
   derrière une interface `SearchService` (`src/lib/search/search-service.ts`)
   — remplaçable par Meilisearch/Typesense sans toucher aux pages.
@@ -105,9 +105,10 @@ openssl rand -hex 32
 DATABASE_URL="postgres://..." npm run db:push
 ```
 
-`db:push` crée aussi les index de recherche (GIN trigramme et plein texte) et
-la colonne générée `parts.search_vector` : sur un gros catalogue, la première
-exécution peut prendre quelques secondes.
+`db:push` crée aussi les index de recherche (GIN trigramme et plein texte) :
+sur un gros catalogue, la première exécution peut prendre quelques secondes.
+Le schéma n'ajoute aucune colonne : le code fonctionne aussi avant la
+migration (les index ne font qu'accélérer la recherche).
 
 ### 4. Pousser tes données depuis le Mac mini
 

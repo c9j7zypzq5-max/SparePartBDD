@@ -1,5 +1,6 @@
 import { sql, type SQL } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { searchDocument } from "@/db/search-document";
 import { parseSearchQuery, type BrandRef } from "./query-parser";
 import {
   SEARCH_MAX_LIMIT,
@@ -62,7 +63,7 @@ function refScore(column: SQL): SQL {
  *    jamais de scan complet de la table :
  *    - référence exacte (btree) sur les pièces et les cross-références ;
  *    - sous-chaîne / préfixe / similarité (GIN pg_trgm) ;
- *    - plein texte sur nom + description (GIN sur parts.search_vector).
+ *    - plein texte sur nom + description (GIN sur l'expression searchDocument).
  * 2. Classement : un match de référence (×10) domine toujours un match
  *    textuel ; le fabricant nommé dans la requête apporte un bonus. Le tri
  *    se termine par l'id pour une pagination stable.
@@ -125,12 +126,13 @@ export class PostgresSearchService implements SearchService {
         : sql`ARRAY[]::float8[]`;
       // Sans lettre ni chiffre, websearch_to_tsquery ne produit aucun lexème
       // (et Postgres émet un NOTICE à chaque appel) : branche inutile.
+      const document = searchDocument(sql`p.name`, sql`p.description`);
       const textHits = /[\p{L}\p{N}]/u.test(parsed.text)
         ? sql`
           UNION ALL
-          SELECT p.id, 0::float8, ts_rank(p.search_vector, q.query)::float8
+          SELECT p.id, 0::float8, ts_rank(${document}, q.query)::float8
           FROM websearch_to_tsquery('french', ${parsed.text}) AS q(query)
-          JOIN parts p ON p.search_vector @@ q.query`
+          JOIN parts p ON ${document} @@ q.query`
         : sql``;
       const brandBonus = parsed.brand
         ? sql`CASE WHEN p.manufacturer_id = ${parsed.brand.id} THEN ${BRAND_BONUS} ELSE 0 END`

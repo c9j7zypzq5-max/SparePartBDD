@@ -1,7 +1,5 @@
-import { sql } from "drizzle-orm";
 import {
   boolean,
-  customType,
   index,
   integer,
   jsonb,
@@ -20,13 +18,7 @@ import {
   REFERENCE_TYPES,
   SELLER_TYPES,
 } from "../lib/ingest-types";
-
-/** tsvector n'est pas un type natif de drizzle. */
-const tsvector = customType<{ data: string }>({
-  dataType() {
-    return "tsvector";
-  },
-});
+import { searchDocument } from "./search-document";
 
 /**
  * Modèle de données du moteur de recherche de pièces détachées.
@@ -104,13 +96,6 @@ export const parts = pgTable(
     lifecycleNote: text("lifecycle_note"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
-    /**
-     * Vecteur plein texte (nom pondéré A, description B) calculé par Postgres
-     * à chaque écriture ; sert la recherche textuelle via un index GIN.
-     */
-    searchVector: tsvector("search_vector").generatedAlwaysAs(
-      sql`setweight(to_tsvector('french', coalesce(name, '')), 'A') || setweight(to_tsvector('french', coalesce(description, '')), 'B')`,
-    ),
   },
   (t) => [
     uniqueIndex("parts_manufacturer_ref_idx").on(
@@ -127,7 +112,7 @@ export const parts = pgTable(
     index("parts_updated_at_idx").on(t.updatedAt),
     // Recherche : sous-chaîne / similarité (pg_trgm) et plein texte
     index("parts_ref_trgm_idx").using("gin", t.referenceNormalized.op("gin_trgm_ops")),
-    index("parts_search_vector_idx").using("gin", t.searchVector),
+    index("parts_search_document_idx").using("gin", searchDocument(t.name, t.description)),
   ],
 );
 
