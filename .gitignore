@@ -7,3 +7,8 @@ out/
 next-env.d.ts
 drizzle/
 .DS_Store
+
+# Artefacts d'exécution des scripts d'ingestion (propres à chaque machine)
+scripts/ingest/accumulate.log
+scripts/ingest/.accumulate-state.json
+scripts/ingest/resellers-report.json

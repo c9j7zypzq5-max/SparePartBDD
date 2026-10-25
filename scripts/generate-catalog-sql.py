@@ -3,6 +3,10 @@
 
 Garantit la cohérence du schéma : références normalisées, slugs, FK,
 séquences remises à jour. À exécuter puis coller la sortie dans Neon.
+
+Les INSERT nomment leurs colonnes : l'ordre physique des colonnes diffère
+entre une base créée par `db:push` et une base où des colonnes ont été
+ajoutées au fil du temps (specs, product_url…).
 """
 
 import json
@@ -639,13 +643,13 @@ def main():
     out.append("")
 
     for c in CATEGORIES:
-        out.append(f"INSERT INTO public.categories VALUES ({c[0]}, {sqlstr(c[1])}, {sqlstr(c[2])}, '{c[3]}', NULL);")
+        out.append(f"INSERT INTO public.categories (id, name, slug, industry, parent_id) VALUES ({c[0]}, {sqlstr(c[1])}, {sqlstr(c[2])}, '{c[3]}', NULL);")
     out.append("")
     for m in MANUFACTURERS:
-        out.append(f"INSERT INTO public.manufacturers VALUES ({m[0]}, {sqlstr(m[1])}, {sqlstr(m[2])}, '{m[3]}', {sqlstr(m[4])});")
+        out.append(f"INSERT INTO public.manufacturers (id, name, slug, industry, website) VALUES ({m[0]}, {sqlstr(m[1])}, {sqlstr(m[2])}, '{m[3]}', {sqlstr(m[4])});")
     out.append("")
     for s in SELLERS:
-        out.append(f"INSERT INTO public.sellers VALUES ({s[0]}, {sqlstr(s[1])}, {sqlstr(s[2])}, '{s[3]}', {sqlstr(s[4])}, {sqlstr(s[5])});")
+        out.append(f"INSERT INTO public.sellers (id, name, slug, type, website, country) VALUES ({s[0]}, {sqlstr(s[1])}, {sqlstr(s[2])}, '{s[3]}', {sqlstr(s[4])}, {sqlstr(s[5])});")
     out.append("")
 
     # parts
@@ -663,7 +667,8 @@ def main():
         pool_by_id[i] = (pool, status, price)
         mfr_by_id[i] = mfr
         out.append(
-            f"INSERT INTO public.parts VALUES ({i}, {mfr}, {cat}, {sqlstr(ref)}, '{n}', '{n.lower()}', "
+            f"INSERT INTO public.parts (id, manufacturer_id, category_id, reference_raw, reference_normalized, slug, "
+            f"name, description, status, image_url, attributes, created_at, updated_at) VALUES ({i}, {mfr}, {cat}, {sqlstr(ref)}, '{n}', '{n.lower()}', "
             f"{sqlstr(name)}, {sqlstr(desc)}, '{status}', NULL, {sqljson(attrs)}, '{TS}', '{TS}');"
         )
     out.append("")
@@ -679,14 +684,14 @@ def main():
         seen_refs.add((pid, n))
         rid += 1
         out.append(
-            f"INSERT INTO public.part_references VALUES ({rid}, {pid}, {sqlstr(alt)}, '{n}', '{rtype}', {sqlstr(brand)}, {sqlstr(source)});"
+            f"INSERT INTO public.part_references (id, part_id, reference, reference_normalized, type, brand, source) VALUES ({rid}, {pid}, {sqlstr(alt)}, '{n}', '{rtype}', {sqlstr(brand)}, {sqlstr(source)});"
         )
     out.append("")
 
     # supersessions
     for sid, (old, new, note) in enumerate(SUPERSESSIONS, start=1):
         out.append(
-            f"INSERT INTO public.supersessions VALUES ({sid}, {id_by_ref[old]}, {id_by_ref[new]}, 'catalogue-constructeur', {sqlstr(note)});"
+            f"INSERT INTO public.supersessions (id, old_part_id, new_part_id, source, note) VALUES ({sid}, {id_by_ref[old]}, {id_by_ref[new]}, 'catalogue-constructeur', {sqlstr(note)});"
         )
     out.append("")
 
@@ -697,7 +702,7 @@ def main():
         for x, y in ((pa, pb), (pb, pa)):
             cid += 1
             out.append(
-                f"INSERT INTO public.compatibilities VALUES ({cid}, {x}, {y}, {conf}, {sqlstr(source)});"
+                f"INSERT INTO public.compatibilities (id, part_id, compatible_part_id, confidence, source) VALUES ({cid}, {x}, {y}, {conf}, {sqlstr(source)});"
             )
     out.append("")
 
@@ -715,7 +720,7 @@ def main():
             oid += 1
             p = round(price * factor, 2)
             out.append(
-                f"INSERT INTO public.offers VALUES ({oid}, {pid}, {seller_id}, {p:.2f}, 'EUR', {sqlstr(avail)}, {sqlstr(SELLER_URL[seller_id])}, '{TS}');"
+                f"INSERT INTO public.offers (id, part_id, seller_id, price, currency, availability, url, scraped_at) VALUES ({oid}, {pid}, {seller_id}, {p:.2f}, 'EUR', {sqlstr(avail)}, {sqlstr(SELLER_URL[seller_id])}, '{TS}');"
             )
     out.append("")
 
