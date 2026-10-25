@@ -11,6 +11,8 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { WatchlistSubscribeForm } from "@/components/watchlist-subscribe-form";
 import { ShareButton } from "@/components/share-button";
+import { formatDate, formatPrice } from "@/lib/format";
+import { downloadTextFile, toCsv } from "@/lib/csv";
 
 type CompareResult = {
   reference: string;
@@ -28,33 +30,21 @@ type CompareResult = {
   changes: string[];
 };
 
-function formatPrice(price?: number, currency = "EUR") {
-  if (price === undefined) return "—";
-  return `${price.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-}
-
 function exportCSV(list: WatchlistEntry[]) {
-  const header = "reference,manufacturer,name,status,min_price,currency,date_added,snapshot_date";
-  const rows = list.map((e) =>
-    [
-      `"${e.reference}"`,
-      `"${e.manufacturer}"`,
-      `"${e.name.replace(/"/g, '""')}"`,
+  const csv = toCsv([
+    ["reference", "manufacturer", "name", "status", "min_price", "currency", "date_added", "snapshot_date"],
+    ...list.map((e) => [
+      e.reference,
+      e.manufacturer,
+      e.name,
       e.status,
-      e.minPrice ?? "",
+      e.minPrice,
       e.currency ?? "EUR",
       e.dateAdded,
       e.snapshotDate,
-    ].join(","),
-  );
-  const csv = [header, ...rows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `ma-liste-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+    ]),
+  ]);
+  downloadTextFile(csv, `ma-liste-${new Date().toISOString().slice(0, 10)}.csv`);
 }
 
 function parseCSV(text: string): Array<{
@@ -305,7 +295,7 @@ export default function ListePage() {
                       {formatPrice(entry.minPrice, entry.currency)}
                     </td>
                     <td className="px-4 py-3 text-zinc-400">
-                      {new Date(entry.dateAdded).toLocaleDateString("fr-FR")}
+                      {formatDate(entry.dateAdded)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button

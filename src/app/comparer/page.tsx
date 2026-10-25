@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { readCompareList, clearCompareList, type CompareEntry } from "@/lib/compare-list";
 import { StatusBadge } from "@/components/status-badge";
+import { formatPrice } from "@/lib/format";
+import { downloadTextFile, toCsv } from "@/lib/csv";
 
 type PartDetail = {
   referenceRaw: string;
@@ -20,11 +22,6 @@ type PartDetail = {
   offerUrls: { url: string; price: number | null; currency: string }[];
 } | null;
 
-function formatPrice(price: number | null, currency = "EUR") {
-  if (price === null) return "—";
-  return `${price.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${currency}`;
-}
-
 function diffClass(values: (string | number | null)[], current: string | number | null) {
   const unique = [...new Set(values.filter((v) => v !== null))];
   if (unique.length <= 1) return "";
@@ -32,25 +29,17 @@ function diffClass(values: (string | number | null)[], current: string | number 
 }
 
 function exportToCSV(found: NonNullable<PartDetail>[], allAttrKeys: string[]) {
-  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const headers = ["Critère", ...found.map((d) => `${d.manufacturerName} ${d.referenceRaw}`)];
-  const rows: string[][] = [
+  const csv = toCsv([
+    ["Critère", ...found.map((d) => `${d.manufacturerName} ${d.referenceRaw}`)],
     ["Référence", ...found.map((d) => d.referenceRaw)],
     ["Fabricant", ...found.map((d) => d.manufacturerName)],
     ["Catégorie", ...found.map((d) => d.categoryName ?? "")],
     ["Statut", ...found.map((d) => d.status)],
-    ["Prix min", ...found.map((d) => d.minPrice !== null ? String(d.minPrice) : "")],
-    ["Offres", ...found.map((d) => String(d.offerCount))],
+    ["Prix min", ...found.map((d) => d.minPrice)],
+    ["Offres", ...found.map((d) => d.offerCount)],
     ...allAttrKeys.map((key) => [key, ...found.map((d) => d.attributes?.[key] ?? "")]),
-  ];
-  const csv = [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "comparaison.csv";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 100);
+  ]);
+  downloadTextFile(csv, "comparaison.csv");
 }
 
 export default function ComparerPage() {

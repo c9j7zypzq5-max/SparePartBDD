@@ -1,6 +1,5 @@
-import { aliasedTable, and, asc, desc, eq, ilike, sql } from "drizzle-orm";
+import { aliasedTable, and, asc, desc, eq, ilike, inArray, isNotNull, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { normalizeReference } from "@/lib/normalize";
 
 const {
   categories,
@@ -143,20 +142,6 @@ export async function getManufacturerPageData(
   };
 }
 
-export async function getManufacturerPartsPaginated(
-  manufacturerId: number,
-  limit: number,
-  offset: number,
-) {
-  return db
-    .select()
-    .from(parts)
-    .where(eq(parts.manufacturerId, manufacturerId))
-    .orderBy(asc(parts.referenceNormalized))
-    .limit(limit)
-    .offset(offset);
-}
-
 export async function getManufacturerPartsPaginatedFiltered(
   manufacturerId: number,
   limit: number,
@@ -231,24 +216,6 @@ export async function getCategoryPartsPaginated(
     .offset(offset);
 }
 
-export async function getCategoryWithParts(slug: string) {
-  const [category] = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.slug, slug))
-    .limit(1);
-  if (!category) return null;
-
-  const partRows = await db
-    .select({ part: parts, manufacturer: manufacturers })
-    .from(parts)
-    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
-    .where(eq(parts.categoryId, category.id))
-    .orderBy(asc(parts.name));
-
-  return { category, parts: partRows };
-}
-
 export async function getAllManufacturers() {
   return db.select().from(manufacturers).orderBy(asc(manufacturers.name));
 }
@@ -284,10 +251,14 @@ export async function getCategoriesWithCounts() {
     .orderBy(asc(categories.name));
 }
 
-/** Pour le sitemap : toutes les URLs de pages pièce. */
+/** Pour le sitemap : toutes les URLs de pages pièce, avec leur date de mise à jour. */
 export async function getAllPartPaths() {
   return db
-    .select({ partSlug: parts.slug, manufacturerSlug: manufacturers.slug })
+    .select({
+      partSlug: parts.slug,
+      manufacturerSlug: manufacturers.slug,
+      updatedAt: parts.updatedAt,
+    })
     .from(parts)
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId));
 }
@@ -344,62 +315,6 @@ export async function getSimilarParts(
     .limit(needed);
 
   return [...withCategory, ...fallback];
-}
-
-/**
- * Recherche floue par ILIKE sur la référence normalisée et la référence brute.
- * Utilisé en fallback quand la recherche pg_trgm ne renvoie rien.
- */
-export async function searchPartsFuzzy(
-  term: string,
-  opts: { limit?: number; offset?: number } = {},
-) {
-  const raw = term.trim();
-  const normalized = normalizeReference(raw);
-  const limit = opts.limit ?? 20;
-  const offset = opts.offset ?? 0;
-
-  const rows = await db.execute(sql`
-    SELECT p.id,
-           p.name,
-           p.reference_raw,
-           p.slug,
-           p.status,
-           p.updated_at,
-           m.name AS manufacturer_name,
-           m.slug AS manufacturer_slug,
-           m.industry
-    FROM parts p
-    JOIN manufacturers m ON m.id = p.manufacturer_id
-    WHERE p.reference_normalized ILIKE ${"%" + normalized + "%"}
-       OR p.reference_raw ILIKE ${"%" + raw + "%"}
-    ORDER BY p.reference_normalized ASC
-    LIMIT ${limit}
-    OFFSET ${offset}
-  `);
-
-  type FuzzyRow = {
-    id: number;
-    name: string;
-    reference_raw: string;
-    slug: string;
-    status: "active" | "obsolete" | "unknown";
-    updated_at: Date | string | null;
-    manufacturer_name: string;
-    manufacturer_slug: string;
-    industry: string;
-  };
-  return (rows as unknown as FuzzyRow[]).map((r) => ({
-    partId: Number(r.id),
-    name: r.name,
-    referenceRaw: r.reference_raw,
-    slug: r.slug,
-    status: r.status,
-    manufacturerName: r.manufacturer_name,
-    manufacturerSlug: r.manufacturer_slug,
-    industry: r.industry,
-    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
-  }));
 }
 
 /** Fabricants dont le nom contient le terme, pour les suggestions "Aucun résultat". */
@@ -669,4 +584,27 @@ export async function getRecentSupersessions(limit = 4) {
     .innerJoin(parts, eq(parts.id, supersessions.newPartId))
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
     .limit(limit);
+}
+
+/**
+ * Offre la moins chère de chaque pièce, prix et devise issus de la même
+ * offre (un GROUP BY pièce, devise appairerait un prix avec une devise au
+ * hasard dès qu'une pièce a des offres en plusieurs devises).
+ */
+export async function getCheapestOffers(partIds: number[]) {
+  const cheapest = new Map<number, { price: number; currency: string }>();
+  if (partIds.length === 0) return cheapest;
+  const rows = await db
+    .selectDistinctOn([offers.partId], {
+      partId: offers.partId,
+      price: offers.price,
+      currency: offers.currency,
+    })
+    .from(offers)
+    .where(and(inArray(offers.partId, partIds), isNotNull(offers.price)))
+    .orderBy(offers.partId, asc(offers.price));
+  for (const r of rows) {
+    cheapest.set(r.partId, { price: Number(r.price), currency: r.currency ?? "EUR" });
+  }
+  return cheapest;
 }
