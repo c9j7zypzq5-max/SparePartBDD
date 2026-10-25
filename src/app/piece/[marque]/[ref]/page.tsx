@@ -8,12 +8,21 @@ import { StatusBadge } from "@/components/status-badge";
 import { WatchlistButton } from "@/components/watchlist-button";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { CompareButton } from "@/components/compare-button";
+import { CopyButton } from "@/components/copy-button";
 import { PrintButton } from "@/components/print-button";
+import { ExternalIcon } from "@/components/icons";
 import { generatePartDescription } from "@/lib/part-description";
-import { getPartDetail as _getPartDetail, getSimilarParts, getAlternativeParts, getSupersessionChain, getTopPartPaths } from "@/lib/queries";
+import {
+  getPartDetail as _getPartDetail,
+  getSimilarParts,
+  getAlternativeParts,
+  getSupersessionChain,
+  getTopPartPaths,
+  getPartCardExtras,
+} from "@/lib/queries";
 import { CompatibilityMap } from "@/components/compatibility-map";
 import { siteUrl } from "@/lib/site-url";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatPrice, plural } from "@/lib/format";
 
 // Déduplique les appels identiques dans le même cycle de rendu (generateMetadata + PartPage)
 const getPartDetail = cache(_getPartDetail);
@@ -35,6 +44,7 @@ export async function generateStaticParams() {
 }
 
 type Params = Promise<{ marque: string; ref: string }>;
+type ChainStep = Awaited<ReturnType<typeof getSupersessionChain>>[number];
 
 export async function generateMetadata({
   params,
@@ -74,6 +84,7 @@ async function AlternativePartsContent({
 }) {
   const parts = await getAlternativeParts(partId, manufacturerId, categoryId, referenceNormalized, 4);
   if (parts.length > 0) {
+    const extras = await getPartCardExtras(parts.map(({ part }) => part));
     return (
       <div className="mt-3 grid gap-3">
         {parts.map(({ part: p, manufacturer: m }) => (
@@ -85,6 +96,7 @@ async function AlternativePartsContent({
             manufacturerName={m.name}
             manufacturerSlug={m.slug}
             status={p.status}
+            extras={extras.get(p.id)}
           />
         ))}
       </div>
@@ -100,52 +112,48 @@ async function AlternativePartsContent({
   );
 }
 
-async function SupersessionChainSection({
-  partId,
+function SupersessionChainSection({
+  chain,
   currentRef,
   currentSlug,
   currentManufacturerSlug,
 }: {
-  partId: number;
+  chain: ChainStep[];
   currentRef: string;
   currentSlug: string;
   currentManufacturerSlug: string;
 }) {
-  const chain = await getSupersessionChain(partId);
   if (chain.length < 2) return null;
   return (
-    <section className="mt-8">
+    <section className="mt-10">
       <h2 className="text-xl font-semibold">Chaîne de remplacement complète</h2>
       <p className="mt-1 text-sm text-zinc-500">
         Succession officielle des remplacements annoncés par le fabricant.
       </p>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Link
-          href={`/piece/${currentManufacturerSlug}/${currentSlug}`}
-          className="rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-mono font-medium text-zinc-700 hover:border-zinc-500"
-        >
-          {currentRef}
-          <span className="ml-1.5 rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-sans text-red-700">
-            Obsolète
-          </span>
-        </Link>
+      <ol className="mt-4 flex flex-wrap items-center gap-2">
+        <li>
+          <Link
+            href={`/piece/${currentManufacturerSlug}/${currentSlug}`}
+            aria-current="page"
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 font-mono text-sm font-medium text-zinc-700 hover:border-zinc-500"
+          >
+            {currentRef}
+            <StatusBadge status="obsolete" size="sm" />
+          </Link>
+        </li>
         {chain.map((step) => (
-          <span key={step.id} className="flex items-center gap-2">
-            <span className="text-zinc-400">→</span>
+          <li key={step.id} className="flex items-center gap-2">
+            <span className="text-zinc-400" aria-hidden="true">→</span>
             <Link
               href={`/piece/${step.manufacturerSlug}/${step.slug}`}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-mono font-medium text-zinc-900 hover:border-blue-400 hover:text-blue-700"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm font-medium text-zinc-900 hover:border-blue-400 hover:text-blue-700"
             >
               {step.referenceRaw}
-              {step.status === "active" && (
-                <span className="ml-1.5 rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-sans text-green-700">
-                  Actuelle
-                </span>
-              )}
+              <StatusBadge status={step.status} size="sm" />
             </Link>
-          </span>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }
@@ -163,8 +171,9 @@ async function SimilarPartsSection({
 }) {
   const parts = await getSimilarParts(partId, manufacturerId, categoryId, 6);
   if (parts.length === 0) return null;
+  const extras = await getPartCardExtras(parts.map(({ part }) => part));
   return (
-    <section className="mt-8 print-hide">
+    <section className="mt-10 print-hide">
       <h2 className="text-xl font-semibold">
         Pièces similaires de {manufacturerName}
       </h2>
@@ -179,6 +188,7 @@ async function SimilarPartsSection({
             manufacturerSlug={m.slug}
             status={p.status}
             updatedAt={p.updatedAt}
+            extras={extras.get(p.id)}
             watchlistData={{
               reference: p.referenceRaw,
               manufacturer: m.name,
@@ -186,11 +196,23 @@ async function SimilarPartsSection({
               partSlug: p.slug,
               name: p.name,
               status: p.status,
+              minPrice: extras.get(p.id)?.minPrice ?? undefined,
+              currency: extras.get(p.id)?.currency,
             }}
           />
         ))}
       </div>
     </section>
+  );
+}
+
+/** Case de l'encadré « en bref » sous le titre. */
+function Fact({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-xl border border-zinc-200 p-3 ${className}`}>
+      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-400">{label}</dt>
+      <dd className="mt-1.5 text-sm">{children}</dd>
+    </div>
   );
 }
 
@@ -200,11 +222,15 @@ export default async function PartPage({ params }: { params: Params }) {
   if (!detail) notFound();
 
   const { part, manufacturer, category } = detail;
-  const completenessScore =
-    (part.description != null ? 25 : 0) +
-    (part.productUrl != null ? 25 : 0) +
-    (part.status !== "unknown" ? 25 : 0) +
-    (category != null ? 25 : 0);
+  const isObsolete = part.status === "obsolete";
+
+  const [chain, relatedExtras] = await Promise.all([
+    detail.replacedBy.length > 0 ? getSupersessionChain(part.id) : Promise.resolve([] as ChainStep[]),
+    getPartCardExtras([...detail.replacedBy, ...detail.replacements].map(({ part: p }) => p)),
+  ]);
+  // Remplacement à proposer : le premier successeur encore fabriqué de la
+  // chaîne (le remplacement direct peut être lui-même devenu obsolète).
+  const successor = chain.find((s) => s.status === "active") ?? chain[0] ?? null;
 
   // Attributs du catalogue, complétés par les specs enrichies (les attributs priment)
   const characteristics = Object.entries({ ...(part.specs ?? {}), ...(part.attributes ?? {}) });
@@ -237,7 +263,7 @@ export default async function PartPage({ params }: { params: Params }) {
           priceCurrency: currency,
           offerCount: priceOffers.length,
           // schema.org n'a pas de propriété "discontinued" : l'arrêt se signale par availability
-          ...(part.status === "obsolete" ? { availability: "https://schema.org/Discontinued" } : {}),
+          ...(isObsolete ? { availability: "https://schema.org/Discontinued" } : {}),
         }
       : undefined,
   };
@@ -256,70 +282,143 @@ export default async function PartPage({ params }: { params: Params }) {
         ]}
       />
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {manufacturer.name}{" "}
-          <span className="font-mono">{part.referenceRaw}</span>
-        </h1>
-        <StatusBadge status={part.status} />
-        {part.lifecycleCheckedAt && (
-          <span className="text-xs text-zinc-400">
-            Statut vérifié le{" "}
-            {formatDate(part.lifecycleCheckedAt)}
+      {/* Pas de <header> : la feuille d'impression masque tous les header. */}
+      <div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <span className="text-zinc-500">{manufacturer.name}</span>{" "}
+            <span className="font-mono break-all">{part.referenceRaw}</span>
+          </h1>
+          <CopyButton value={part.referenceRaw} />
+        </div>
+        <p className="mt-1 text-lg text-zinc-700">{part.name}</p>
+
+        <div className="no-print mt-4 flex flex-wrap gap-2">
+          <WatchlistButton
+            size="md"
+            entry={{
+              reference: part.referenceRaw,
+              manufacturer: manufacturer.name,
+              manufacturerSlug: manufacturer.slug,
+              partSlug: part.slug,
+              name: part.name,
+              status: part.status,
+              minPrice,
+              currency,
+            }}
+          />
+          <CompareButton
+            size="md"
+            entry={{
+              referenceRaw: part.referenceRaw,
+              name: part.name,
+              manufacturerName: manufacturer.name,
+              manufacturerSlug: manufacturer.slug,
+              slug: part.slug,
+              status: part.status,
+            }}
+          />
+          <PrintButton />
+        </div>
+      </div>
+
+      <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Fact label="Statut">
+          <StatusBadge status={part.status} size="sm" />
+          <span className="mt-1 block text-xs text-zinc-500">
+            {part.lifecycleCheckedAt
+              ? `Vérifié le ${formatDate(part.lifecycleCheckedAt)}`
+              : "Non vérifié chez le fabricant"}
           </span>
-        )}
-        <div className="flex flex-col items-end gap-1">
-          <div className="flex h-2 w-24 overflow-hidden rounded-full bg-zinc-100">
-            <div
-              className={`h-full rounded-full transition-all ${
-                completenessScore === 100
-                  ? "bg-green-500"
-                  : completenessScore >= 50
-                    ? "bg-amber-400"
-                    : "bg-zinc-300"
-              }`}
-              style={{ width: `${completenessScore}%` }}
-            />
-          </div>
-          <span className="text-xs text-zinc-400">
-            {completenessScore === 100 ? (
-              <span className="text-green-600">✓ Fiche complète</span>
-            ) : (
-              `Complétude ${completenessScore}%`
-            )}
-          </span>
-          {part.updatedAt && (
-            <span className="text-xs text-zinc-400">
-              Mis à jour le {formatDate(part.updatedAt)}
+        </Fact>
+        <Fact label="Meilleur prix">
+          {minPrice != null ? (
+            <>
+              <span className="text-base font-semibold text-zinc-900">{formatPrice(minPrice, currency)}</span>
+              <a href="#offres" className="mt-0.5 block text-xs text-blue-700 hover:underline">
+                {plural(detail.offers.length, "offre")} ↓
+              </a>
+            </>
+          ) : (
+            <span className="text-zinc-500">
+              {detail.offers.length > 0 ? `${plural(detail.offers.length, "offre")}, prix sur demande` : "Aucune offre relevée"}
             </span>
           )}
+        </Fact>
+        <Fact label="Catégorie" className="col-span-2 sm:col-span-1">
+          {category ? (
+            <Link href={`/categorie/${category.slug}`} className="font-medium text-zinc-900 hover:text-blue-700 hover:underline">
+              {category.name}
+            </Link>
+          ) : (
+            <span className="text-zinc-500">Non classée</span>
+          )}
+          <span className="mt-1 block text-xs capitalize text-zinc-500">{manufacturer.industry}</span>
+        </Fact>
+      </dl>
+
+      {isObsolete && successor && (
+        <div
+          className={`mt-6 rounded-xl border px-5 py-4 ${
+            successor.status === "active" ? "border-amber-300 bg-amber-50" : "border-orange-300 bg-orange-50"
+          }`}
+        >
+          <p className="font-semibold text-amber-900">Cette pièce n&apos;est plus fabriquée</p>
+          {successor.status === "active" ? (
+            <p className="mt-1 text-sm text-amber-900">
+              {successor.depth > 1 ? "Remplacement actuel" : "Remplacement officiel"} :{" "}
+              <Link
+                href={`/piece/${successor.manufacturerSlug}/${successor.slug}`}
+                className="font-mono font-semibold underline hover:no-underline"
+              >
+                {successor.referenceRaw}
+              </Link>
+              , encore fabriquée
+              {successor.depth > 1 && <> (après {successor.depth} remplacements successifs, voir la chaîne ci-dessous)</>}.
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-orange-900">
+              Remplacement officiel :{" "}
+              <Link
+                href={`/piece/${successor.manufacturerSlug}/${successor.slug}`}
+                className="font-mono font-semibold underline hover:no-underline"
+              >
+                {successor.referenceRaw}
+              </Link>
+              {" "}— attention, cette référence est elle-même obsolète. Le reconditionné et le surplus
+              restent souvent disponibles (voir les offres ci-dessous).
+            </p>
+          )}
+          <Link
+            href={`/piece/${successor.manufacturerSlug}/${successor.slug}`}
+            className="no-print mt-3 inline-flex items-center gap-1 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
+          >
+            Voir la fiche {successor.referenceRaw} →
+          </Link>
         </div>
-        <WatchlistButton
-          entry={{
-            reference: part.referenceRaw,
-            manufacturer: manufacturer.name,
-            manufacturerSlug: manufacturer.slug,
-            partSlug: part.slug,
-            name: part.name,
-            status: part.status,
-            minPrice,
-            currency,
-          }}
-        />
-        <CompareButton
-          entry={{
-            referenceRaw: part.referenceRaw,
-            name: part.name,
-            manufacturerName: manufacturer.name,
-            manufacturerSlug: manufacturer.slug,
-            slug: part.slug,
-            status: part.status,
-          }}
-        />
-        <PrintButton />
-      </div>
-      <p className="mt-2 text-lg text-zinc-600">{part.name}</p>
-      <p className="mt-4 max-w-3xl text-zinc-700">
+      )}
+
+      {isObsolete && !successor && (
+        <div className="mt-6 rounded-xl border border-orange-300 bg-orange-50 px-5 py-4">
+          <p className="font-semibold text-orange-900">
+            Pièce obsolète sans remplacement officiel connu
+          </p>
+          <p className="mt-1 text-sm text-orange-800">
+            Le reconditionné et le surplus restent souvent disponibles (voir les
+            offres ci-dessous). Alternatives possibles dans notre catalogue :
+          </p>
+          <Suspense fallback={<p className="mt-2 animate-pulse text-sm text-orange-800">Recherche d&apos;alternatives…</p>}>
+            <AlternativePartsContent
+              partId={part.id}
+              manufacturerId={manufacturer.id}
+              categoryId={category?.id ?? null}
+              referenceNormalized={part.referenceNormalized}
+            />
+          </Suspense>
+        </div>
+      )}
+
+      <p className="mt-6 max-w-3xl text-zinc-700">
         {part.description ??
           generatePartDescription(
             part.name,
@@ -337,7 +436,7 @@ export default async function PartPage({ params }: { params: Params }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
             >
-              Voir chez le fabricant ↗
+              Page produit {manufacturer.name} <ExternalIcon />
             </a>
           )}
           {part.datasheetUrl && (
@@ -347,73 +446,55 @@ export default async function PartPage({ params }: { params: Params }) {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
             >
-              Fiche technique (PDF) ↗
+              Fiche technique (PDF) <ExternalIcon />
             </a>
           )}
         </div>
       )}
 
-      {part.status === "obsolete" && detail.replacedBy.length === 0 && (
-        <div className="mt-6 rounded-xl border border-orange-300 bg-orange-50 px-5 py-4">
-          <p className="font-semibold text-orange-900">
-            ⚠️ Pièce obsolète sans remplacement officiel connu
-          </p>
-          <p className="mt-1 text-sm text-orange-800">
-            Le reconditionné et le surplus restent souvent disponibles (voir les
-            offres ci-dessous). Alternatives possibles dans notre catalogue :
-          </p>
-          <Suspense fallback={<p className="mt-2 text-sm text-orange-800 animate-pulse">Recherche d&apos;alternatives…</p>}>
-            <AlternativePartsContent
-              partId={part.id}
-              manufacturerId={manufacturer.id}
-              categoryId={category?.id ?? null}
-              referenceNormalized={part.referenceNormalized}
-            />
-          </Suspense>
-        </div>
-      )}
-
-      {part.status === "obsolete" && detail.replacedBy.length > 0 && (
-        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-5 py-4">
-          <span className="text-2xl">⚠️</span>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-amber-900">
-              Cette pièce n&apos;est plus fabriquée
-            </p>
-            <p className="text-sm text-amber-800">
-              Remplacement officiel :{" "}
-              <Link
-                href={`/piece/${detail.replacedBy[0].manufacturer.slug}/${detail.replacedBy[0].part.slug}`}
-                className="font-mono font-semibold underline hover:no-underline"
-              >
-                {detail.replacedBy[0].part.referenceRaw}
-              </Link>
-            </p>
-          </div>
-        </div>
-      )}
-
       {characteristics.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-10">
           <h2 className="text-xl font-semibold">Caractéristiques</h2>
-          <dl className="mt-3 grid max-w-xl grid-cols-2 gap-x-6 gap-y-2 text-sm">
+          <dl className="mt-3 max-w-2xl divide-y divide-zinc-100 rounded-xl border border-zinc-200 text-sm">
             {characteristics.map(([key, value]) => (
-              <div key={key} className="contents">
+              <div key={key} className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 px-4 py-2">
                 <dt className="text-zinc-500">{key}</dt>
-                <dd className="font-medium">{value}</dd>
+                <dd className="font-medium text-zinc-900">{value}</dd>
               </div>
             ))}
           </dl>
         </section>
       )}
 
+      <section id="offres" className="mt-10">
+        <h2 className="text-xl font-semibold">
+          Où acheter cette pièce
+          {detail.offers.length > 0 && (
+            <span className="ml-2 text-base font-normal text-zinc-400">{plural(detail.offers.length, "offre")}</span>
+          )}
+        </h2>
+        <div className="mt-3">
+          <SellerTable
+            offers={detail.offers.map(({ offer, seller }) => ({
+              sellerName: seller.name,
+              sellerType: seller.type,
+              price: offer.price,
+              currency: offer.currency,
+              availability: offer.availability,
+              url: offer.url,
+              scrapedAt: offer.scrapedAt,
+            }))}
+          />
+        </div>
+      </section>
+
       {detail.replacedBy.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-10">
           <h2 className="text-xl font-semibold">
-            Référence{detail.replacedBy.length > 1 ? "s" : ""} de remplacement
+            Remplacement{detail.replacedBy.length > 1 ? "s" : ""} officiel{detail.replacedBy.length > 1 ? "s" : ""}
           </h2>
           <p className="mt-1 text-sm text-zinc-500">
-            Remplacement officiel annoncé par le fabricant.
+            Référence{detail.replacedBy.length > 1 ? "s" : ""} annoncée{detail.replacedBy.length > 1 ? "s" : ""} par le fabricant pour remplacer celle-ci.
           </p>
           <div className="mt-3 grid gap-3">
             {detail.replacedBy.map(({ part: p, manufacturer: m }) => (
@@ -426,25 +507,22 @@ export default async function PartPage({ params }: { params: Params }) {
                 manufacturerSlug={m.slug}
                 status={p.status}
                 updatedAt={p.updatedAt}
+                extras={relatedExtras.get(p.id)}
               />
             ))}
           </div>
         </section>
       )}
 
-      {detail.replacedBy.length > 0 && (
-        <Suspense fallback={null}>
-          <SupersessionChainSection
-            partId={part.id}
-            currentRef={part.referenceRaw}
-            currentSlug={part.slug}
-            currentManufacturerSlug={manufacturer.slug}
-          />
-        </Suspense>
-      )}
+      <SupersessionChainSection
+        chain={chain}
+        currentRef={part.referenceRaw}
+        currentSlug={part.slug}
+        currentManufacturerSlug={manufacturer.slug}
+      />
 
       {detail.replacements.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-10">
           <h2 className="text-xl font-semibold">Remplace les références</h2>
           <div className="mt-3 grid gap-3">
             {detail.replacements.map(({ part: p, manufacturer: m }) => (
@@ -457,6 +535,7 @@ export default async function PartPage({ params }: { params: Params }) {
                 manufacturerSlug={m.slug}
                 status={p.status}
                 updatedAt={p.updatedAt}
+                extras={relatedExtras.get(p.id)}
               />
             ))}
           </div>
@@ -464,13 +543,13 @@ export default async function PartPage({ params }: { params: Params }) {
       )}
 
       {detail.references.length > 0 && (
-        <section className="mt-8">
+        <section className="mt-10">
           <h2 className="text-xl font-semibold">Références équivalentes</h2>
-          <ul className="mt-3 grid max-w-xl gap-1 text-sm">
+          <ul className="mt-3 max-w-2xl divide-y divide-zinc-100 rounded-xl border border-zinc-200 text-sm">
             {detail.references.map((r) => (
-              <li key={r.id} className="flex justify-between border-b border-zinc-100 py-1">
-                <span className="font-mono">{r.reference}</span>
-                <span className="text-zinc-500">
+              <li key={r.id} className="flex items-center justify-between gap-4 px-4 py-2">
+                <span className="font-mono break-all">{r.reference}</span>
+                <span className="shrink-0 text-xs text-zinc-500">
                   {r.brand ? `${r.brand} · ` : ""}
                   {r.type.toUpperCase()}
                 </span>
@@ -481,7 +560,7 @@ export default async function PartPage({ params }: { params: Params }) {
       )}
 
       {detail.compatibles.length > 0 && (
-        <section className="mt-8 print-hide">
+        <section className="mt-10 print-hide">
           <h2 className="text-xl font-semibold">Pièces compatibles alternatives</h2>
           <p className="mt-1 text-sm text-zinc-500">
             Compatibilité non officielle — vérifiez les caractéristiques avant achat.
@@ -499,22 +578,9 @@ export default async function PartPage({ params }: { params: Params }) {
         </section>
       )}
 
-      <section className="mt-8">
-        <h2 className="text-xl font-semibold">Où acheter cette pièce</h2>
-        <div className="mt-3">
-          <SellerTable
-            offers={detail.offers.map(({ offer, seller }) => ({
-              sellerName: seller.name,
-              sellerType: seller.type,
-              price: offer.price,
-              currency: offer.currency,
-              availability: offer.availability,
-              url: offer.url,
-              scrapedAt: offer.scrapedAt,
-            }))}
-          />
-        </div>
-      </section>
+      <p className="mt-10 text-xs text-zinc-400">
+        Fiche mise à jour le {formatDate(part.updatedAt)}
+      </p>
 
       <Suspense fallback={null}>
         <SimilarPartsSection
