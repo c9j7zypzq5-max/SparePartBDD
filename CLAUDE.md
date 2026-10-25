@@ -87,7 +87,12 @@ Updates never erase data: omitted/empty fields keep their DB value (COALESCE), `
 - **Enums**: value lists live in `src/lib/ingest-types.ts` (`INDUSTRIES`, `PART_STATUSES`, …) and feed both the Postgres enums in `schema.ts` and validation.
 - **Security**: `/admin/*` is guarded by HTTP Basic auth in `src/middleware.ts` (`ADMIN_USER`/`ADMIN_PASSWORD`; 404 in production without a password). Public endpoints use `rateLimitResponse(req, bucket, { limit })` (per-endpoint, per-IP, in-memory) and `intParam`/`enumParam` (`src/lib/params.ts`) for query params.
 - **Shared helpers**: `src/lib/format.ts` (`formatPrice`, `formatDate` with a fixed Europe/Paris timezone to avoid hydration mismatches), `src/lib/csv.ts` (escaping, CSV-injection guard, UTF-8 BOM), `src/lib/part-export.ts` (brand/category exports).
-- **PartCard** is a server-compatible component using a "stretched link" (`after:absolute after:inset-0`): never wrap interactive buttons in the `<Link>`.
+- **PartCard** is a server-compatible component using a "stretched link" (`after:absolute after:inset-0`): never wrap interactive buttons in the `<Link>`; interactive children sit above it with `relative z-10`. Lists pass `extras` from `getPartCardExtras()` (two batched queries: best price, offer count and, for obsolete parts, the first still-manufactured successor in the supersession chain) — `withCardExtras()` does it for search hits, and the part page uses the same "first active successor" rule.
+- **Status display**: always `StatusBadge` (`size="sm" | "md"`), labels from `STATUS_LABELS` / `statusLabel()` in `format.ts` — no ad-hoc status chips.
+- **Search UI**: `SearchBar` is an ARIA combobox (variants `hero` / `page` / `header`, `/` shortcut, previous suggestion request aborted on each keystroke). `HeaderSearch` shows the compact one on every page except `/` and `/recherche`. `/recherche` filter selects navigate on change (`FilterSelect`, `<noscript>` submit fallback); the "stock" filter is labelled « Avec prix » (it keeps parts with a priced offer).
+- **Bulk search**: `/technicien` is the only bulk page (`/recherche-lot` redirects to it in `next.config.ts`).
+- **localStorage pages** (`/liste`, `/comparer`): render nothing until mounted, never an empty state before the list has been read.
+- **Print stylesheet** hides every `<header>` element: don't use `<header>` for page content (the part page title block is a `<div>`); mark UI chrome with `no-print`.
 - **No `loading.tsx` under `/recherche`**: with Next 15.5 it made client navigations between two `/recherche?…` URLs (filter chips, `router.push`) never commit. `SearchLoadMore` is keyed on the query so a filter change resets loaded results.
 
 ## Environment Variables
