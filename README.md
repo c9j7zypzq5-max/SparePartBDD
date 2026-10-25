@@ -20,10 +20,11 @@ L'utilisateur entre une **référence OEM** (ex : `Siemens 6ES7214-1AG40-0XB0`,
 - **Next.js 15** (App Router, TypeScript, Tailwind CSS 4) — SSR pour le SEO
   programmatique
 - **PostgreSQL 16** + **Drizzle ORM**
-- **Recherche** : full-text Postgres (`websearch_to_tsquery`) + similarité
-  trigram (`pg_trgm`) sur les références normalisées, derrière une interface
-  `SearchService` (`src/lib/search/search-service.ts`) — remplaçable par
-  Meilisearch/Typesense sans toucher aux pages.
+- **Recherche** : full-text Postgres (`websearch_to_tsquery` sur une colonne
+  `search_vector` indexée en GIN) + correspondance exacte / préfixe /
+  similarité trigramme (`pg_trgm`, index GIN) sur les références normalisées,
+  derrière une interface `SearchService` (`src/lib/search/search-service.ts`)
+  — remplaçable par Meilisearch/Typesense sans toucher aux pages.
 
 ## Démarrage local
 
@@ -31,8 +32,10 @@ L'utilisateur entre une **référence OEM** (ex : `Siemens 6ES7214-1AG40-0XB0`,
 # 1. Dépendances
 npm install
 
-# 2. Base de données
+# 2. Base de données (l'extension pg_trgm doit exister AVANT db:push : les
+#    index de recherche en dépendent)
 createdb sparepart
+psql sparepart -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
 cp .env.example .env   # ajuster DATABASE_URL si besoin
 
 # 3. Schéma + données de démonstration (~30 pièces, 6 industries)
@@ -42,6 +45,23 @@ npm run seed
 # 4. Lancer
 npm run dev
 ```
+
+### Vérifications
+
+```bash
+npm run typecheck          # TypeScript
+npm test                   # tests unitaires (sans base)
+
+# Tests d'intégration : base dédiée, VIDÉE par les tests (nom contenant « test »)
+createdb sparepart_test
+psql sparepart_test -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"
+DATABASE_URL=postgres://localhost:5432/sparepart_test npm run db:push
+TEST_DATABASE_URL=postgres://localhost:5432/sparepart_test npm run test:integration
+```
+
+La CI GitHub Actions (`.github/workflows/ci.yml`) exécute typecheck, tests
+unitaires, tests d'intégration sur Postgres 16 et build à chaque push sur
+`main` et sur chaque pull request.
 
 Puis tester : `http://localhost:3000`, recherche `PWR-C1-715WAC`
 (alimentation Cisco en fin de vie → successeur affiché),
@@ -68,18 +88,26 @@ Puis tester : `http://localhost:3000`, recherche `PWR-C1-715WAC`
 #   DATABASE_URL     = <connection string Neon>
 #   NEXT_PUBLIC_SITE_URL = https://ton-domaine.vercel.app
 #   INGEST_API_KEY   = <clé secrète aléatoire — voir ci-dessous>
+#   ADMIN_PASSWORD   = <mot de passe des pages /admin (HTTP Basic, utilisateur
+#                       ADMIN_USER, « admin » par défaut)>
 ```
+
+Sans `ADMIN_PASSWORD`, les pages `/admin/*` répondent 404 en production.
 
 Générer une clé API pour l'ingestion :
 ```bash
 openssl rand -hex 32
 ```
 
-### 3. Initialiser le schéma sur Neon
+### 3. Initialiser (ou mettre à jour) le schéma sur Neon
 
 ```bash
 DATABASE_URL="postgres://..." npm run db:push
 ```
+
+`db:push` crée aussi les index de recherche (GIN trigramme et plein texte) et
+la colonne générée `parts.search_vector` : sur un gros catalogue, la première
+exécution peut prendre quelques secondes.
 
 ### 4. Pousser tes données depuis le Mac mini
 
@@ -145,6 +173,24 @@ npx tsx scripts/ingest/push.ts scripts/ingest/mon-batch.json
 Voir `scripts/ingest/prompt-template.md` pour le prompt complet à donner à
 Ollama et les instructions de parallélisation.
 
+### Mise à jour d'une pièce existante
+
+Une pièce est identifiée par fabricant + référence normalisée. Ré-ingérer une
+pièce **complète sans jamais effacer** :
+
+- un champ absent ou vide (`description`, `category`, `attributes`, `specs`,
+  URLs, score) conserve la valeur en base ;
+- `status` n'est appliqué que s'il vaut `active` ou `obsolete`, et jamais si
+  la veille hebdomadaire a tranché sur preuve (page 404, mention
+  « discontinued »…) ;
+- une offre sans prix met à jour le lien mais garde le dernier prix relevé ;
+- fabricants, catégories et vendeurs gardent le nom de leur première création.
+
+La réponse contient `errors` (pièces rejetées → HTTP 207) et `warnings`
+(relations ignorées, ex. remplacement absent du catalogue). Les
+`supersededBy` / `compatibleWith` sont résolus dans le lot **ou** parmi les
+pièces déjà en base. 500 pièces maximum par appel.
+
 ---
 
 ## Surveillance hebdomadaire du cycle de vie (Mac mini)
@@ -206,17 +252,25 @@ src/
 ├── db/schema.ts                      # modèle de données (voir ci-dessous)
 ├── lib/
 │   ├── normalize.ts                  # normalisation des références
-│   ├── ingest-types.ts               # types partagés IngestPayload / IngestPart
-│   ├── ingest-pipeline.ts            # logique d'upsert (2 passes)
+│   ├── ingest-types.ts               # contrat IngestPayload / IngestPart + enums
+│   ├── ingest-validation.ts          # validation des lots reçus
+│   ├── ingest-pipeline.ts            # logique d'upsert (2 passes, non destructive)
 │   ├── queries.ts                    # requêtes des pages
-│   └── search/                       # SearchService + implémentation Postgres
+│   ├── api-auth.ts / rate-limit.ts   # clé API, limitation de débit
+│   └── search/                       # SearchService, analyse de requête, Postgres
 └── components/
 scripts/
 ├── seed.ts                           # données de démo
+├── generate-catalog-sql.py           # génère neon-catalog.sql (265 pièces)
+├── lifecycle/check.ts                # veille hebdomadaire (Mac mini)
 └── ingest/
+    ├── accumulate.ts                 # enrichissement continu (Ollama / Gemini)
     ├── adapter.ts                    # interface SourceAdapter (sources futures)
     ├── push.ts                       # CLI : envoie un fichier JSON à /api/ingest
     └── prompt-template.md            # prompt Ollama à copier-coller
+tests/
+├── unit/                             # fonctions pures (npm test)
+└── integration/                      # Postgres réel (npm run test:integration)
 ```
 
 ## Modèle de données
@@ -238,10 +292,13 @@ majuscules, alphanumérique seul) sert de clé de matching entre sources —
 
 ## Ingestion de données
 
-Chaque source (catalogue fabricant, API marketplace, flux d'affiliation)
-implémente l'interface `SourceAdapter` (`scripts/ingest/adapter.ts`) qui
-produit des `RawPart` / `RawOffer` normalisés. Le pipeline d'upsert et de
-dédoublonnage sera ajouté avec la première vraie source.
+Toutes les sources passent par `POST /api/ingest` (`src/lib/ingest-pipeline.ts`,
+validation dans `src/lib/ingest-validation.ts`). L'interface `SourceAdapter`
+(`scripts/ingest/adapter.ts`) décrit le contrat d'une future source
+automatisée (catalogue fabricant, API marketplace, flux d'affiliation).
+
+Un audit complet du projet et la feuille de route technique sont dans
+[`docs/audit-2026-10.md`](docs/audit-2026-10.md).
 
 ## Roadmap (extrait)
 
