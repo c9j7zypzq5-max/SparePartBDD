@@ -11,8 +11,9 @@ import {
 import { StatusBadge } from "@/components/status-badge";
 import { WatchlistSubscribeForm } from "@/components/watchlist-subscribe-form";
 import { ShareButton } from "@/components/share-button";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate, formatPrice, statusLabel } from "@/lib/format";
 import { downloadTextFile, toCsv } from "@/lib/csv";
+import { DownloadIcon } from "@/components/icons";
 
 type CompareResult = {
   reference: string;
@@ -74,12 +75,6 @@ function parseCSV(text: string): Array<{
     });
 }
 
-function statusLabel(s: string) {
-  if (s === "active") return "Fabriquée";
-  if (s === "obsolete") return "Obsolète";
-  return "Inconnu";
-}
-
 type ChangeCategory = "unchanged" | "modified" | "degraded" | "notfound";
 
 function categorize(r: CompareResult): ChangeCategory {
@@ -105,6 +100,10 @@ const CATEGORY_BADGE: Record<ChangeCategory, { label: string; className: string 
 
 export default function ListePage() {
   const [list, setList] = useState<WatchlistEntry[]>([]);
+  // La liste vit dans localStorage : tant qu'elle n'est pas lue, ne rien
+  // afficher plutôt qu'un « liste vide » trompeur.
+  const [ready, setReady] = useState(false);
+  const [compareError, setCompareError] = useState<string | null>(null);
   const [comparing, setComparing] = useState(false);
   const [compareResults, setCompareResults] = useState<CompareResult[] | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -112,6 +111,7 @@ export default function ListePage() {
 
   useEffect(() => {
     setList(readWatchlist());
+    setReady(true);
     const refresh = () => setList(readWatchlist());
     window.addEventListener("watchlist-change", refresh);
     window.addEventListener("storage", refresh);
@@ -129,8 +129,12 @@ export default function ListePage() {
 
   async function runCompare(csvText: string) {
     const parsed = parseCSV(csvText);
-    if (parsed.length === 0) return;
+    if (parsed.length === 0) {
+      setCompareError("Ce fichier ne contient aucune référence : utilisez un export « Télécharger ma liste ».");
+      return;
+    }
     setComparing(true);
+    setCompareError(null);
     setCompareResults(null);
     try {
       const res = await fetch("/api/parts/compare", {
@@ -150,7 +154,7 @@ export default function ListePage() {
       const results: CompareResult[] = await res.json();
       setCompareResults(results);
     } catch {
-      alert("Erreur lors de la comparaison. Vérifiez le format du fichier.");
+      setCompareError("La comparaison a échoué. Vérifiez que le fichier est un export « Télécharger ma liste ».");
     } finally {
       setComparing(false);
     }
@@ -215,9 +219,7 @@ export default function ListePage() {
               onClick={() => exportCSV(list)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-500 hover:text-zinc-900"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
-                <path d="M8 1a.75.75 0 0 1 .75.75v6.19l1.97-1.97a.75.75 0 0 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.03a.75.75 0 0 1 1.06-1.06L7.25 7.94V1.75A.75.75 0 0 1 8 1zM2.5 13.75A.75.75 0 0 1 3.25 13h9.5a.75.75 0 0 1 0 1.5h-9.5a.75.75 0 0 1-.75-.75z" />
-              </svg>
+              <DownloadIcon />
               Télécharger ma liste
             </button>
             <button
@@ -245,18 +247,36 @@ export default function ListePage() {
         )}
       </div>
 
-      {list.length === 0 && !compareResults && (
+      {!ready && (
+        <div className="mt-6 h-40 animate-pulse rounded-xl bg-zinc-50" aria-hidden="true" />
+      )}
+
+      {compareError && (
+        <div role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {compareError}
+        </div>
+      )}
+
+      {ready && list.length === 0 && !compareResults && (
         <div className="mt-12 rounded-2xl border border-dashed border-zinc-300 p-10 text-center">
           <p className="text-lg font-medium text-zinc-700">Votre liste est vide</p>
           <p className="mt-2 text-sm text-zinc-500">
             Cliquez sur &ldquo;Ma liste&rdquo; depuis une carte produit ou une fiche pièce pour ajouter des références.
           </p>
-          <Link
-            href="/recherche?q="
-            className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
-          >
-            Rechercher des pièces
-          </Link>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/recherche"
+              className="inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
+            >
+              Rechercher des pièces
+            </Link>
+            <Link
+              href="/technicien"
+              className="inline-block rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-500"
+            >
+              Ajouter une liste de références
+            </Link>
+          </div>
         </div>
       )}
 
@@ -289,7 +309,7 @@ export default function ListePage() {
                     <td className="px-4 py-3 text-zinc-700">{entry.manufacturer}</td>
                     <td className="px-4 py-3 text-zinc-700">{entry.name}</td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={entry.status} />
+                      <StatusBadge status={entry.status} size="sm" />
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-zinc-700">
                       {formatPrice(entry.minPrice, entry.currency)}
@@ -302,7 +322,8 @@ export default function ListePage() {
                         type="button"
                         onClick={() => removeFromList(entry)}
                         title="Retirer de la liste"
-                        className="text-zinc-300 transition hover:text-red-500"
+                        aria-label={`Retirer ${entry.reference} de ma liste`}
+                        className="rounded p-1 text-zinc-400 transition hover:text-red-600"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
                           <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5.5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />

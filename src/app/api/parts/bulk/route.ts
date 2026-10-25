@@ -9,7 +9,7 @@ const { parts, manufacturers } = schema;
 
 const MAX_REFS = 50;
 
-/** Recherche en lot par référence exacte (pages /technicien et /recherche-lot). */
+/** Recherche en lot par référence exacte (page /technicien). */
 export async function POST(req: NextRequest) {
   const limited = rateLimitResponse(req, "parts-bulk", { limit: 10 });
   if (limited) return limited;
