@@ -1,3 +1,5 @@
+import { formatDate, formatPrice } from "@/lib/format";
+
 export const SELLER_TYPE_LABELS: Record<string, string> = {
   constructeur: "Constructeur",
   distributeur_officiel: "Distributeur officiel",
@@ -15,19 +17,6 @@ export interface SellerOffer {
   url: string;
   /** Date du relevé de l'offre */
   scrapedAt: Date;
-}
-
-/** Formate un prix numeric (string côté drizzle) en monnaie française. */
-function formatPrice(price: string | null, currency: string | null): string {
-  if (!price) return "—";
-  try {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: currency ?? "EUR",
-    }).format(Number(price));
-  } catch {
-    return `${price} ${currency ?? ""}`.trim();
-  }
 }
 
 export function SellerTable({ offers }: { offers: SellerOffer[] }) {
@@ -64,7 +53,7 @@ export function SellerTable({ offers }: { offers: SellerOffer[] }) {
               </td>
               <td className="py-2 pr-4">{offer.availability ?? "—"}</td>
               <td className="py-2 pr-4 text-zinc-400">
-                {offer.scrapedAt.toLocaleDateString("fr-FR")}
+                {formatDate(offer.scrapedAt)}
               </td>
               <td className="py-2">
                 <a
@@ -99,7 +88,7 @@ export function SellerTable({ offers }: { offers: SellerOffer[] }) {
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
               <span className="text-zinc-400">
-                Relevé le {offer.scrapedAt.toLocaleDateString("fr-FR")}
+                Relevé le {formatDate(offer.scrapedAt)}
               </span>
               <a
                 href={offer.url}

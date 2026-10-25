@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPartsForReview, getPartsForReviewCount } from "@/lib/queries";
+import { formatDate } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Révision des fiches",
@@ -147,7 +148,7 @@ export default async function AdminReviewPage({ searchParams }: { searchParams: 
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs text-zinc-400">
-                    {part.updatedAt.toLocaleDateString("fr-FR")}
+                    {formatDate(part.updatedAt)}
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-xs text-zinc-500">
                     {part.lifecycleNote ?? "—"}

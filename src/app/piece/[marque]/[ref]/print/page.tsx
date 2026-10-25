@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getPartDetail } from "@/lib/queries";
 import { generatePartDescription } from "@/lib/part-description";
 import { siteUrl } from "@/lib/site-url";
+import { formatDate } from "@/lib/format";
 
 type Params = Promise<{ marque: string; ref: string }>;
 
@@ -73,7 +74,7 @@ export default async function PrintPage({ params }: { params: Params }) {
                 </span>
               )}
             </div>
-            <div className="mt-1">{new Date().toLocaleDateString("fr-FR")}</div>
+            <div className="mt-1">{formatDate(new Date())}</div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={qrUrl} alt="QR code" width={80} height={80} className="mt-2 ml-auto" />
           </div>

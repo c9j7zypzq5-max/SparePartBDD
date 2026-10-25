@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { addSearchHistory } from "@/lib/search-history";
-import { readWatchlist, toggleWatchlist } from "@/lib/watchlist";
+import { addToWatchlist } from "@/lib/watchlist";
+import { formatPrice } from "@/lib/format";
 
 type BulkResult = {
   inputRef: string;
@@ -28,11 +29,6 @@ function parseRefs(text: string): string[] {
         .filter((r) => r.length > 0),
     ),
   ];
-}
-
-function formatPrice(price?: number, currency = "EUR") {
-  if (price === undefined) return "—";
-  return `${price.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 
 export default function RechercheLotPage() {
@@ -64,10 +60,12 @@ export default function RechercheLotPage() {
 
   function addAllToWatchlist() {
     if (!results) return;
-    results
-      .filter((r) => r.found && r.referenceRaw && r.manufacturerSlug && r.slug)
-      .forEach((r) => {
-        toggleWatchlist({
+    const now = new Date().toISOString();
+    // Ajout seulement : un toggle retirerait les pièces déjà suivies.
+    addToWatchlist(
+      results
+        .filter((r) => r.found && r.referenceRaw && r.manufacturerSlug && r.slug)
+        .map((r) => ({
           reference: r.referenceRaw!,
           manufacturer: r.manufacturerName!,
           manufacturerSlug: r.manufacturerSlug!,
@@ -76,10 +74,10 @@ export default function RechercheLotPage() {
           status: r.status!,
           minPrice: r.minPrice,
           currency: r.currency,
-          dateAdded: new Date().toISOString(),
-          snapshotDate: new Date().toISOString(),
-        });
-      });
+          dateAdded: now,
+          snapshotDate: now,
+        })),
+    );
     window.dispatchEvent(new Event("watchlist-change"));
     setAddedAll(true);
   }

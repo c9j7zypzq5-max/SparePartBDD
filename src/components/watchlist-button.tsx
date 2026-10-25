@@ -4,23 +4,35 @@ import { useState, useEffect } from "react";
 import { toggleWatchlist, isInWatchlist } from "@/lib/watchlist";
 import type { WatchlistEntry } from "@/lib/watchlist";
 
+/** Les dates d'ajout sont posées au clic, pas au rendu (une page ISR peut dater d'une heure). */
+export type WatchlistButtonEntry = Omit<WatchlistEntry, "dateAdded" | "snapshotDate">;
+
 export function WatchlistButton({
   entry,
   className = "",
 }: {
-  entry: WatchlistEntry;
+  entry: WatchlistButtonEntry;
   className?: string;
 }) {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setSaved(isInWatchlist(entry.manufacturerSlug, entry.partSlug));
+    const refresh = () => setSaved(isInWatchlist(entry.manufacturerSlug, entry.partSlug));
+    refresh();
+    // Synchronise les autres boutons de la même pièce (et les autres onglets)
+    window.addEventListener("watchlist-change", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("watchlist-change", refresh);
+      window.removeEventListener("storage", refresh);
+    };
   }, [entry.manufacturerSlug, entry.partSlug]);
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const nowSaved = toggleWatchlist(entry);
+    const now = new Date().toISOString();
+    const nowSaved = toggleWatchlist({ ...entry, dateAdded: now, snapshotDate: now });
     setSaved(nowSaved);
     window.dispatchEvent(new Event("watchlist-change"));
   }

@@ -13,6 +13,7 @@ import { generatePartDescription } from "@/lib/part-description";
 import { getPartDetail as _getPartDetail, getSimilarParts, getAlternativeParts, getSupersessionChain, getTopPartPaths } from "@/lib/queries";
 import { CompatibilityMap } from "@/components/compatibility-map";
 import { siteUrl } from "@/lib/site-url";
+import { formatDate } from "@/lib/format";
 
 // Déduplique les appels identiques dans le même cycle de rendu (generateMetadata + PartPage)
 const getPartDetail = cache(_getPartDetail);
@@ -21,11 +22,16 @@ export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  const paths = await getTopPartPaths(100);
-  return paths.map(({ manufacturerSlug, partSlug }) => ({
-    marque: manufacturerSlug,
-    ref: partSlug,
-  }));
+  try {
+    const paths = await getTopPartPaths(100);
+    return paths.map(({ manufacturerSlug, partSlug }) => ({
+      marque: manufacturerSlug,
+      ref: partSlug,
+    }));
+  } catch {
+    // Base injoignable au build (CI, preview) : les pages seront rendues à la demande.
+    return [];
+  }
 }
 
 type Params = Promise<{ marque: string; ref: string }>;
@@ -97,10 +103,12 @@ async function AlternativePartsContent({
 async function SupersessionChainSection({
   partId,
   currentRef,
+  currentSlug,
   currentManufacturerSlug,
 }: {
   partId: number;
   currentRef: string;
+  currentSlug: string;
   currentManufacturerSlug: string;
 }) {
   const chain = await getSupersessionChain(partId);
@@ -113,7 +121,7 @@ async function SupersessionChainSection({
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Link
-          href={`/piece/${currentManufacturerSlug}/${currentRef.toLowerCase().replace(/[^a-z0-9]/g, "")}`}
+          href={`/piece/${currentManufacturerSlug}/${currentSlug}`}
           className="rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-mono font-medium text-zinc-700 hover:border-zinc-500"
         >
           {currentRef}
@@ -198,11 +206,19 @@ export default async function PartPage({ params }: { params: Params }) {
     (part.status !== "unknown" ? 25 : 0) +
     (category != null ? 25 : 0);
 
+  // Attributs du catalogue, complétés par les specs enrichies (les attributs priment)
+  const characteristics = Object.entries({ ...(part.specs ?? {}), ...(part.attributes ?? {}) });
+
   const minPriceOffer = detail.offers.find((o) => o.offer.price != null);
   const minPrice = minPriceOffer ? parseFloat(minPriceOffer.offer.price!) : undefined;
   const currency = minPriceOffer?.offer.currency ?? "EUR";
 
-  const priceOffers = detail.offers.filter((o) => o.offer.price != null);
+  // AggregateOffer exige une devise unique : on agrège les offres dans la
+  // devise de l'offre la moins chère (les offres sont triées par prix).
+  const priceOffers = detail.offers.filter(
+    (o) => o.offer.price != null && (o.offer.currency ?? "EUR") === currency,
+  );
+  const prices = priceOffers.map((o) => parseFloat(o.offer.price!));
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -211,14 +227,17 @@ export default async function PartPage({ params }: { params: Params }) {
     mpn: part.referenceRaw,
     brand: { "@type": "Brand", name: manufacturer.name },
     description: part.description ?? undefined,
+    category: category?.name,
     url: `${siteUrl}/piece/${manufacturer.slug}/${part.slug}`,
     offers: priceOffers.length > 0
       ? {
           "@type": "AggregateOffer",
-          lowPrice: Math.min(...priceOffers.map((o) => parseFloat(o.offer.price!))),
-          priceCurrency: priceOffers[0].offer.currency ?? "EUR",
+          lowPrice: Math.min(...prices),
+          highPrice: Math.max(...prices),
+          priceCurrency: currency,
           offerCount: priceOffers.length,
-          ...(part.status === "obsolete" ? { discontinued: true } : {}),
+          // schema.org n'a pas de propriété "discontinued" : l'arrêt se signale par availability
+          ...(part.status === "obsolete" ? { availability: "https://schema.org/Discontinued" } : {}),
         }
       : undefined,
   };
@@ -246,7 +265,7 @@ export default async function PartPage({ params }: { params: Params }) {
         {part.lifecycleCheckedAt && (
           <span className="text-xs text-zinc-400">
             Statut vérifié le{" "}
-            {part.lifecycleCheckedAt.toLocaleDateString("fr-FR")}
+            {formatDate(part.lifecycleCheckedAt)}
           </span>
         )}
         <div className="flex flex-col items-end gap-1">
@@ -271,7 +290,7 @@ export default async function PartPage({ params }: { params: Params }) {
           </span>
           {part.updatedAt && (
             <span className="text-xs text-zinc-400">
-              Mis à jour le {part.updatedAt.toLocaleDateString("fr-FR")}
+              Mis à jour le {formatDate(part.updatedAt)}
             </span>
           )}
         </div>
@@ -285,8 +304,6 @@ export default async function PartPage({ params }: { params: Params }) {
             status: part.status,
             minPrice,
             currency,
-            dateAdded: new Date().toISOString(),
-            snapshotDate: new Date().toISOString(),
           }}
         />
         <CompareButton
@@ -311,21 +328,39 @@ export default async function PartPage({ params }: { params: Params }) {
             category?.name,
           )}
       </p>
-      {part.productUrl && (
-        <a
-          href={part.productUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
-        >
-          Voir chez le fabricant ↗
-        </a>
+      {(part.productUrl || part.datasheetUrl) && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {part.productUrl && (
+            <a
+              href={part.productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
+            >
+              Voir chez le fabricant ↗
+            </a>
+          )}
+          {part.datasheetUrl && (
+            <a
+              href={part.datasheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-blue-400 hover:text-blue-700"
+            >
+              Fiche technique (PDF) ↗
+            </a>
+          )}
+        </div>
       )}
 
-      {part.status === "obsolete" && (
+      {part.status === "obsolete" && detail.replacedBy.length === 0 && (
         <div className="mt-6 rounded-xl border border-orange-300 bg-orange-50 px-5 py-4">
           <p className="font-semibold text-orange-900">
-            ⚠️ Cette pièce est obsolète. Voici des alternatives possibles :
+            ⚠️ Pièce obsolète sans remplacement officiel connu
+          </p>
+          <p className="mt-1 text-sm text-orange-800">
+            Le reconditionné et le surplus restent souvent disponibles (voir les
+            offres ci-dessous). Alternatives possibles dans notre catalogue :
           </p>
           <Suspense fallback={<p className="mt-2 text-sm text-orange-800 animate-pulse">Recherche d&apos;alternatives…</p>}>
             <AlternativePartsContent
@@ -358,26 +393,11 @@ export default async function PartPage({ params }: { params: Params }) {
         </div>
       )}
 
-      {part.status === "obsolete" && detail.replacedBy.length === 0 && (
-        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-zinc-300 bg-zinc-50 px-5 py-4">
-          <span className="text-2xl">🔎</span>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-zinc-900">
-              Pièce obsolète sans remplacement officiel connu
-            </p>
-            <p className="text-sm text-zinc-600">
-              Le reconditionné et le surplus restent souvent disponibles —
-              voir les offres ci-dessous.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {part.attributes && Object.keys(part.attributes).length > 0 && (
+      {characteristics.length > 0 && (
         <section className="mt-8">
           <h2 className="text-xl font-semibold">Caractéristiques</h2>
           <dl className="mt-3 grid max-w-xl grid-cols-2 gap-x-6 gap-y-2 text-sm">
-            {Object.entries(part.attributes).map(([key, value]) => (
+            {characteristics.map(([key, value]) => (
               <div key={key} className="contents">
                 <dt className="text-zinc-500">{key}</dt>
                 <dd className="font-medium">{value}</dd>
@@ -417,6 +437,7 @@ export default async function PartPage({ params }: { params: Params }) {
           <SupersessionChainSection
             partId={part.id}
             currentRef={part.referenceRaw}
+            currentSlug={part.slug}
             currentManufacturerSlug={manufacturer.slug}
           />
         </Suspense>

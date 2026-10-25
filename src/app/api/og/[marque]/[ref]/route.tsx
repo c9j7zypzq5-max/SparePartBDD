@@ -12,8 +12,11 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
   if (!detail) return new Response("Not found", { status: 404 });
 
   const { part, manufacturer } = detail;
+  // Pas de glyphes ✓/✗ : absents de la police par défaut, ils déclenchent un
+  // téléchargement de police à la volée (lent, et en échec hors ligne).
   const statusLabel =
-    part.status === "active" ? "✓ Fabriquée" : part.status === "obsolete" ? "✗ Obsolète" : "Statut inconnu";
+    part.status === "active" ? "Fabriquée" : part.status === "obsolete" ? "Obsolète" : "Statut inconnu";
+  const name = part.name.length > 90 ? `${part.name.slice(0, 87)}…` : part.name;
   const statusBg =
     part.status === "active" ? "#dcfce7" : part.status === "obsolete" ? "#fee2e2" : "#f1f5f9";
   const statusColor =
@@ -60,15 +63,13 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
           </div>
           <div
             style={{
+              display: "flex",
               color: "#94a3b8",
               fontSize: "24px",
               maxWidth: "800px",
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
             }}
           >
-            {part.name}
+            {name}
           </div>
         </div>
 
@@ -92,8 +93,10 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
           >
             {statusLabel}
           </div>
+          {/* Satori exige display: flex sur tout élément à plusieurs enfants */}
           <div
             style={{
+              display: "flex",
               color: "#475569",
               fontSize: "20px",
               fontWeight: 700,
@@ -105,6 +108,11 @@ export async function GET(_req: NextRequest, { params }: { params: Params }) {
         </div>
       </div>
     ),
-    { width: 1200, height: 630 },
+    {
+      width: 1200,
+      height: 630,
+      // Image régénérée au plus une fois par jour et par pièce (crawlers sociaux)
+      headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" },
+    },
   );
 }

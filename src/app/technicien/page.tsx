@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { formatPrice } from "@/lib/format";
 
 type BulkResult = {
   inputRef: string;
@@ -34,11 +35,6 @@ function StatusChip({ status }: { status: string }) {
       Inconnu
     </span>
   );
-}
-
-function formatPrice(price?: number, currency = "EUR") {
-  if (price === undefined) return "—";
-  return `${price.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 
 export default function TechnicienPage() {

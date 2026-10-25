@@ -1,14 +1,20 @@
-"use client";
-
 import Link from "next/link";
 import { StatusBadge } from "./status-badge";
 import { BrandLogo } from "./brand-logo";
-import { WatchlistButton } from "./watchlist-button";
+import { WatchlistButton, type WatchlistButtonEntry } from "./watchlist-button";
 import { CompareButton } from "./compare-button";
-import type { WatchlistEntry } from "@/lib/watchlist";
+import { formatDate } from "@/lib/format";
 
 const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
 
+/**
+ * Carte de pièce. Composant serveur par défaut (les boutons sont des îlots
+ * client) ; il reste utilisable depuis un composant client.
+ *
+ * Le lien couvre toute la carte via un pseudo-élément (« stretched link »)
+ * plutôt que d'envelopper la carte dans un <a> : des boutons ne peuvent pas
+ * être imbriqués dans un lien.
+ */
 export function PartCard({
   href,
   name,
@@ -30,15 +36,12 @@ export function PartCard({
   industry?: string;
   confidence?: number;
   updatedAt?: Date | string;
-  watchlistData?: Omit<WatchlistEntry, "dateAdded" | "snapshotDate">;
+  watchlistData?: WatchlistButtonEntry;
 }) {
   const updatedDate = updatedAt ? new Date(updatedAt) : null;
   const isStale = updatedDate && Date.now() - updatedDate.getTime() > SIX_MONTHS_MS;
   return (
-    <Link
-      href={href}
-      className="block rounded-lg border border-zinc-200 p-4 transition hover:border-blue-400 hover:shadow-sm"
-    >
+    <div className="relative rounded-lg border border-zinc-200 p-4 transition focus-within:ring-2 focus-within:ring-blue-200 hover:border-blue-400 hover:shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 font-mono text-sm text-zinc-500">
@@ -47,7 +50,12 @@ export function PartCard({
             )}
             {manufacturerName} · {referenceRaw}
           </div>
-          <div className="mt-1 font-medium text-zinc-900">{name}</div>
+          <Link
+            href={href}
+            className="mt-1 block font-medium text-zinc-900 after:absolute after:inset-0 after:rounded-lg focus:outline-none"
+          >
+            {name}
+          </Link>
           {industry && (
             <div className="mt-1 text-xs text-zinc-400 capitalize">{industry}</div>
           )}
@@ -59,7 +67,7 @@ export function PartCard({
           )}
           {updatedDate && !isStale && (
             <span className="text-xs text-zinc-400">
-              Mis à jour le {updatedDate.toLocaleDateString("fr-FR")}
+              Mis à jour le {formatDate(updatedDate)}
             </span>
           )}
           {typeof confidence === "number" && (
@@ -75,29 +83,24 @@ export function PartCard({
               confiance {Math.round(confidence * 100)} %
             </span>
           )}
-          {watchlistData && (
-            <WatchlistButton
-              entry={{
-                ...watchlistData,
-                dateAdded: new Date().toISOString(),
-                snapshotDate: new Date().toISOString(),
-              }}
-            />
-          )}
-          {manufacturerSlug && (
-            <CompareButton
-              entry={{
-                referenceRaw,
-                name,
-                manufacturerName,
-                manufacturerSlug,
-                slug: href.split("/").pop() ?? "",
-                status,
-              }}
-            />
-          )}
+          {/* Au-dessus du lien étiré pour rester cliquables */}
+          <div className="relative z-10 flex flex-col items-end gap-1.5">
+            {watchlistData && <WatchlistButton entry={watchlistData} />}
+            {manufacturerSlug && (
+              <CompareButton
+                entry={{
+                  referenceRaw,
+                  name,
+                  manufacturerName,
+                  manufacturerSlug,
+                  slug: href.split("/").pop() ?? "",
+                  status,
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
