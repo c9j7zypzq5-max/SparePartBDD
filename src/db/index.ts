@@ -15,3 +15,8 @@ const client = postgres(connectionString, {
 
 export const db = drizzle(client, { schema });
 export { schema };
+
+/** Ferme le pool (scripts et tests : sinon le processus ne se termine pas). */
+export function closeDb(): Promise<void> {
+  return client.end();
+}
