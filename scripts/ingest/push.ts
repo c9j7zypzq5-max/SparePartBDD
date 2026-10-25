@@ -61,6 +61,9 @@ async function main() {
     if (body.errors?.length) {
       console.warn(`⚠ ${body.errors.length} erreur(s) :`, body.errors);
     }
+    if (body.warnings?.length) {
+      console.warn(`ℹ ${body.warnings.length} avertissement(s) :`, body.warnings);
+    }
   } else {
     console.error(`Erreur ${res.status} :`, body);
     process.exit(1);

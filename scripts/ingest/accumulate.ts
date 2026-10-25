@@ -20,6 +20,15 @@
 import * as fs from "fs";
 import * as path from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import type {
+  Industry,
+  IngestPart,
+  IngestPayload,
+  IngestResult,
+  PartStatus,
+  SellerType,
+} from "../../src/lib/ingest-types";
+import { normalizeReference, slugify } from "../../src/lib/normalize";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -39,8 +48,10 @@ if (!INGEST_API_KEY) {
   process.exit(1);
 }
 
-const INGEST_URL    = "https://spare-part-bdd.vercel.app/api/ingest";
-const SITEMAP_URL   = "https://spare-part-bdd.vercel.app/sitemap.xml";
+// Même variable que push.ts et lifecycle/check.ts : URL de base de l'app.
+const API_BASE      = (process.env.INGEST_URL || "https://spare-part-bdd.vercel.app").replace(/\/+$/, "");
+const INGEST_URL    = `${API_BASE}/api/ingest`;
+const SITEMAP_URL   = `${API_BASE}/sitemap.xml`;
 const OLLAMA_URL    = "http://localhost:11434/api/generate";
 const BATCH_PAUSE_MS      = 7_000;
 const OLLAMA_TIMEOUT_MS   = 300_000;
@@ -111,61 +122,6 @@ const MANUFACTURER_CONTEXT_MAP: Record<string, string> = {
   "lenovo":             "Lenovo fabrique des serveurs ThinkSystem, postes ThinkStation, portables ThinkPad.",
   "fluke":              "Fluke fabrique des multimètres 87V/170, analyseurs réseau 435, testeurs d'isolation 1550.",
 };
-
-// ---------------------------------------------------------------------------
-// Types — exact mirror of src/lib/ingest-types.ts
-// ---------------------------------------------------------------------------
-
-type Industry    = "industrie" | "informatique" | "automobile" | "electromenager" | "hvac" | "electronique";
-type PartStatus  = "active" | "obsolete" | "unknown";
-type ReferenceType = "oem" | "aftermarket" | "ean" | "mpn";
-type SellerType  = "constructeur" | "distributeur_officiel" | "aftermarket" | "reconditionne" | "occasion";
-
-interface IngestOffer {
-  sellerName: string;
-  sellerType: SellerType;
-  sellerWebsite?: string;
-  sellerCountry?: string;
-  price?: number;
-  currency?: string;
-  availability?: string;
-  url: string;
-}
-
-interface IngestPart {
-  manufacturer: string;
-  manufacturerWebsite?: string;
-  industry: Industry;
-  reference: string;
-  name: string;
-  description?: string;
-  status?: PartStatus;
-  category?: string;
-  normalizedCategory?: string;
-  industrySector?: string;
-  productUrl?: string;
-  datasheetUrl?: string;
-  urlVerifiedAt?: string;
-  confidenceScore?: number;
-  attributes?: Record<string, string>;
-  specs?: Record<string, string>;
-  crossReferences?: { reference: string; type: ReferenceType; brand?: string }[];
-  supersededBy?: string;
-  compatibleWith?: string[];
-  offers?: IngestOffer[];
-}
-
-interface IngestPayload {
-  source: string;
-  parts: IngestPart[];
-}
-
-interface IngestResult {
-  partsInserted: number;
-  partsUpdated: number;
-  offersInserted: number;
-  errors: string[];
-}
 
 // ---------------------------------------------------------------------------
 // Distributor API types
@@ -584,17 +540,11 @@ ${JSON.stringify(parts)}`;
 // Sitemap
 // ---------------------------------------------------------------------------
 
-// Mirrors src/lib/normalize.ts — no import to avoid tsconfig mismatch
-function normalizeRef(r: string): string {
-  return r.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
+const normalizeRef = normalizeReference;
 
 // brand slug → display name built from BASE_TARGETS
 const BRAND_SLUG_TO_NAME = new Map<string, string>(
-  BASE_TARGETS.map((t) => [
-    t.brand.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
-    t.brand,
-  ])
+  BASE_TARGETS.map((t) => [slugify(t.brand), t.brand])
 );
 
 interface SitemapRef { brand: string; refNorm: string; }
@@ -844,9 +794,7 @@ function isResellerUrl(url: string): boolean {
 
 const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
 
-function manufacturerSlug(name: string): string {
-  return name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-}
+const manufacturerSlug = slugify;
 
 async function validatePageContent(url: string, reference: string): Promise<boolean> {
   const refNorm = reference.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -981,7 +929,7 @@ async function findProductUrl(reference: string, manufacturer: string): Promise<
       const patchRes = await fetch(REPAIR_OFFERS_URL, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${INGEST_API_KEY}` },
-        body: JSON.stringify({ referenceNormalized: refNorm, sellerName, url: resellerUrl }),
+        body: JSON.stringify({ referenceNormalized: refNorm, manufacturer, sellerName, url: resellerUrl }),
       });
       const patchBody = await patchRes.json() as { updated?: number };
       log(`[offer] PATCH → HTTP ${patchRes.status} updated=${patchBody.updated ?? "?"}`);
@@ -1251,8 +1199,8 @@ async function lookupDistributors(reference: string): Promise<DistributorResult 
 // Mode: --repair
 // ---------------------------------------------------------------------------
 
-const REPAIR_API_URL    = "https://spare-part-bdd.vercel.app/api/repair/incomplete";
-const REPAIR_OFFERS_URL = "https://spare-part-bdd.vercel.app/api/repair/offers";
+const REPAIR_API_URL    = `${API_BASE}/api/repair/incomplete`;
+const REPAIR_OFFERS_URL = `${API_BASE}/api/repair/offers`;
 const REPAIR_BATCH_SIZE = 8;
 
 interface RepairPart {
@@ -1504,7 +1452,7 @@ async function runRepairMode(model: string): Promise<void> {
 // Mode: --clean
 // ---------------------------------------------------------------------------
 
-const LIFECYCLE_PENDING_URL = "https://spare-part-bdd.vercel.app/api/lifecycle/pending";
+const LIFECYCLE_PENDING_URL = `${API_BASE}/api/lifecycle/pending`;
 const CLEAN_BATCH_SIZE = 8;
 
 let cleanBatchCounter = 0;
@@ -2088,6 +2036,7 @@ async function main(): Promise<void> {
   console.log("═══════════════════════════════════════════════════════════");
   console.log("   SparePartSearch — Catalog Accumulator");
   console.log(`   Mode: ${modeLabel}${ONCE_MODE ? " --once" : STATS_MODE ? "" : " (continuous)"}`);
+  console.log(`   API : ${API_BASE}`);
   console.log("═══════════════════════════════════════════════════════════\n");
 
   if (MANUFACTURER_FILTER) {
