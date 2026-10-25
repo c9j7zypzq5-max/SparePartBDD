@@ -8,27 +8,40 @@ const PAGE_SIZE = 20;
 
 export function SearchLoadMore({
   initialHasMore,
+  initialOffset,
   searchQuery,
 }: {
   initialHasMore: boolean;
+  /** Nombre de résultats déjà affichés par la page serveur (tient compte de ?page=N). */
+  initialOffset: number;
   searchQuery: string;
 }) {
   const [extraHits, setExtraHits] = useState<SearchHit[]>([]);
   const [hasMore, setHasMore] = useState(initialHasMore);
+  const [error, setError] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const offset = PAGE_SIZE + extraHits.length;
+  const offset = initialOffset + extraHits.length;
 
   function loadMore() {
     startTransition(async () => {
+      setError(false);
       const params = new URLSearchParams(searchQuery);
       params.set("offset", String(offset));
       params.delete("page");
-      const res = await fetch(`/api/recherche?${params.toString()}`);
-      const hits: SearchHit[] = await res.json();
-      const newHits = hits.slice(0, PAGE_SIZE);
-      setExtraHits((prev) => [...prev, ...newHits]);
-      setHasMore(hits.length > PAGE_SIZE);
+      try {
+        const res = await fetch(`/api/recherche?${params.toString()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const hits: SearchHit[] = await res.json();
+        const newHits = hits.slice(0, PAGE_SIZE);
+        setExtraHits((prev) => {
+          const seen = new Set(prev.map((h) => h.partId));
+          return [...prev, ...newHits.filter((h) => !seen.has(h.partId))];
+        });
+        setHasMore(hits.length > PAGE_SIZE);
+      } catch {
+        setError(true);
+      }
     });
   }
 
@@ -71,6 +84,11 @@ export function SearchLoadMore({
             {isPending ? "Chargement…" : "Charger plus"}
           </button>
         </div>
+      )}
+      {error && (
+        <p className="mt-2 text-center text-sm text-red-600">
+          Le chargement a échoué, veuillez réessayer.
+        </p>
       )}
     </>
   );

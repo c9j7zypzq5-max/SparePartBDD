@@ -6,8 +6,9 @@ import { PartCard } from "@/components/part-card";
 import { SuggestionForm } from "@/components/suggestion-form";
 import { SearchLoadMore } from "@/components/search-load-more";
 import { searchService } from "@/lib/search/postgres-search";
-import { getAllManufacturers, getAllCategories, searchPartsFuzzy, getManufacturersSuggestions } from "@/lib/queries";
-import type { SearchOptions } from "@/lib/search/search-service";
+import { getAllManufacturers, getAllCategories, getManufacturersSuggestions } from "@/lib/queries";
+import { SEARCH_SORTS, type SearchIndustry, type SearchStatus } from "@/lib/search/search-service";
+import { enumParam } from "@/lib/params";
 
 const getCachedManufacturers = unstable_cache(
   getAllManufacturers,
@@ -36,13 +37,13 @@ type Search = Promise<{
 
 const PAGE_SIZE = 20;
 
-const INDUSTRY_FILTERS = [
+const INDUSTRY_FILTERS: { value: SearchIndustry | ""; label: string }[] = [
   { value: "", label: "Tous" },
   { value: "industrie", label: "Industrie" },
   { value: "informatique", label: "Informatique" },
 ];
 
-const STATUS_FILTERS = [
+const STATUS_FILTERS: { value: SearchStatus | ""; label: string }[] = [
   { value: "", label: "Tous statuts" },
   { value: "active", label: "Fabriquées" },
   { value: "obsolete", label: "Obsolètes" },
@@ -98,14 +99,12 @@ export default async function SearchPage({
 }) {
   const { q, industrie, statut, marque, categorie, page: pageParam, sort, stock } = await searchParams;
   const query = q?.trim() ?? "";
-  const industry = INDUSTRY_FILTERS.some((f) => f.value === industrie)
-    ? industrie
-    : undefined;
-  const status = STATUS_FILTERS.some((f) => f.value === statut)
-    ? statut
-    : undefined;
+  const industry = enumParam(industrie, ["industrie", "informatique"] as const);
+  const status = enumParam(statut, ["active", "obsolete"] as const);
+  const validSort = enumParam(sort, SEARCH_SORTS.filter((s) => s !== "relevance"));
   const inStock = stock === "1";
   const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+  const offset = (page - 1) * PAGE_SIZE;
 
   // limit+1 : on demande une pièce de plus que la page pour savoir s'il y a
   // une page suivante, sans requête de comptage séparée.
@@ -113,12 +112,12 @@ export default async function SearchPage({
     ? await Promise.all([
         searchService.search(query, {
           limit: PAGE_SIZE + 1,
-          offset: (page - 1) * PAGE_SIZE,
-          industry: industry || undefined,
-          status: status || undefined,
+          offset,
+          industry,
+          status,
           manufacturerSlug: marque || undefined,
           categorySlug: categorie || undefined,
-          sortBy: (sort as SearchOptions["sortBy"]) || "relevance",
+          sortBy: validSort ?? "relevance",
           inStock: inStock || undefined,
         }),
         getCachedManufacturers(),
@@ -128,21 +127,21 @@ export default async function SearchPage({
   const hasNext = rawHits.length > PAGE_SIZE;
   const hits = rawHits.slice(0, PAGE_SIZE);
 
-  // Fuzzy fallback: ILIKE when pg_trgm finds nothing
-  const fuzzyHits =
-    query && hits.length === 0
-      ? await searchPartsFuzzy(query, { limit: PAGE_SIZE })
-      : [];
   const manufacturerSuggestions =
-    query && hits.length === 0 && fuzzyHits.length === 0
-      ? await getManufacturersSuggestions(query)
-      : [];
+    query && hits.length === 0 ? await getManufacturersSuggestions(query) : [];
   const countLabel = hasNext
-    ? `Plus de ${page * PAGE_SIZE} résultats`
-    : `${(page - 1) * PAGE_SIZE + hits.length} résultat${(page - 1) * PAGE_SIZE + hits.length > 1 ? "s" : ""}`;
-
-  const validSort = SORT_FILTERS.some((f) => f.value === sort) ? sort : undefined;
+    ? `Plus de ${offset + PAGE_SIZE} résultats`
+    : `${offset + hits.length} résultat${offset + hits.length > 1 ? "s" : ""}`;
   const base = { q: query, industrie: industry, statut: status, marque, categorie, sort: validSort, stock: inStock || undefined };
+  const loadMoreQuery = new URLSearchParams({
+    q: query,
+    ...(industry ? { industrie: industry } : {}),
+    ...(status ? { statut: status } : {}),
+    ...(marque ? { marque } : {}),
+    ...(categorie ? { categorie } : {}),
+    ...(validSort ? { sort: validSort } : {}),
+    ...(inStock ? { stock: "1" } : {}),
+  }).toString();
 
   return (
     <div>
@@ -289,42 +288,16 @@ export default async function SearchPage({
 
       {query && hits.length > 0 && (
         <SearchLoadMore
+          // Remonté à chaque nouvelle recherche : un changement de filtre
+          // (navigation client) ne doit pas conserver les résultats chargés avant.
+          key={`${loadMoreQuery}|${offset}`}
           initialHasMore={hasNext}
-          searchQuery={new URLSearchParams({
-            q: query,
-            ...(industry ? { industrie: industry } : {}),
-            ...(status ? { statut: status } : {}),
-            ...(marque ? { marque } : {}),
-            ...(categorie ? { categorie } : {}),
-            ...(validSort ? { sort: validSort } : {}),
-            ...(inStock ? { stock: "1" } : {}),
-          }).toString()}
+          initialOffset={offset + hits.length}
+          searchQuery={loadMoreQuery}
         />
       )}
 
-      {query && hits.length === 0 && fuzzyHits.length > 0 && (
-        <div className="mt-4 space-y-3">
-          <p className="text-sm text-zinc-500">
-            Aucun résultat exact pour &laquo;&nbsp;{query}&nbsp;&raquo;. Résultats approchés :
-          </p>
-          <div className="grid gap-3">
-            {fuzzyHits.map((hit) => (
-              <PartCard
-                key={hit.partId}
-                href={`/piece/${hit.manufacturerSlug}/${hit.slug}`}
-                name={hit.name}
-                referenceRaw={hit.referenceRaw}
-                manufacturerName={hit.manufacturerName}
-                manufacturerSlug={hit.manufacturerSlug}
-                status={hit.status}
-                industry={hit.industry}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {query && hits.length === 0 && fuzzyHits.length === 0 && (
+      {query && hits.length === 0 && (
         <div className="mt-10 space-y-6">
           <div className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center">
             <p className="font-medium text-zinc-700">
