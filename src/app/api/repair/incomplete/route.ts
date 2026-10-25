@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { requireApiKey } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -21,17 +22,8 @@ export interface RepairPart {
 }
 
 export async function GET(req: NextRequest) {
-  const apiKey = process.env.INGEST_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "INGEST_API_KEY non configurée côté serveur" },
-      { status: 500 },
-    );
-  }
-  const auth = req.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${apiKey}`) {
-    return Response.json({ error: "Non autorisé" }, { status: 401 });
-  }
+  const authError = requireApiKey(req);
+  if (authError) return authError;
 
   const rawLimit = Number(req.nextUrl.searchParams.get("limit") ?? DEFAULT_LIMIT);
   const limit = Number.isFinite(rawLimit)

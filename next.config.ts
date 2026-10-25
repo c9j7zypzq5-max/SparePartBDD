@@ -9,6 +9,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pas d'en-tête « X-Powered-By: Next.js » (empreinte inutile pour un attaquant)
+  poweredByHeader: false,
   async headers() {
     return [
       {

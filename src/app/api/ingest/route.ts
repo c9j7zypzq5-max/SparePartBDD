@@ -1,24 +1,19 @@
 import { NextRequest } from "next/server";
 import { ingestParts } from "@/lib/ingest-pipeline";
 import type { IngestPayload } from "@/lib/ingest-types";
+import { requireApiKey } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 // Les gros lots peuvent dépasser 60 s — augmenter la limite Vercel
 export const maxDuration = 300;
 
+/** Au-delà, le lot risque de dépasser maxDuration : découper côté client. */
+const MAX_PARTS_PER_BATCH = 500;
+
 export async function POST(req: NextRequest) {
   // Authentification par clé API
-  const apiKey = process.env.INGEST_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "INGEST_API_KEY non configurée côté serveur" },
-      { status: 500 },
-    );
-  }
-  const auth = req.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${apiKey}`) {
-    return Response.json({ error: "Non autorisé" }, { status: 401 });
-  }
+  const authError = requireApiKey(req);
+  if (authError) return authError;
 
   let payload: IngestPayload;
   try {
@@ -27,10 +22,16 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "JSON invalide" }, { status: 400 });
   }
 
-  if (!Array.isArray(payload.parts) || payload.parts.length === 0) {
+  if (!payload || !Array.isArray(payload.parts) || payload.parts.length === 0) {
     return Response.json({ error: "parts[] vide ou absent" }, { status: 400 });
   }
-  if (!payload.source) {
+  if (payload.parts.length > MAX_PARTS_PER_BATCH) {
+    return Response.json(
+      { error: `Lot trop gros (${payload.parts.length} pièces, max ${MAX_PARTS_PER_BATCH})` },
+      { status: 413 },
+    );
+  }
+  if (typeof payload.source !== "string" || !payload.source.trim()) {
     return Response.json({ error: "source manquante" }, { status: 400 });
   }
 

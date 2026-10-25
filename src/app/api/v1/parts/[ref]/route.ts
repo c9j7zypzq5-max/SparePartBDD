@@ -1,14 +1,18 @@
 import { NextRequest } from "next/server";
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { normalizeReference } from "@/lib/normalize";
+import { rateLimitResponse } from "@/lib/rate-limit";
 
 const { parts, manufacturers, categories, offers, sellers, partReferences, supersessions } = schema;
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ ref: string }> },
 ) {
+  const limited = rateLimitResponse(req, "v1-parts", { limit: 120 });
+  if (limited) return limited;
+
   const { ref } = await params;
   const normalized = normalizeReference(ref);
   if (!normalized) {
@@ -107,5 +111,5 @@ async function buildResponse(
       url: offer.url,
       scrapedAt: offer.scrapedAt,
     })),
-  });
+  }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
 }

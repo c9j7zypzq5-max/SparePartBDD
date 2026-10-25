@@ -1,13 +1,12 @@
 import { NextRequest } from "next/server";
 import { db, schema } from "@/db";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { rateLimitResponse } from "@/lib/rate-limit";
 
 const { suggestions } = schema;
 
 export async function POST(req: NextRequest) {
-  if (!rateLimit(getClientIp(req.headers), { limit: 10, windowMs: 60_000 })) {
-    return Response.json({ error: "Too many requests" }, { status: 429 });
-  }
+  const limited = rateLimitResponse(req, "suggestions", { limit: 10 });
+  if (limited) return limited;
 
   let body: { reference: string; manufacturer?: string };
   try {
