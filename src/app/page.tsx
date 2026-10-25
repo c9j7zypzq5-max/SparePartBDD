@@ -2,7 +2,9 @@ import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { SearchBar } from "@/components/search-bar";
 import { BrandLogo } from "@/components/brand-logo";
+import { StatusBadge } from "@/components/status-badge";
 import { getHomepageData, getRecentSupersessions } from "@/lib/queries";
+import { REFERENCE_EXAMPLES } from "@/lib/search-examples";
 
 export const revalidate = 300;
 
@@ -34,7 +36,7 @@ export default async function HomePage() {
   return (
     <div>
       {/* Hero */}
-      <section className="relative -mx-4 -mt-8 bg-zinc-950 px-4 pb-20 pt-16 text-center">
+      <section className="relative -mt-8 mx-[calc(50%-50vw)] bg-zinc-950 px-4 pb-20 pt-16 text-center">
         <div
           className="pointer-events-none absolute inset-0 opacity-40"
           style={{
@@ -56,11 +58,11 @@ export default async function HomePage() {
             Trouvez, comparez et accédez aux revendeurs en quelques secondes.
           </p>
           <div className="mt-8">
-            <SearchBar autoFocus large />
+            <SearchBar autoFocus variant="hero" shortcut />
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-sm text-zinc-500">
             <span>Essayez :</span>
-            {["6SE6440-2UD21-5AA1", "PWR-C1-715WAC", "1756-L61"].map((ref) => (
+            {REFERENCE_EXAMPLES.map((ref) => (
               <Link
                 key={ref}
                 href={`/recherche?q=${encodeURIComponent(ref)}`}
@@ -161,18 +163,14 @@ export default async function HomePage() {
                 className="rounded-xl border border-zinc-200 p-4 transition hover:border-blue-400 hover:shadow-sm"
               >
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
-                    Obsolète
-                  </span>
+                  <StatusBadge status={oldPart.status} size="sm" />
                   <span className="truncate font-mono text-zinc-600">
                     {oldManufacturer.name} {oldPart.referenceRaw}
                   </span>
                 </div>
                 <div className="my-2 text-zinc-400">↓ remplacée par</div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                    Fabriquée
-                  </span>
+                  <StatusBadge status={newPart.status} size="sm" />
                   <span className="truncate font-mono font-medium text-zinc-900">
                     {newPart.referenceRaw}
                   </span>

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { searchService } from "@/lib/search/postgres-search";
 import { searchOptionsFromParams } from "@/lib/search/search-service";
+import { withCardExtras } from "@/lib/search/search-results";
 import { rateLimitResponse } from "@/lib/rate-limit";
 
 /** « Charger plus » de la page /recherche : mêmes paramètres que l'URL de la page. */
@@ -26,5 +27,5 @@ export async function GET(request: NextRequest) {
   );
 
   const hits = await searchService.search(q, options);
-  return NextResponse.json(hits);
+  return NextResponse.json(await withCardExtras(hits));
 }

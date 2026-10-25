@@ -30,8 +30,18 @@ export function formatPrice(
   }
 }
 
+/** Libellés des statuts de fabrication : badges, tableaux et exports. */
 export const STATUS_LABELS: Record<string, string> = {
   active: "Fabriquée",
   obsolete: "Obsolète",
-  unknown: "Inconnu",
+  unknown: "Statut inconnu",
 };
+
+export function statusLabel(status: string | null | undefined): string {
+  return STATUS_LABELS[status ?? ""] ?? STATUS_LABELS.unknown;
+}
+
+/** "1 offre", "3 offres" : accord des compteurs affichés. */
+export function plural(count: number, singular: string, pluralForm = `${singular}s`): string {
+  return `${count.toLocaleString("fr-FR")} ${count > 1 ? pluralForm : singular}`;
+}

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { PartCard } from "@/components/part-card";
-import type { SearchHit } from "@/lib/search/search-service";
+import type { SearchResult } from "@/lib/search/search-results";
 
 const PAGE_SIZE = 20;
 
@@ -16,7 +16,7 @@ export function SearchLoadMore({
   initialOffset: number;
   searchQuery: string;
 }) {
-  const [extraHits, setExtraHits] = useState<SearchHit[]>([]);
+  const [extraHits, setExtraHits] = useState<SearchResult[]>([]);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [error, setError] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -32,7 +32,7 @@ export function SearchLoadMore({
       try {
         const res = await fetch(`/api/recherche?${params.toString()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const hits: SearchHit[] = await res.json();
+        const hits: SearchResult[] = await res.json();
         const newHits = hits.slice(0, PAGE_SIZE);
         setExtraHits((prev) => {
           const seen = new Set(prev.map((h) => h.partId));
@@ -60,6 +60,7 @@ export function SearchLoadMore({
               status={hit.status}
               industry={hit.industry}
               updatedAt={hit.updatedAt ? String(hit.updatedAt) : undefined}
+              extras={hit.extras}
               watchlistData={{
                 reference: hit.referenceRaw,
                 manufacturer: hit.manufacturerName,
@@ -67,6 +68,8 @@ export function SearchLoadMore({
                 partSlug: hit.slug,
                 name: hit.name,
                 status: hit.status,
+                minPrice: hit.extras?.minPrice ?? undefined,
+                currency: hit.extras?.currency,
               }}
             />
           ))}
@@ -79,14 +82,15 @@ export function SearchLoadMore({
             type="button"
             onClick={loadMore}
             disabled={isPending}
-            className="rounded-full border border-zinc-200 px-6 py-2 text-sm font-medium text-zinc-600 transition hover:border-zinc-400 hover:text-zinc-800 disabled:opacity-50"
+            aria-busy={isPending}
+            className="rounded-full border border-zinc-300 px-6 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-500 hover:text-zinc-900 disabled:opacity-50"
           >
-            {isPending ? "Chargement…" : "Charger plus"}
+            {isPending ? "Chargement…" : "Afficher plus de résultats"}
           </button>
         </div>
       )}
       {error && (
-        <p className="mt-2 text-center text-sm text-red-600">
+        <p role="alert" className="mt-2 text-center text-sm text-red-600">
           Le chargement a échoué, veuillez réessayer.
         </p>
       )}

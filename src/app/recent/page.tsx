@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getRecentlyUpdatedParts, getRecentlyUpdatedCount } from "@/lib/queries";
+import { getRecentlyUpdatedParts, getRecentlyUpdatedCount, getPartCardExtras } from "@/lib/queries";
 import { PartCard } from "@/components/part-card";
 
 export const metadata: Metadata = {
@@ -26,6 +26,7 @@ export default async function RecentPage({ searchParams }: { searchParams: Searc
   ]);
 
   const hasNext = total > page * PAGE_SIZE;
+  const extras = await getPartCardExtras(rows.map(({ part }) => part));
 
   return (
     <div>
@@ -55,13 +56,25 @@ export default async function RecentPage({ searchParams }: { searchParams: Searc
               manufacturerSlug={manufacturer.slug}
               status={part.status}
               updatedAt={part.updatedAt}
+              showUpdatedDate
+              extras={extras.get(part.id)}
+              watchlistData={{
+                reference: part.referenceRaw,
+                manufacturer: manufacturer.name,
+                manufacturerSlug: manufacturer.slug,
+                partSlug: part.slug,
+                name: part.name,
+                status: part.status,
+                minPrice: extras.get(part.id)?.minPrice ?? undefined,
+                currency: extras.get(part.id)?.currency,
+              }}
             />
           ))}
         </div>
       )}
 
       {(page > 1 || hasNext) && (
-        <nav className="mt-8 flex items-center justify-center gap-4 text-sm font-medium">
+        <nav aria-label="Pagination" className="mt-8 flex items-center justify-center gap-4 text-sm font-medium">
           {page > 1 && (
             <Link
               href={`/recent?page=${page - 1}`}

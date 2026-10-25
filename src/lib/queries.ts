@@ -567,7 +567,10 @@ export async function getAdminStats() {
   return row ?? null;
 }
 
-/** Pièces obsolètes avec leur remplacement officiel, pour la home. */
+/**
+ * Pièces obsolètes avec leur remplacement officiel, pour la home : les
+ * remplacements encore fabriqués d'abord, puis les plus récents.
+ */
 export async function getRecentSupersessions(limit = 4) {
   const oldParts = aliasedTable(parts, "old_parts");
   const oldManufacturers = aliasedTable(manufacturers, "old_manufacturers");
@@ -583,7 +586,90 @@ export async function getRecentSupersessions(limit = 4) {
     .innerJoin(oldManufacturers, eq(oldManufacturers.id, oldParts.manufacturerId))
     .innerJoin(parts, eq(parts.id, supersessions.newPartId))
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .orderBy(sql`(${parts.status} = 'active') DESC`, desc(supersessions.id))
     .limit(limit);
+}
+
+export type PartCardExtras = {
+  minPrice: number | null;
+  currency: string;
+  offerCount: number;
+  /** Pièces obsolètes : remplacement à proposer (null si aucun connu). */
+  replacement: { referenceRaw: string; slug: string; manufacturerSlug: string; status: string } | null;
+};
+
+/**
+ * Compléments des cartes de pièces (listes de résultats), en deux requêtes
+ * groupées quel que soit le nombre de cartes : meilleur prix et nombre
+ * d'offres ; pour les pièces obsolètes, le premier successeur encore fabriqué
+ * de la chaîne de remplacement, à défaut le remplacement direct.
+ */
+export async function getPartCardExtras(
+  items: { id: number; status: string }[],
+): Promise<Map<number, PartCardExtras>> {
+  const extras = new Map<number, PartCardExtras>();
+  if (items.length === 0) return extras;
+  const obsoleteIds = items.filter((i) => i.status === "obsolete").map((i) => i.id);
+
+  type ReplacementRow = {
+    root_id: number;
+    reference_raw: string;
+    slug: string;
+    status: string;
+    manufacturer_slug: string;
+  };
+  const [offerRows, replacementRows] = await Promise.all([
+    db
+      .selectDistinctOn([offers.partId], {
+        partId: offers.partId,
+        price: offers.price,
+        currency: offers.currency,
+        // Fenêtre évaluée avant DISTINCT ON : toutes les offres de la pièce.
+        offerCount: sql<number>`count(*) OVER (PARTITION BY ${offers.partId})::int`,
+      })
+      .from(offers)
+      .where(inArray(offers.partId, items.map((i) => i.id)))
+      .orderBy(offers.partId, sql`${offers.price} ASC NULLS LAST`),
+    obsoleteIds.length > 0
+      ? db.execute(sql`
+          WITH RECURSIVE chain(root_id, part_id, depth) AS (
+            SELECT old_part_id, new_part_id, 1
+            FROM supersessions
+            WHERE old_part_id = ANY(ARRAY[${sql.join(obsoleteIds.map((id) => sql`${id}`), sql`, `)}]::int[])
+            UNION ALL
+            SELECT c.root_id, s.new_part_id, c.depth + 1
+            FROM chain c
+            JOIN supersessions s ON s.old_part_id = c.part_id
+            WHERE c.depth < 10
+          )
+          SELECT DISTINCT ON (c.root_id)
+                 c.root_id, p.reference_raw, p.slug, p.status, m.slug AS manufacturer_slug
+          FROM chain c
+          JOIN parts p ON p.id = c.part_id
+          JOIN manufacturers m ON m.id = p.manufacturer_id
+          WHERE p.id <> c.root_id
+          ORDER BY c.root_id, (p.status = 'active') DESC, c.depth, p.id
+        `)
+      : Promise.resolve([]),
+  ]);
+
+  const replacements = new Map(
+    (replacementRows as unknown as ReplacementRow[]).map((r) => [
+      Number(r.root_id),
+      { referenceRaw: r.reference_raw, slug: r.slug, manufacturerSlug: r.manufacturer_slug, status: r.status },
+    ]),
+  );
+  const offerStats = new Map(offerRows.map((r) => [r.partId, r]));
+  for (const { id } of items) {
+    const o = offerStats.get(id);
+    extras.set(id, {
+      minPrice: o?.price != null ? Number(o.price) : null,
+      currency: o?.currency ?? "EUR",
+      offerCount: o?.offerCount ?? 0,
+      replacement: replacements.get(id) ?? null,
+    });
+  }
+  return extras;
 }
 
 /**

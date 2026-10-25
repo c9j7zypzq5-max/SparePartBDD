@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { readCompareList, clearCompareList, type CompareEntry } from "@/lib/compare-list";
+import { usePathname } from "next/navigation";
+import { readCompareList, clearCompareList, toggleCompare, type CompareEntry } from "@/lib/compare-list";
+import { CloseIcon } from "./icons";
 
 export function CompareBar() {
+  const pathname = usePathname();
   const [list, setList] = useState<CompareEntry[]>([]);
 
   useEffect(() => {
@@ -20,28 +23,51 @@ export function CompareBar() {
     };
   }, []);
 
-  if (list.length === 0) return null;
+  // Inutile sur la page de comparaison elle-même.
+  if (list.length === 0 || pathname === "/comparer") return null;
+
+  const free = 3 - list.length;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-violet-200 bg-white/95 backdrop-blur shadow-lg">
-      <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
-        <div className="flex flex-1 flex-wrap items-center gap-3">
+    <div
+      role="region"
+      aria-label="Pièces à comparer"
+      className="no-print fixed bottom-0 left-0 right-0 z-40 border-t border-violet-200 bg-white/95 shadow-lg backdrop-blur"
+    >
+      <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
+        <ul className="hidden flex-1 flex-wrap items-center gap-2 sm:flex">
           {list.map((entry) => (
-            <div key={`${entry.manufacturerSlug}/${entry.slug}`} className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs">
-              <span className="font-mono font-medium text-zinc-900">{entry.manufacturerName} {entry.referenceRaw}</span>
-            </div>
+            <li
+              key={`${entry.manufacturerSlug}/${entry.slug}`}
+              className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 py-1 pl-3 pr-1 text-xs"
+            >
+              <span className="font-mono font-medium text-zinc-900">
+                {entry.manufacturerName} {entry.referenceRaw}
+              </span>
+              <button
+                type="button"
+                onClick={() => toggleCompare(entry)}
+                aria-label={`Retirer ${entry.referenceRaw} de la comparaison`}
+                className="rounded p-1 text-zinc-400 transition hover:bg-zinc-200 hover:text-zinc-700"
+              >
+                <CloseIcon className="h-3 w-3" />
+              </button>
+            </li>
           ))}
-          {list.length < 3 && (
-            <span className="text-xs text-zinc-400">
-              {3 - list.length} emplacement{3 - list.length > 1 ? "s" : ""} libre{3 - list.length > 1 ? "s" : ""}
-            </span>
+          {free > 0 && (
+            <li className="text-xs text-zinc-400">
+              {free} emplacement{free > 1 ? "s" : ""} libre{free > 1 ? "s" : ""}
+            </li>
           )}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
+        </ul>
+        <p className="flex-1 text-sm text-zinc-600 sm:hidden">
+          {list.length} pièce{list.length > 1 ? "s" : ""} à comparer
+        </p>
+        <div className="flex shrink-0 items-center gap-3">
           <button
             type="button"
             onClick={clearCompareList}
-            className="text-xs text-zinc-400 underline hover:text-zinc-700"
+            className="text-xs text-zinc-500 underline hover:text-zinc-800"
           >
             Vider
           </button>

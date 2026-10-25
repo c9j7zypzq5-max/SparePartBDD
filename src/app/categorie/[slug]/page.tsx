@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCategoryPageData } from "@/lib/queries";
+import { getCategoryPageData, getPartCardExtras } from "@/lib/queries";
 import { InfinitePartsList } from "@/components/infinite-parts-list";
 import { Breadcrumb } from "@/components/breadcrumb";
+import { DownloadIcon } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,7 @@ export default async function CategoryPage({
   if (!data) notFound();
 
   const hasNextPage = data.totalCount > page * PAGE_SIZE;
+  const extras = await getPartCardExtras(data.parts.map(({ part }) => part));
 
   return (
     <div>
@@ -58,8 +60,8 @@ export default async function CategoryPage({
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{data.category.name}</h1>
-          <p className="mt-2 text-zinc-600 capitalize">
-            Industrie : {data.category.industry}
+          <p className="mt-2 text-zinc-600">
+            <span className="capitalize">{data.category.industry}</span>
             {" · "}
             {data.totalCount} pièce{data.totalCount > 1 ? "s" : ""} référencée
             {data.totalCount > 1 ? "s" : ""}
@@ -69,9 +71,7 @@ export default async function CategoryPage({
           href={`/api/categorie/${slug}/export`}
           className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-500 hover:text-zinc-900"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
-            <path d="M8 1a.75.75 0 0 1 .75.75v6.19l1.97-1.97a.75.75 0 0 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.03a.75.75 0 0 1 1.06-1.06L7.25 7.94V1.75A.75.75 0 0 1 8 1zM2.5 13.75A.75.75 0 0 1 3.25 13h9.5a.75.75 0 0 1 0 1.5h-9.5a.75.75 0 0 1-.75-.75z" />
-          </svg>
+          <DownloadIcon />
           Exporter CSV
         </a>
       </div>
@@ -88,31 +88,35 @@ export default async function CategoryPage({
           status: part.status,
           manufacturerSlug: manufacturer.slug,
           manufacturerName: manufacturer.name,
+          extras: extras.get(part.id),
         }))}
         totalCount={data.totalCount}
         initialOffset={offset}
       />
 
+      {/* Pagination sans JavaScript uniquement (sinon chargement au défilement). */}
       {(page > 1 || hasNextPage) && (
-        <nav className="mt-8 flex items-center justify-center gap-4 text-sm font-medium">
-          {page > 1 && (
-            <Link
-              href={buildCategoryHref(slug, page - 1)}
-              className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
-            >
-              ← Page précédente
-            </Link>
-          )}
-          <span className="text-zinc-500">Page {page}</span>
-          {hasNextPage && (
-            <Link
-              href={buildCategoryHref(slug, page + 1)}
-              className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
-            >
-              Page suivante →
-            </Link>
-          )}
-        </nav>
+        <noscript>
+          <nav aria-label="Pagination" className="mt-8 flex items-center justify-center gap-4 text-sm font-medium">
+            {page > 1 && (
+              <Link
+                href={buildCategoryHref(slug, page - 1)}
+                className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
+              >
+                ← Page précédente
+              </Link>
+            )}
+            <span className="text-zinc-500">Page {page}</span>
+            {hasNextPage && (
+              <Link
+                href={buildCategoryHref(slug, page + 1)}
+                className="rounded-full border border-zinc-200 px-4 py-2 text-zinc-600 transition hover:border-zinc-400"
+              >
+                Page suivante →
+              </Link>
+            )}
+          </nav>
+        </noscript>
       )}
     </div>
   );

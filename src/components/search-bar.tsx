@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import Form from "next/form";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { StatusBadge } from "./status-badge";
+import { ClockIcon, CloseIcon, SearchIcon } from "./icons";
 import {
   readSearchHistory,
   addSearchHistory,
@@ -18,218 +21,311 @@ interface Suggestion {
   url: string;
 }
 
+type Option = { href: string; term: string };
+
+const VARIANTS = {
+  hero: {
+    input: "rounded-xl py-4 pl-5 pr-4 text-lg shadow-sm",
+    button: "rounded-xl px-5 py-4 text-lg sm:px-7",
+  },
+  page: {
+    input: "rounded-xl py-3 pl-4 pr-4 text-base shadow-sm",
+    button: "rounded-xl px-4 py-3 sm:px-6",
+  },
+  header: {
+    input: "rounded-lg bg-zinc-50 py-1.5 pl-3 pr-9 text-sm focus:bg-white",
+    button: "",
+  },
+};
+
+const searchHref = (term: string) => `/recherche?q=${encodeURIComponent(term)}`;
+
+/**
+ * Barre de recherche avec suggestions (combobox ARIA : le focus reste dans le
+ * champ, les flèches parcourent les options via aria-activedescendant).
+ * Champ vide : recherches récentes ; à partir de 2 caractères : suggestions.
+ */
 export function SearchBar({
   defaultValue = "",
   autoFocus = false,
-  large = false,
+  variant = "page",
+  shortcut = false,
 }: {
   defaultValue?: string;
   autoFocus?: boolean;
-  large?: boolean;
+  variant?: keyof typeof VARIANTS;
+  /** Raccourci clavier « / » pour placer le curseur dans le champ. */
+  shortcut?: boolean;
 }) {
   const router = useRouter();
+  const listboxId = useId();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState(defaultValue);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
   const [open, setOpen] = useState(false);
-  const [focused, setFocused] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const trimmed = query.trim();
+  const typing = trimmed.length >= 2;
+  const styles = VARIANTS[variant];
+
+  // Navigation client vers une autre recherche (exemple, historique) : le
+  // composant est conservé, le champ doit suivre la requête de la page.
+  useEffect(() => {
+    setQuery(defaultValue);
+  }, [defaultValue]);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const q = query.trim();
-    if (q.length < 2 || q === defaultValue) {
+    setActiveIndex(-1);
+    // La requête déjà affichée par la page de résultats ne redemande rien.
+    if (!typing || trimmed === defaultValue.trim()) {
       setSuggestions([]);
-      setActiveIndex(-1);
-      if (focused) setHistory(readSearchHistory());
       return;
     }
-    setHistory([]);
-    setActiveIndex(-1);
-    debounceRef.current = setTimeout(async () => {
+    // Chaque frappe annule la requête précédente : une réponse lente ne
+    // remplace jamais les suggestions d'une saisie plus récente.
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
+        const res = await fetch(`/api/suggest?q=${encodeURIComponent(trimmed)}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data: { hits?: Suggestion[] } = await res.json();
         setSuggestions(data.hits ?? []);
-        setOpen(true);
       } catch {
-        setSuggestions([]);
+        if (!controller.signal.aborted) setSuggestions([]);
       }
-    }, 250);
+    }, 200);
     return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      clearTimeout(timer);
+      controller.abort();
     };
-  }, [query, defaultValue, focused]);
+  }, [trimmed, typing, defaultValue]);
 
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false);
+    if (!shortcut) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName ?? "")) {
+        return;
+      }
+      e.preventDefault();
+      inputRef.current?.focus();
+      inputRef.current?.select();
     }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [shortcut]);
+
+  const options: Option[] = typing
+    ? suggestions.length > 0
+      ? [
+          ...suggestions.map((s) => ({ href: s.url, term: trimmed })),
+          { href: searchHref(trimmed), term: trimmed },
+        ]
+      : []
+    : history.map((h) => ({ href: searchHref(h.term), term: h.term }));
+  const listOpen = open && options.length > 0;
+  const optionId = (i: number) => `${listboxId}-${i}`;
+
+  function close() {
+    setOpen(false);
+    setActiveIndex(-1);
+  }
+
+  function select(option: Option) {
+    addSearchHistory(option.term);
+    close();
+  }
 
   function handleFocus() {
-    setFocused(true);
-    if (query.trim().length < 2) {
-      setHistory(readSearchHistory());
-      setOpen(true);
-    }
-  }
-
-  function handleBlur() {
-    setFocused(false);
-  }
-
-  function handleDeleteHistory(term: string, e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    removeSearchHistory(term);
     setHistory(readSearchHistory());
-  }
-
-  function handleSubmit() {
-    if (query.trim()) addSearchHistory(query.trim());
-    setOpen(false);
+    setOpen(true);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    const showSug = open && suggestions.length > 0 && query.trim().length >= 2;
-    const showHist = open && query.trim().length < 2 && history.length > 0;
-    const items = showSug ? suggestions : showHist ? history : [];
-    if (items.length === 0) return;
-
-    if (e.key === "ArrowDown") {
+    if (e.key === "Escape" && listOpen) {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, items.length - 1));
-    } else if (e.key === "ArrowUp") {
+      close();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      if (options.length === 0) return;
       e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, -1));
-    } else if (e.key === "Escape") {
-      setOpen(false);
-      setActiveIndex(-1);
-    } else if (e.key === "Enter" && activeIndex >= 0) {
+      setOpen(true);
+      const last = options.length - 1;
+      // Boucle : au-delà de la dernière option on revient au champ (-1).
+      setActiveIndex((i) =>
+        e.key === "ArrowDown" ? (i >= last ? -1 : i + 1) : i <= -1 ? last : i - 1,
+      );
+    } else if (e.key === "Enter" && listOpen && activeIndex >= 0) {
       e.preventDefault();
-      if (showSug) {
-        const s = suggestions[activeIndex];
-        addSearchHistory(query.trim());
-        setOpen(false);
-        setActiveIndex(-1);
-        router.push(s.url);
-      } else if (showHist) {
-        const h = history[activeIndex];
-        addSearchHistory(h.term);
-        setOpen(false);
-        setActiveIndex(-1);
-        router.push(`/recherche?q=${encodeURIComponent(h.term)}`);
-      }
+      const option = options[activeIndex];
+      select(option);
+      router.push(option.href);
     }
   }
 
-  const showHistory = open && query.trim().length < 2 && history.length > 0;
-  const showSuggestions = open && suggestions.length > 0 && query.trim().length >= 2;
+  function handleDeleteHistory(term: string) {
+    removeSearchHistory(term);
+    setHistory(readSearchHistory());
+    inputRef.current?.focus();
+  }
 
-  const inputSize = large ? "px-5 py-4 text-lg" : "px-4 py-3 text-base";
-  const buttonSize = large ? "px-7 py-4 text-lg" : "px-6 py-3";
+  const optionClass = (i: number) =>
+    `flex items-center gap-3 px-4 py-2.5 text-sm ${i === activeIndex ? "bg-blue-50" : "hover:bg-zinc-50"}`;
 
   return (
-    <div ref={containerRef} className="relative w-full">
-      <form action="/recherche" method="get" className="flex w-full gap-2" onSubmit={handleSubmit}>
-        <input
-          type="search"
-          name="q"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          autoFocus={autoFocus}
-          required
-          autoComplete="off"
-          placeholder="Référence (ex : 6ES7214-1AG40, PWR-C1-715WAC) ou nom de pièce…"
-          className={`w-full rounded-xl border border-zinc-300 bg-white text-zinc-900 shadow-sm transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none ${inputSize}`}
-        />
-        <button
-          type="submit"
-          className={`shrink-0 rounded-xl bg-blue-600 font-semibold text-white transition hover:bg-blue-700 ${buttonSize}`}
-        >
-          Rechercher
-        </button>
-      </form>
-
-      {showHistory && (
-        <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-zinc-200 bg-white text-left shadow-lg">
-          <li className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-            Recherches récentes
-          </li>
-          {history.map((entry, i) => (
-            <li key={entry.term} className="border-b border-zinc-100 last:border-0">
-              <div className={`flex items-center justify-between gap-2 px-4 py-2.5 ${i === activeIndex ? "bg-blue-50" : "hover:bg-zinc-50"}`}>
-                <Link
-                  href={`/recherche?q=${encodeURIComponent(entry.term)}`}
-                  className="flex min-w-0 flex-1 items-center gap-2 text-sm text-zinc-700"
-                  onClick={() => { addSearchHistory(entry.term); setOpen(false); }}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5 shrink-0 text-zinc-400">
-                    <path fillRule="evenodd" d="M1 8a7 7 0 1 1 14 0A7 7 0 0 1 1 8Zm7.75-4.25a.75.75 0 0 0-1.5 0V8c0 .414.336.75.75.75h3.25a.75.75 0 0 0 0-1.5h-2.5v-3.5Z" clipRule="evenodd" />
-                  </svg>
-                  <span className="truncate">{entry.term}</span>
-                </Link>
-                <button
-                  type="button"
-                  onClick={(e) => handleDeleteHistory(entry.term, e)}
-                  className="shrink-0 p-1 text-zinc-300 transition hover:text-zinc-600"
-                  aria-label="Supprimer"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="h-3.5 w-3.5">
-                    <path d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" />
-                  </svg>
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {showSuggestions && (
-        <ul className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-zinc-200 bg-white text-left shadow-lg">
-          {suggestions.map((s, i) => (
-            <li key={s.url} className="border-b border-zinc-100 last:border-0">
-              <Link
-                href={s.url}
-                className={`flex items-center justify-between gap-3 px-4 py-3 ${i === activeIndex ? "bg-blue-50" : "hover:bg-blue-50"}`}
-                onClick={() => { addSearchHistory(query.trim()); setOpen(false); }}
+    <div
+      ref={containerRef}
+      className="relative w-full"
+      onBlur={(e) => {
+        if (!containerRef.current?.contains(e.relatedTarget as Node | null)) close();
+      }}
+    >
+      <Form
+        action="/recherche"
+        role="search"
+        className="flex w-full gap-2"
+        onSubmit={() => {
+          if (trimmed) addSearchHistory(trimmed);
+          close();
+        }}
+      >
+        <div className="relative min-w-0 flex-1">
+          <input
+            ref={inputRef}
+            type="search"
+            name="q"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={handleFocus}
+            onKeyDown={handleKeyDown}
+            autoFocus={autoFocus}
+            required
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            enterKeyHint="search"
+            role="combobox"
+            aria-label="Rechercher une pièce par référence ou par nom"
+            aria-autocomplete="list"
+            aria-expanded={listOpen}
+            aria-controls={listboxId}
+            aria-activedescendant={listOpen && activeIndex >= 0 ? optionId(activeIndex) : undefined}
+            placeholder={
+              variant === "header" ? "Rechercher une référence…" : "Référence ou nom de pièce…"
+            }
+            className={`peer w-full border border-zinc-300 bg-white text-zinc-900 transition placeholder:text-zinc-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none ${styles.input}`}
+          />
+          {variant === "header" && (
+            <>
+              <kbd className="pointer-events-none absolute right-9 top-1/2 hidden -translate-y-1/2 rounded border border-zinc-200 bg-white px-1.5 font-sans text-[11px] text-zinc-400 peer-placeholder-shown:lg:block peer-focus:hidden!">
+                /
+              </kbd>
+              <button
+                type="submit"
+                aria-label="Rechercher"
+                className="absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-400 transition hover:text-zinc-700"
               >
-                <span className="min-w-0">
-                  <span className="block truncate font-mono text-sm font-medium text-zinc-900">
-                    {s.manufacturerName} {s.referenceRaw}
-                  </span>
-                  <span className="block truncate text-sm text-zinc-500">
-                    {s.name}
-                  </span>
-                </span>
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
-                    s.status === "obsolete"
-                      ? "bg-red-100 text-red-700"
-                      : s.status === "active"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-zinc-100 text-zinc-500"
-                  }`}
+                <SearchIcon />
+              </button>
+            </>
+          )}
+        </div>
+        {variant !== "header" && (
+          <button
+            type="submit"
+            className={`flex shrink-0 items-center gap-2 bg-blue-600 font-semibold text-white transition hover:bg-blue-700 ${styles.button}`}
+          >
+            <SearchIcon className="h-5 w-5 sm:hidden" />
+            <span className="sr-only sm:not-sr-only">Rechercher</span>
+          </button>
+        )}
+      </Form>
+
+      {listOpen && (
+        <div
+          // Garde le focus dans le champ pendant un clic dans la liste (sinon
+          // Safari ferme la liste avant que le clic n'atteigne le lien).
+          onMouseDown={(e) => e.preventDefault()}
+          className={`absolute z-40 mt-2 overflow-hidden rounded-xl border border-zinc-200 bg-white text-left shadow-lg ${
+            variant === "header" ? "left-0 w-[min(28rem,calc(100vw-2rem))]" : "w-full"
+          }`}
+        >
+          {!typing && (
+            <p id={`${listboxId}-label`} className="px-4 pb-1 pt-2.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              Recherches récentes
+            </p>
+          )}
+          <ul
+            role="listbox"
+            id={listboxId}
+            aria-label={typing ? "Suggestions" : undefined}
+            aria-labelledby={typing ? undefined : `${listboxId}-label`}
+          >
+            {typing
+              ? suggestions.map((s, i) => (
+                  <li key={s.url} id={optionId(i)} role="option" aria-selected={i === activeIndex} className="border-b border-zinc-100">
+                    <Link href={s.url} tabIndex={-1} onClick={() => select(options[i])} className={`${optionClass(i)} justify-between`}>
+                      <span className="min-w-0">
+                        <span className="block truncate">
+                          <span className="font-mono font-semibold text-zinc-900">{s.referenceRaw}</span>{" "}
+                          <span className="text-zinc-500">{s.manufacturerName}</span>
+                        </span>
+                        <span className="block truncate text-zinc-500">{s.name}</span>
+                      </span>
+                      <StatusBadge status={s.status} size="sm" />
+                    </Link>
+                  </li>
+                ))
+              : history.map((entry, i) => (
+                  <li key={entry.term} id={optionId(i)} role="option" aria-selected={i === activeIndex} className="flex items-center border-b border-zinc-100 last:border-0">
+                    <Link
+                      href={searchHref(entry.term)}
+                      tabIndex={-1}
+                      onClick={() => select(options[i])}
+                      className={`${optionClass(i)} min-w-0 flex-1 text-zinc-700`}
+                    >
+                      <ClockIcon className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
+                      <span className="truncate">{entry.term}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => handleDeleteHistory(entry.term)}
+                      className="shrink-0 px-3 py-2.5 text-zinc-300 transition hover:text-zinc-600"
+                      aria-label={`Retirer « ${entry.term} » des recherches récentes`}
+                    >
+                      <CloseIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </li>
+                ))}
+            {typing && (
+              <li id={optionId(suggestions.length)} role="option" aria-selected={activeIndex === suggestions.length}>
+                <Link
+                  href={searchHref(trimmed)}
+                  tabIndex={-1}
+                  onClick={() => select(options[suggestions.length])}
+                  className={`${optionClass(suggestions.length)} font-medium text-blue-700`}
                 >
-                  {s.status === "obsolete"
-                    ? "Obsolète"
-                    : s.status === "active"
-                      ? "Fabriquée"
-                      : "?"}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                  <SearchIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Voir tous les résultats pour « {trimmed} »</span>
+                </Link>
+              </li>
+            )}
+          </ul>
+        </div>
       )}
+      <p aria-live="polite" className="sr-only">
+        {listOpen && typing ? `${suggestions.length} suggestion${suggestions.length > 1 ? "s" : ""}` : ""}
+      </p>
     </div>
   );
 }
