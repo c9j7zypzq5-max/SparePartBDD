@@ -13,7 +13,9 @@
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed.ts",
     "push": "tsx scripts/ingest/push.ts",
-    "lifecycle": "tsx scripts/lifecycle/check.ts"
+    "lifecycle": "tsx scripts/lifecycle/check.ts",
+    "catalog:build": "tsx scripts/catalog/build.ts",
+    "catalog:load": "tsx scripts/catalog/load.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

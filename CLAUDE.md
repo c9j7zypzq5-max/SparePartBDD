@@ -17,6 +17,8 @@ npm run seed             # Seed demo data (~30 parts, 6 industries)
 
 npm run push             # CLI: POST a JSON batch to /api/ingest
 npm run lifecycle        # Weekly lifecycle check script (Mac mini)
+npm run catalog:build    # Check the curated catalogue and regenerate data/catalogue/<edition>/ (JSON lots + idempotent SQL)
+npm run catalog:load     # Load those lots into DATABASE_URL through the ingest pipeline
 ```
 
 Tests live in `tests/unit` (pure functions) and `tests/integration` (real Postgres: ingest, search, lifecycle). CI (`.github/workflows/ci.yml`) runs typecheck, both test suites against Postgres 16, and the build. Validate changes with `npm run typecheck`, `npm test`, and `npm run build`.
@@ -93,6 +95,7 @@ Updates never erase data: omitted/empty fields keep their DB value (COALESCE), `
 - **Bulk search**: `/technicien` is the only bulk page (`/recherche-lot` redirects to it in `next.config.ts`).
 - **localStorage pages** (`/liste`, `/comparer`): render nothing until mounted, never an empty state before the list has been read.
 - **Print stylesheet** hides every `<header>` element: don't use `<header>` for page content (the part page title block is a `<div>`); mark UI chrome with `no-print`.
+- **Extended catalogue**: `scripts/catalog/data/*.ts` holds hand-curated real references (one `family()` per product range): no prices or offers, no `productUrl` (the lifecycle check would read a wrong URL's 404 as "obsolete"), `unknown` when the lifecycle isn't established, confidence < 60 for doubtful end-of-life (→ `/admin/review`). `catalog:build` rejects duplicate normalized references, unresolved replacements/compatibles and cycles, skips parts already in `neon-catalog.sql`, and orders lots so a replacement is loaded before the part it replaces. Edit the data, never the generated `data/catalogue/<edition>/` files; loading paths are in `data/catalogue/README.md`.
 - **No `loading.tsx` under `/recherche`**: with Next 15.5 it made client navigations between two `/recherche?…` URLs (filter chips, `router.push`) never commit. `SearchLoadMore` is keyed on the query so a filter change resets loaded results.
 
 ## Environment Variables
