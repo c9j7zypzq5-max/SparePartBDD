@@ -1,70 +1,59 @@
 import { NextRequest } from "next/server";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { normalizeReference } from "@/lib/normalize";
+import { getCheapestOffers } from "@/lib/queries";
+import { rateLimitResponse } from "@/lib/rate-limit";
 
-const { parts, manufacturers, offers } = schema;
+const { parts, manufacturers } = schema;
 
+const MAX_REFS = 50;
+
+/** Recherche en lot par référence exacte (page /technicien). */
 export async function POST(req: NextRequest) {
-  if (!rateLimit(getClientIp(req.headers), { limit: 10, windowMs: 60_000 })) {
-    return Response.json({ error: "Too many requests" }, { status: 429 });
-  }
+  const limited = rateLimitResponse(req, "parts-bulk", { limit: 10 });
+  if (limited) return limited;
 
-  let refs: string[];
+  let refs: unknown;
   try {
     refs = await req.json();
-    if (!Array.isArray(refs) || refs.length === 0) {
-      return Response.json({ error: "refs must be a non-empty array" }, { status: 400 });
-    }
   } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
+  if (!Array.isArray(refs) || refs.length === 0) {
+    return Response.json({ error: "refs must be a non-empty array" }, { status: 400 });
+  }
 
-  const normalized = refs
-    .slice(0, 50)
-    .map((r) => String(r).replace(/[^A-Z0-9]/gi, "").toUpperCase());
+  const inputs = refs.slice(0, MAX_REFS).map((r) => String(r));
+  const normalized = inputs.map(normalizeReference);
+  const lookup = [...new Set(normalized.filter(Boolean))];
 
-  const rows = await db
-    .select({
-      id: parts.id,
-      referenceNormalized: parts.referenceNormalized,
-      referenceRaw: parts.referenceRaw,
-      name: parts.name,
-      slug: parts.slug,
-      status: parts.status,
-      manufacturerName: manufacturers.name,
-      manufacturerSlug: manufacturers.slug,
-    })
-    .from(parts)
-    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
-    .where(inArray(parts.referenceNormalized, normalized));
+  const rows = lookup.length > 0
+    ? await db
+        .select({
+          id: parts.id,
+          referenceNormalized: parts.referenceNormalized,
+          referenceRaw: parts.referenceRaw,
+          name: parts.name,
+          slug: parts.slug,
+          status: parts.status,
+          manufacturerName: manufacturers.name,
+          manufacturerSlug: manufacturers.slug,
+        })
+        .from(parts)
+        .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+        .where(inArray(parts.referenceNormalized, lookup))
+    : [];
 
-  const idMap = new Map(rows.map((r) => [r.referenceNormalized, r.id]));
-  const allIds = rows.map((r) => r.id);
-
-  const minPrices =
-    allIds.length > 0
-      ? await db
-          .select({
-            partId: offers.partId,
-            minPrice: sql<string>`min(${offers.price})`,
-            currency: offers.currency,
-          })
-          .from(offers)
-          .where(inArray(offers.partId, allIds))
-          .groupBy(offers.partId, offers.currency)
-      : [];
-
-  const priceMap = new Map(minPrices.map((o) => [o.partId, { minPrice: o.minPrice, currency: o.currency }]));
+  const cheapest = await getCheapestOffers(rows.map((r) => r.id));
   const rowMap = new Map(rows.map((r) => [r.referenceNormalized, r]));
 
   const results = normalized.map((norm, i) => {
     const row = rowMap.get(norm);
-    if (!row) return { inputRef: refs[i], found: false };
-    const partId = idMap.get(norm);
-    const priceData = partId ? priceMap.get(partId) : undefined;
+    if (!row) return { inputRef: inputs[i], found: false };
+    const offer = cheapest.get(row.id);
     return {
-      inputRef: refs[i],
+      inputRef: inputs[i],
       found: true,
       referenceRaw: row.referenceRaw,
       name: row.name,
@@ -72,8 +61,8 @@ export async function POST(req: NextRequest) {
       manufacturerSlug: row.manufacturerSlug,
       slug: row.slug,
       status: row.status,
-      minPrice: priceData?.minPrice ? parseFloat(priceData.minPrice) : undefined,
-      currency: priceData?.currency ?? "EUR",
+      minPrice: offer?.price,
+      currency: offer?.currency ?? "EUR",
     };
   });
 

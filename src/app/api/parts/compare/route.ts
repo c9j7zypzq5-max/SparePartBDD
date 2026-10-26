@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { normalizeReference } from "@/lib/normalize";
+import { getCheapestOffers } from "@/lib/queries";
+import { rateLimitResponse } from "@/lib/rate-limit";
 
-const { manufacturers, offers, parts } = schema;
+const { manufacturers, parts } = schema;
 
 type InputItem = {
   reference: string;
@@ -31,9 +33,8 @@ type CompareResult = {
 };
 
 export async function POST(req: Request) {
-  if (!rateLimit(getClientIp(req.headers), { limit: 30, windowMs: 60_000 })) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-  }
+  const limited = rateLimitResponse(req, "parts-compare", { limit: 30 });
+  if (limited) return limited;
 
   let body: InputItem[];
   try {
@@ -52,24 +53,21 @@ export async function POST(req: Request) {
 
   const items = body.map((item) => ({
     ...item,
-    normalized: item.reference.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+    reference: String(item?.reference ?? ""),
+    normalized: normalizeReference(String(item?.reference ?? "")),
   }));
 
-  const normalizedRefs = [...new Set(items.map((i) => i.normalized))];
+  const normalizedRefs = [...new Set(items.map((i) => i.normalized).filter(Boolean))];
 
-  // Batch query — une seule requête pour toutes les références
-  const rows = await db
-    .select({
-      part: parts,
-      manufacturer: manufacturers,
-      minPrice: sql<string | null>`min(${offers.price})`,
-      currency: sql<string | null>`max(${offers.currency})`,
-    })
-    .from(parts)
-    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
-    .leftJoin(offers, eq(offers.partId, parts.id))
-    .where(inArray(parts.referenceNormalized, normalizedRefs))
-    .groupBy(parts.id, manufacturers.id);
+  // Une requête pour toutes les références, une pour leurs offres les moins chères
+  const rows = normalizedRefs.length > 0
+    ? await db
+        .select({ part: parts, manufacturer: manufacturers })
+        .from(parts)
+        .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+        .where(inArray(parts.referenceNormalized, normalizedRefs))
+    : [];
+  const cheapest = await getCheapestOffers(rows.map((r) => r.part.id));
 
   const rowMap = new Map(rows.map((r) => [r.part.referenceNormalized, r]));
 
@@ -80,7 +78,8 @@ export async function POST(req: Request) {
       return { reference: item.reference, found: false, current: null, changes: [] };
     }
 
-    const currentMinPrice = row.minPrice !== null ? parseFloat(row.minPrice) : undefined;
+    const offer = cheapest.get(row.part.id);
+    const currentMinPrice = offer?.price;
     const changes: string[] = [];
 
     if (row.part.status !== item.status) {
@@ -109,7 +108,7 @@ export async function POST(req: Request) {
         name: row.part.name,
         status: row.part.status,
         minPrice: currentMinPrice,
-        currency: row.currency ?? "EUR",
+        currency: offer?.currency ?? "EUR",
       },
       changes,
     };

@@ -6,16 +6,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/unit/*.test.ts",
+    "test:integration": "node --import tsx --import ./tests/integration/setup.ts --test --test-concurrency=1 tests/integration/*.test.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed.ts",
     "push": "tsx scripts/ingest/push.ts",
-    "lifecycle": "tsx scripts/lifecycle/check.ts"
+    "lifecycle": "tsx scripts/lifecycle/check.ts",
+    "catalog:build": "tsx scripts/catalog/build.ts",
+    "catalog:load": "tsx scripts/catalog/load.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "drizzle-orm": "^0.44.2",
-    "next": "^15.3.4",
+    "drizzle-orm": "^0.45.4",
+    "next": "^15.5.28",
     "postgres": "^3.4.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
@@ -25,9 +30,14 @@
     "@types/node": "^22.19.21",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "drizzle-kit": "^0.31.1",
+    "drizzle-kit": "^0.31.11",
     "tailwindcss": "^4.1.10",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.31"
+    }
   }
 }

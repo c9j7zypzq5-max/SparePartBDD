@@ -4,23 +4,40 @@ import { useState, useEffect } from "react";
 import { toggleWatchlist, isInWatchlist } from "@/lib/watchlist";
 import type { WatchlistEntry } from "@/lib/watchlist";
 
+/** Les dates d'ajout sont posées au clic, pas au rendu (une page ISR peut dater d'une heure). */
+export type WatchlistButtonEntry = Omit<WatchlistEntry, "dateAdded" | "snapshotDate">;
+
+const SIZES = {
+  sm: "gap-1 rounded-md px-2 py-1 text-xs",
+  md: "gap-1.5 rounded-lg px-4 py-2 text-sm",
+};
+
 export function WatchlistButton({
   entry,
-  className = "",
+  size = "sm",
 }: {
-  entry: WatchlistEntry;
-  className?: string;
+  entry: WatchlistButtonEntry;
+  size?: keyof typeof SIZES;
 }) {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setSaved(isInWatchlist(entry.manufacturerSlug, entry.partSlug));
+    const refresh = () => setSaved(isInWatchlist(entry.manufacturerSlug, entry.partSlug));
+    refresh();
+    // Synchronise les autres boutons de la même pièce (et les autres onglets)
+    window.addEventListener("watchlist-change", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("watchlist-change", refresh);
+      window.removeEventListener("storage", refresh);
+    };
   }, [entry.manufacturerSlug, entry.partSlug]);
 
   function handleClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const nowSaved = toggleWatchlist(entry);
+    const now = new Date().toISOString();
+    const nowSaved = toggleWatchlist({ ...entry, dateAdded: now, snapshotDate: now });
     setSaved(nowSaved);
     window.dispatchEvent(new Event("watchlist-change"));
   }
@@ -31,18 +48,21 @@ export function WatchlistButton({
       onClick={handleClick}
       title={saved ? "Retirer de ma liste" : "Ajouter à ma liste"}
       aria-pressed={saved}
-      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+      className={`inline-flex items-center font-medium transition-colors ${SIZES[size]} ${
         saved
           ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
-          : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"
-      } ${className}`}
+          : size === "md"
+            ? "border border-zinc-300 text-zinc-700 hover:border-zinc-500 hover:text-zinc-900"
+            : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+      }`}
     >
       {saved ? (
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 16 16"
           fill="currentColor"
-          className="h-3.5 w-3.5"
+          className={size === "md" ? "h-4 w-4" : "h-3.5 w-3.5"}
+          aria-hidden="true"
         >
           <path d="M2 2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z" />
         </svg>
@@ -53,12 +73,13 @@ export function WatchlistButton({
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
-          className="h-3.5 w-3.5"
+          className={size === "md" ? "h-4 w-4" : "h-3.5 w-3.5"}
+          aria-hidden="true"
         >
           <path d="M2 2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2z" />
         </svg>
       )}
-      {saved ? "Sauvegardé" : "Ma liste"}
+      {saved ? "Dans ma liste" : "Ma liste"}
     </button>
   );
 }

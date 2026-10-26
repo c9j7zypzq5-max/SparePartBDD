@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getBrandLogoUrl } from "@/lib/brand-logos";
 
 export function BrandLogo({
@@ -13,7 +13,15 @@ export function BrandLogo({
   size?: number;
 }) {
   const [failed, setFailed] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
   const logoUrl = getBrandLogoUrl(slug);
+
+  useEffect(() => {
+    // Une image en échec avant l'hydratation n'a pas déclenché onError
+    // (proxy d'entreprise, bloqueur…) : on vérifie son état au montage.
+    const img = imgRef.current;
+    if (img && img.complete && img.naturalWidth === 0) setFailed(true);
+  }, []);
 
   if (!logoUrl || failed) {
     return (
@@ -29,10 +37,12 @@ export function BrandLogo({
 
   return (
     <img
+      ref={imgRef}
       src={logoUrl}
       alt={`Logo ${name}`}
       width={size}
       height={size}
+      loading="lazy"
       onError={() => setFailed(true)}
       className="flex-shrink-0 object-contain"
     />

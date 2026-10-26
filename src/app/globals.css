@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+@layer base {
+  /* Les ancres (#offres…) ne passent pas sous l'en-tête collant. */
+  html {
+    scroll-padding-top: 5rem;
+  }
+
+  /* Focus clavier visible partout ; les champs gardent leur anneau dédié. */
+  :focus-visible {
+    outline: 2px solid var(--color-blue-500);
+    outline-offset: 2px;
+  }
+}
+
 @media print {
   /* Hide navigation and UI chrome */
   header,
@@ -8,17 +21,6 @@
   .no-print,
   [data-no-print] {
     display: none !important;
-  }
-
-  /* Hide watchlist/compare/action buttons */
-  button,
-  a[href^="/recherche"],
-  a[href^="/marque"],
-  a[href^="/categorie"],
-  section:has(h2:contains("similaires")),
-  section:has(h2:contains("compatibles")),
-  section:has(h2:contains("Remplace")) {
-    /* Kept intentionally — per-element class approach below */
   }
 
   body {

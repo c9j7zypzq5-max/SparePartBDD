@@ -72,7 +72,7 @@ export function CompatibilityMap({
                     </span>
                     <div className="truncate font-medium text-zinc-900">{p.name}</div>
                   </div>
-                  <StatusBadge status={p.status} />
+                  <StatusBadge status={p.status} size="sm" />
                 </div>
               </Link>
             </div>

@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { and, asc, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, lt, ne, or, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { LifecyclePendingPart } from "@/lib/lifecycle-types";
+import { requireApiKey } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -15,17 +15,8 @@ const MAX_LIMIT = 500;
  * contrôlées il y a plus de 7 jours. Consommé par scripts/lifecycle/check.ts.
  */
 export async function GET(req: NextRequest) {
-  const apiKey = process.env.INGEST_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "INGEST_API_KEY non configurée côté serveur" },
-      { status: 500 },
-    );
-  }
-  const auth = req.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${apiKey}`) {
-    return Response.json({ error: "Non autorisé" }, { status: 401 });
-  }
+  const authError = requireApiKey(req);
+  if (authError) return authError;
 
   const rawLimit = Number(req.nextUrl.searchParams.get("limit") ?? DEFAULT_LIMIT);
   const limit = Number.isFinite(rawLimit)

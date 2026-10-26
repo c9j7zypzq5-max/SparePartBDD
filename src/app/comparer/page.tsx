@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { readCompareList, clearCompareList, type CompareEntry } from "@/lib/compare-list";
+import { readCompareList, clearCompareList, toggleCompare, type CompareEntry } from "@/lib/compare-list";
 import { StatusBadge } from "@/components/status-badge";
+import { formatPrice } from "@/lib/format";
+import { downloadTextFile, toCsv } from "@/lib/csv";
+import { CloseIcon, DownloadIcon } from "@/components/icons";
 
 type PartDetail = {
   referenceRaw: string;
@@ -20,11 +23,6 @@ type PartDetail = {
   offerUrls: { url: string; price: number | null; currency: string }[];
 } | null;
 
-function formatPrice(price: number | null, currency = "EUR") {
-  if (price === null) return "—";
-  return `${price.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${currency}`;
-}
-
 function diffClass(values: (string | number | null)[], current: string | number | null) {
   const unique = [...new Set(values.filter((v) => v !== null))];
   if (unique.length <= 1) return "";
@@ -32,46 +30,70 @@ function diffClass(values: (string | number | null)[], current: string | number 
 }
 
 function exportToCSV(found: NonNullable<PartDetail>[], allAttrKeys: string[]) {
-  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const headers = ["Critère", ...found.map((d) => `${d.manufacturerName} ${d.referenceRaw}`)];
-  const rows: string[][] = [
+  const csv = toCsv([
+    ["Critère", ...found.map((d) => `${d.manufacturerName} ${d.referenceRaw}`)],
     ["Référence", ...found.map((d) => d.referenceRaw)],
     ["Fabricant", ...found.map((d) => d.manufacturerName)],
     ["Catégorie", ...found.map((d) => d.categoryName ?? "")],
     ["Statut", ...found.map((d) => d.status)],
-    ["Prix min", ...found.map((d) => d.minPrice !== null ? String(d.minPrice) : "")],
-    ["Offres", ...found.map((d) => String(d.offerCount))],
+    ["Prix min", ...found.map((d) => d.minPrice)],
+    ["Offres", ...found.map((d) => d.offerCount)],
     ...allAttrKeys.map((key) => [key, ...found.map((d) => d.attributes?.[key] ?? "")]),
-  ];
-  const csv = [headers, ...rows].map((r) => r.map(escape).join(",")).join("\n");
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "comparaison.csv";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 100);
+  ]);
+  downloadTextFile(csv, "comparaison.csv");
 }
 
 export default function ComparerPage() {
   const [compareList, setCompareList] = useState<CompareEntry[]>([]);
   const [details, setDetails] = useState<PartDetail[]>([]);
+  // Liste lue dans localStorage après le montage : avant, ni « vide » ni tableau.
+  const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const list = readCompareList();
-    setCompareList(list);
-    if (list.length === 0) return;
-    setLoading(true);
-    fetch("/api/parts/compare-view", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(list.map((e) => ({ manufacturerSlug: e.manufacturerSlug, slug: e.slug }))),
-    })
-      .then((r) => r.json())
-      .then((data) => setDetails(data))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    function load() {
+      const list = readCompareList();
+      setCompareList(list);
+      setReady(true);
+      setError(false);
+      if (list.length === 0) {
+        setDetails([]);
+        return;
+      }
+      setLoading(true);
+      fetch("/api/parts/compare-view", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(list.map((e) => ({ manufacturerSlug: e.manufacturerSlug, slug: e.slug }))),
+      })
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then((data: PartDetail[]) => {
+          if (!cancelled) setDetails(data);
+        })
+        .catch(() => {
+          if (!cancelled) setError(true);
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+    }
+    load();
+    // Retrait d'une pièce (ici, depuis une fiche ou un autre onglet) : on recharge.
+    window.addEventListener("compare-change", load);
+    window.addEventListener("storage", load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("compare-change", load);
+      window.removeEventListener("storage", load);
+    };
   }, []);
+
+  if (!ready) return null;
 
   if (compareList.length === 0) {
     return (
@@ -81,7 +103,7 @@ export default function ComparerPage() {
           Ajoutez des pièces via le bouton &ldquo;Comparer&rdquo; sur les fiches produit ou les listes.
         </p>
         <Link
-          href="/recherche?q="
+          href="/recherche"
           className="mt-4 inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700"
         >
           Rechercher des pièces
@@ -90,7 +112,18 @@ export default function ComparerPage() {
     );
   }
 
-  if (loading) {
+  if (error) {
+    return (
+      <div role="alert" className="mt-12 rounded-xl border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
+        La comparaison n&apos;a pas pu être chargée.{" "}
+        <button type="button" onClick={() => window.dispatchEvent(new Event("compare-change"))} className="font-medium underline">
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  if (loading && details.length === 0) {
     return (
       <div className="mt-16 flex justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-zinc-600" />
@@ -121,7 +154,7 @@ export default function ComparerPage() {
     },
     {
       label: "Statut",
-      render: (d) => <StatusBadge status={d.status} />,
+      render: (d) => <StatusBadge status={d.status} size="sm" />,
       values: (d) => d.status,
     },
     {
@@ -156,19 +189,26 @@ export default function ComparerPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Comparaison</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Comparaison</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Les valeurs qui diffèrent entre les pièces sont surlignées.
+            {compareList.length < 3 && " Vous pouvez ajouter jusqu'à 3 pièces."}
+          </p>
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => exportToCSV(found, allAttrKeys)}
-            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-600 transition hover:border-zinc-400 hover:text-zinc-800"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition hover:border-zinc-500 hover:text-zinc-900"
           >
+            <DownloadIcon />
             Exporter CSV
           </button>
           <button
             type="button"
-            onClick={() => { clearCompareList(); setCompareList([]); setDetails([]); }}
+            onClick={clearCompareList}
             className="rounded-lg border border-zinc-200 px-3 py-1.5 text-sm text-zinc-500 transition hover:border-zinc-400 hover:text-zinc-700"
           >
             Vider
@@ -184,14 +224,29 @@ export default function ComparerPage() {
                 Critère
               </th>
               {found.map((d) => (
-                <th key={`${d.manufacturerSlug}/${d.slug}`} className="px-4 py-3 text-left">
-                  <Link
-                    href={`/piece/${d.manufacturerSlug}/${d.slug}`}
-                    className="font-semibold text-zinc-900 hover:text-blue-600 hover:underline"
-                  >
-                    {d.manufacturerName} {d.referenceRaw}
-                  </Link>
-                  <div className="mt-0.5 text-xs font-normal text-zinc-500">{d.name}</div>
+                <th key={`${d.manufacturerSlug}/${d.slug}`} scope="col" className="px-4 py-3 text-left align-top">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <Link
+                        href={`/piece/${d.manufacturerSlug}/${d.slug}`}
+                        className="font-semibold text-zinc-900 hover:text-blue-600 hover:underline"
+                      >
+                        {d.manufacturerName} {d.referenceRaw}
+                      </Link>
+                      <div className="mt-0.5 text-xs font-normal text-zinc-500">{d.name}</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const entry = compareList.find((e) => e.manufacturerSlug === d.manufacturerSlug && e.slug === d.slug);
+                        if (entry) toggleCompare(entry);
+                      }}
+                      aria-label={`Retirer ${d.referenceRaw} de la comparaison`}
+                      className="shrink-0 rounded p-1 text-zinc-400 transition hover:bg-zinc-200 hover:text-zinc-700"
+                    >
+                      <CloseIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </th>
               ))}
             </tr>

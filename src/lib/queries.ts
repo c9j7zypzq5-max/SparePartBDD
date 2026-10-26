@@ -1,6 +1,5 @@
-import { aliasedTable, and, asc, desc, eq, ilike, sql } from "drizzle-orm";
+import { aliasedTable, and, asc, desc, eq, ilike, inArray, isNotNull, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { normalizeReference } from "@/lib/normalize";
 
 const {
   categories,
@@ -143,20 +142,6 @@ export async function getManufacturerPageData(
   };
 }
 
-export async function getManufacturerPartsPaginated(
-  manufacturerId: number,
-  limit: number,
-  offset: number,
-) {
-  return db
-    .select()
-    .from(parts)
-    .where(eq(parts.manufacturerId, manufacturerId))
-    .orderBy(asc(parts.referenceNormalized))
-    .limit(limit)
-    .offset(offset);
-}
-
 export async function getManufacturerPartsPaginatedFiltered(
   manufacturerId: number,
   limit: number,
@@ -231,24 +216,6 @@ export async function getCategoryPartsPaginated(
     .offset(offset);
 }
 
-export async function getCategoryWithParts(slug: string) {
-  const [category] = await db
-    .select()
-    .from(categories)
-    .where(eq(categories.slug, slug))
-    .limit(1);
-  if (!category) return null;
-
-  const partRows = await db
-    .select({ part: parts, manufacturer: manufacturers })
-    .from(parts)
-    .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
-    .where(eq(parts.categoryId, category.id))
-    .orderBy(asc(parts.name));
-
-  return { category, parts: partRows };
-}
-
 export async function getAllManufacturers() {
   return db.select().from(manufacturers).orderBy(asc(manufacturers.name));
 }
@@ -284,10 +251,14 @@ export async function getCategoriesWithCounts() {
     .orderBy(asc(categories.name));
 }
 
-/** Pour le sitemap : toutes les URLs de pages pièce. */
+/** Pour le sitemap : toutes les URLs de pages pièce, avec leur date de mise à jour. */
 export async function getAllPartPaths() {
   return db
-    .select({ partSlug: parts.slug, manufacturerSlug: manufacturers.slug })
+    .select({
+      partSlug: parts.slug,
+      manufacturerSlug: manufacturers.slug,
+      updatedAt: parts.updatedAt,
+    })
     .from(parts)
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId));
 }
@@ -344,62 +315,6 @@ export async function getSimilarParts(
     .limit(needed);
 
   return [...withCategory, ...fallback];
-}
-
-/**
- * Recherche floue par ILIKE sur la référence normalisée et la référence brute.
- * Utilisé en fallback quand la recherche pg_trgm ne renvoie rien.
- */
-export async function searchPartsFuzzy(
-  term: string,
-  opts: { limit?: number; offset?: number } = {},
-) {
-  const raw = term.trim();
-  const normalized = normalizeReference(raw);
-  const limit = opts.limit ?? 20;
-  const offset = opts.offset ?? 0;
-
-  const rows = await db.execute(sql`
-    SELECT p.id,
-           p.name,
-           p.reference_raw,
-           p.slug,
-           p.status,
-           p.updated_at,
-           m.name AS manufacturer_name,
-           m.slug AS manufacturer_slug,
-           m.industry
-    FROM parts p
-    JOIN manufacturers m ON m.id = p.manufacturer_id
-    WHERE p.reference_normalized ILIKE ${"%" + normalized + "%"}
-       OR p.reference_raw ILIKE ${"%" + raw + "%"}
-    ORDER BY p.reference_normalized ASC
-    LIMIT ${limit}
-    OFFSET ${offset}
-  `);
-
-  type FuzzyRow = {
-    id: number;
-    name: string;
-    reference_raw: string;
-    slug: string;
-    status: "active" | "obsolete" | "unknown";
-    updated_at: Date | string | null;
-    manufacturer_name: string;
-    manufacturer_slug: string;
-    industry: string;
-  };
-  return (rows as unknown as FuzzyRow[]).map((r) => ({
-    partId: Number(r.id),
-    name: r.name,
-    referenceRaw: r.reference_raw,
-    slug: r.slug,
-    status: r.status,
-    manufacturerName: r.manufacturer_name,
-    manufacturerSlug: r.manufacturer_slug,
-    industry: r.industry,
-    updatedAt: r.updated_at ? new Date(r.updated_at) : undefined,
-  }));
 }
 
 /** Fabricants dont le nom contient le terme, pour les suggestions "Aucun résultat". */
@@ -652,7 +567,10 @@ export async function getAdminStats() {
   return row ?? null;
 }
 
-/** Pièces obsolètes avec leur remplacement officiel, pour la home. */
+/**
+ * Pièces obsolètes avec leur remplacement officiel, pour la home : les
+ * remplacements encore fabriqués d'abord, puis les plus récents.
+ */
 export async function getRecentSupersessions(limit = 4) {
   const oldParts = aliasedTable(parts, "old_parts");
   const oldManufacturers = aliasedTable(manufacturers, "old_manufacturers");
@@ -668,5 +586,111 @@ export async function getRecentSupersessions(limit = 4) {
     .innerJoin(oldManufacturers, eq(oldManufacturers.id, oldParts.manufacturerId))
     .innerJoin(parts, eq(parts.id, supersessions.newPartId))
     .innerJoin(manufacturers, eq(manufacturers.id, parts.manufacturerId))
+    .orderBy(sql`(${parts.status} = 'active') DESC`, desc(supersessions.id))
     .limit(limit);
+}
+
+export type PartCardExtras = {
+  minPrice: number | null;
+  currency: string;
+  offerCount: number;
+  /** Pièces obsolètes : remplacement à proposer (null si aucun connu). */
+  replacement: { referenceRaw: string; slug: string; manufacturerSlug: string; status: string } | null;
+};
+
+/**
+ * Compléments des cartes de pièces (listes de résultats), en deux requêtes
+ * groupées quel que soit le nombre de cartes : meilleur prix et nombre
+ * d'offres ; pour les pièces obsolètes, le premier successeur encore fabriqué
+ * de la chaîne de remplacement, à défaut le remplacement direct.
+ */
+export async function getPartCardExtras(
+  items: { id: number; status: string }[],
+): Promise<Map<number, PartCardExtras>> {
+  const extras = new Map<number, PartCardExtras>();
+  if (items.length === 0) return extras;
+  const obsoleteIds = items.filter((i) => i.status === "obsolete").map((i) => i.id);
+
+  type ReplacementRow = {
+    root_id: number;
+    reference_raw: string;
+    slug: string;
+    status: string;
+    manufacturer_slug: string;
+  };
+  const [offerRows, replacementRows] = await Promise.all([
+    db
+      .selectDistinctOn([offers.partId], {
+        partId: offers.partId,
+        price: offers.price,
+        currency: offers.currency,
+        // Fenêtre évaluée avant DISTINCT ON : toutes les offres de la pièce.
+        offerCount: sql<number>`count(*) OVER (PARTITION BY ${offers.partId})::int`,
+      })
+      .from(offers)
+      .where(inArray(offers.partId, items.map((i) => i.id)))
+      .orderBy(offers.partId, sql`${offers.price} ASC NULLS LAST`),
+    obsoleteIds.length > 0
+      ? db.execute(sql`
+          WITH RECURSIVE chain(root_id, part_id, depth) AS (
+            SELECT old_part_id, new_part_id, 1
+            FROM supersessions
+            WHERE old_part_id = ANY(ARRAY[${sql.join(obsoleteIds.map((id) => sql`${id}`), sql`, `)}]::int[])
+            UNION ALL
+            SELECT c.root_id, s.new_part_id, c.depth + 1
+            FROM chain c
+            JOIN supersessions s ON s.old_part_id = c.part_id
+            WHERE c.depth < 10
+          )
+          SELECT DISTINCT ON (c.root_id)
+                 c.root_id, p.reference_raw, p.slug, p.status, m.slug AS manufacturer_slug
+          FROM chain c
+          JOIN parts p ON p.id = c.part_id
+          JOIN manufacturers m ON m.id = p.manufacturer_id
+          WHERE p.id <> c.root_id
+          ORDER BY c.root_id, (p.status = 'active') DESC, c.depth, p.id
+        `)
+      : Promise.resolve([]),
+  ]);
+
+  const replacements = new Map(
+    (replacementRows as unknown as ReplacementRow[]).map((r) => [
+      Number(r.root_id),
+      { referenceRaw: r.reference_raw, slug: r.slug, manufacturerSlug: r.manufacturer_slug, status: r.status },
+    ]),
+  );
+  const offerStats = new Map(offerRows.map((r) => [r.partId, r]));
+  for (const { id } of items) {
+    const o = offerStats.get(id);
+    extras.set(id, {
+      minPrice: o?.price != null ? Number(o.price) : null,
+      currency: o?.currency ?? "EUR",
+      offerCount: o?.offerCount ?? 0,
+      replacement: replacements.get(id) ?? null,
+    });
+  }
+  return extras;
+}
+
+/**
+ * Offre la moins chère de chaque pièce, prix et devise issus de la même
+ * offre (un GROUP BY pièce, devise appairerait un prix avec une devise au
+ * hasard dès qu'une pièce a des offres en plusieurs devises).
+ */
+export async function getCheapestOffers(partIds: number[]) {
+  const cheapest = new Map<number, { price: number; currency: string }>();
+  if (partIds.length === 0) return cheapest;
+  const rows = await db
+    .selectDistinctOn([offers.partId], {
+      partId: offers.partId,
+      price: offers.price,
+      currency: offers.currency,
+    })
+    .from(offers)
+    .where(and(inArray(offers.partId, partIds), isNotNull(offers.price)))
+    .orderBy(offers.partId, asc(offers.price));
+  for (const r of rows) {
+    cheapest.set(r.partId, { price: Number(r.price), currency: r.currency ?? "EUR" });
+  }
+  return cheapest;
 }

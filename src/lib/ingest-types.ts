@@ -1,24 +1,46 @@
 /**
  * Types partagés entre l'API /api/ingest, le pipeline d'upsert et le script
  * push. C'est le contrat que les sessions Ollama doivent respecter.
+ *
+ * Les listes de valeurs sont la source unique des enums Postgres
+ * (src/db/schema.ts) et de la validation côté serveur.
  */
 
-export type Industry =
-  | "industrie"
-  | "informatique"
-  | "automobile"
-  | "electromenager"
-  | "hvac"
-  | "electronique";
+export const INDUSTRIES = [
+  // Verticales prioritaires du lancement
+  "industrie",
+  "informatique",
+  // Extensions prévues
+  "automobile",
+  "electromenager",
+  "hvac",
+  "electronique",
+] as const;
+export type Industry = (typeof INDUSTRIES)[number];
 
-export type PartStatus = "active" | "obsolete" | "unknown";
-export type ReferenceType = "oem" | "aftermarket" | "ean" | "mpn";
-export type SellerType =
-  | "constructeur"
-  | "distributeur_officiel"
-  | "aftermarket"
-  | "reconditionne"
-  | "occasion";
+export const PART_STATUSES = [
+  "active", // encore fabriquée
+  "obsolete", // plus fabriquée
+  "unknown",
+] as const;
+export type PartStatus = (typeof PART_STATUSES)[number];
+
+export const REFERENCE_TYPES = [
+  "oem", // référence constructeur alternative (autre format, ancien catalogue…)
+  "aftermarket", // référence équivalente d'un fabricant aftermarket
+  "ean",
+  "mpn",
+] as const;
+export type ReferenceType = (typeof REFERENCE_TYPES)[number];
+
+export const SELLER_TYPES = [
+  "constructeur",
+  "distributeur_officiel",
+  "aftermarket",
+  "reconditionne",
+  "occasion",
+] as const;
+export type SellerType = (typeof SELLER_TYPES)[number];
 
 export interface IngestOffer {
   /** Nom du vendeur (ex : "Radwell", "ServerSupply", "eBay") */
@@ -87,6 +109,10 @@ export interface IngestPayload {
 export interface IngestResult {
   partsInserted: number;
   partsUpdated: number;
+  /** Offres écrites (créées ou mises à jour) */
   offersInserted: number;
+  /** Pièces rejetées ou en échec : le lot renvoie alors HTTP 207 */
   errors: string[];
+  /** Relations ignorées sans faute du lot (ex : remplacement absent du catalogue) */
+  warnings: string[];
 }

@@ -36,64 +36,55 @@ export async function applyLifecycleReport(
         report.errors.push(`[part ${item.partId}] checkedAt invalide`);
         continue;
       }
-
-      const existing = await db
-        .select({ id: schema.parts.id })
-        .from(schema.parts)
-        .where(eq(schema.parts.id, item.partId))
-        .limit(1);
-      if (existing.length === 0) {
-        report.errors.push(`[part ${item.partId}] pièce inconnue`);
+      if (!Number.isInteger(item.partId)) {
+        report.errors.push(`[part ${item.partId}] partId invalide`);
         continue;
       }
 
+      let changes: Partial<typeof schema.parts.$inferInsert>;
       switch (item.outcome) {
         case "active":
         case "obsolete":
-          await db
-            .update(schema.parts)
-            .set({
-              status: item.outcome,
-              needsReview: false,
-              lifecycleCheckedAt: checkedAt,
-              lifecycleNote: item.evidence ?? `${source} : page produit active`,
-              updatedAt: new Date(),
-            })
-            .where(eq(schema.parts.id, item.partId));
-          report.updated++;
+          changes = {
+            status: item.outcome,
+            needsReview: false,
+            lifecycleCheckedAt: checkedAt,
+            lifecycleNote: item.evidence ?? `${source} : page produit active`,
+          };
           break;
-
         case "ambiguous":
-          await db
-            .update(schema.parts)
-            .set({
-              needsReview: true,
-              lifecycleCheckedAt: checkedAt,
-              lifecycleNote: item.evidence ?? "aucun signal détecté",
-              updatedAt: new Date(),
-            })
-            .where(eq(schema.parts.id, item.partId));
-          report.flaggedForReview++;
+          changes = {
+            needsReview: true,
+            lifecycleCheckedAt: checkedAt,
+            lifecycleNote: item.evidence ?? "aucun signal détecté",
+          };
           break;
-
         case "error":
           // Erreur transitoire : on ne touche pas à lifecycleCheckedAt afin
           // que la pièce reste dans la file du prochain run.
-          await db
-            .update(schema.parts)
-            .set({
-              lifecycleNote: `erreur : ${item.evidence ?? "inconnue"}`,
-              updatedAt: new Date(),
-            })
-            .where(eq(schema.parts.id, item.partId));
-          report.errorsRecorded++;
+          changes = { lifecycleNote: `erreur : ${item.evidence ?? "inconnue"}` };
           break;
-
         default:
           report.errors.push(
             `[part ${item.partId}] outcome invalide : ${String(item.outcome)}`,
           );
+          continue;
       }
+
+      // Un seul aller-retour : l'absence de ligne retournée signale une pièce inconnue.
+      const updated = await db
+        .update(schema.parts)
+        .set({ ...changes, updatedAt: new Date() })
+        .where(eq(schema.parts.id, item.partId))
+        .returning({ id: schema.parts.id });
+      if (updated.length === 0) {
+        report.errors.push(`[part ${item.partId}] pièce inconnue`);
+        continue;
+      }
+
+      if (item.outcome === "ambiguous") report.flaggedForReview++;
+      else if (item.outcome === "error") report.errorsRecorded++;
+      else report.updated++;
     } catch (err) {
       report.errors.push(`[part ${item.partId}] ${String(err)}`);
     }

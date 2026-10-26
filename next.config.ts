@@ -9,6 +9,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Pas d'en-tête « X-Powered-By: Next.js » (empreinte inutile pour un attaquant)
+  poweredByHeader: false,
+  async redirects() {
+    return [
+      // Ancienne page de recherche par lot, fusionnée dans le mode technicien.
+      { source: "/recherche-lot", destination: "/technicien", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

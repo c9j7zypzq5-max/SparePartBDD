@@ -12,6 +12,13 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import {
+  INDUSTRIES,
+  PART_STATUSES,
+  REFERENCE_TYPES,
+  SELLER_TYPES,
+} from "../lib/ingest-types";
+import { searchDocument } from "./search-document";
 
 /**
  * Modèle de données du moteur de recherche de pièces détachées.
@@ -21,37 +28,11 @@ import {
  * remplacements, compatibles, offres vendeurs) gravite autour.
  */
 
-export const industryEnum = pgEnum("industry", [
-  // Verticales prioritaires du lancement
-  "industrie",
-  "informatique",
-  // Extensions prévues
-  "automobile",
-  "electromenager",
-  "hvac",
-  "electronique",
-]);
-
-export const partStatusEnum = pgEnum("part_status", [
-  "active", // encore fabriquée
-  "obsolete", // plus fabriquée
-  "unknown",
-]);
-
-export const referenceTypeEnum = pgEnum("reference_type", [
-  "oem", // référence constructeur alternative (autre format, ancien catalogue…)
-  "aftermarket", // référence équivalente d'un fabricant aftermarket
-  "ean",
-  "mpn",
-]);
-
-export const sellerTypeEnum = pgEnum("seller_type", [
-  "constructeur",
-  "distributeur_officiel",
-  "aftermarket",
-  "reconditionne",
-  "occasion",
-]);
+// Valeurs définies dans le contrat d'ingestion (src/lib/ingest-types.ts)
+export const industryEnum = pgEnum("industry", INDUSTRIES);
+export const partStatusEnum = pgEnum("part_status", PART_STATUSES);
+export const referenceTypeEnum = pgEnum("reference_type", REFERENCE_TYPES);
+export const sellerTypeEnum = pgEnum("seller_type", SELLER_TYPES);
 
 export const manufacturers = pgTable(
   "manufacturers",
@@ -122,10 +103,16 @@ export const parts = pgTable(
       t.referenceNormalized,
     ),
     index("parts_ref_normalized_idx").on(t.referenceNormalized),
-    index("parts_manufacturer_idx").on(t.manufacturerId),
+    // Préfixe manufacturer_id : sert aussi les listes par fabricant ; slug :
+    // résolution directe des URLs /piece/[marque]/[ref].
+    index("parts_manufacturer_slug_idx").on(t.manufacturerId, t.slug),
     index("parts_category_idx").on(t.categoryId),
     index("parts_status_idx").on(t.status),
     index("parts_lifecycle_idx").on(t.lifecycleCheckedAt),
+    index("parts_updated_at_idx").on(t.updatedAt),
+    // Recherche : sous-chaîne / similarité (pg_trgm) et plein texte
+    index("parts_ref_trgm_idx").using("gin", t.referenceNormalized.op("gin_trgm_ops")),
+    index("parts_search_document_idx").using("gin", searchDocument(t.name, t.description)),
   ],
 );
 
@@ -146,6 +133,7 @@ export const partReferences = pgTable(
   },
   (t) => [
     index("part_references_normalized_idx").on(t.referenceNormalized),
+    index("part_references_trgm_idx").using("gin", t.referenceNormalized.op("gin_trgm_ops")),
     index("part_references_part_idx").on(t.partId),
     uniqueIndex("part_references_part_ref_idx").on(
       t.partId,
@@ -170,6 +158,8 @@ export const supersessions = pgTable(
   },
   (t) => [
     uniqueIndex("supersessions_old_new_idx").on(t.oldPartId, t.newPartId),
+    // Recherche inverse « quelles pièces celle-ci remplace-t-elle ? »
+    index("supersessions_new_idx").on(t.newPartId),
   ],
 );
 
@@ -228,6 +218,7 @@ export const offers = pgTable(
   },
   (t) => [
     index("offers_part_idx").on(t.partId),
+    index("offers_seller_idx").on(t.sellerId),
     uniqueIndex("offers_part_seller_idx").on(t.partId, t.sellerId),
   ],
 );

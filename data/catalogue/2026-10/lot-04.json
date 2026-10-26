@@ -1,0 +1,3218 @@
+{
+ "source": "catalogue-2026-10",
+ "parts": [
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-03A3-4",
+   "name": "Variateur ACS550-01 1,1 kW 380-480 V",
+   "description": "Variateur ACS550-01 1,1 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "1,1 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-03A4-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-04A1-4",
+   "name": "Variateur ACS550-01 1,5 kW 380-480 V",
+   "description": "Variateur ACS550-01 1,5 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "1,5 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-04A1-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-05A4-4",
+   "name": "Variateur ACS550-01 2,2 kW 380-480 V",
+   "description": "Variateur ACS550-01 2,2 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "2,2 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-05A7-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-06A9-4",
+   "name": "Variateur ACS550-01 3 kW 380-480 V",
+   "description": "Variateur ACS550-01 3 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "3 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-07A3-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-08A8-4",
+   "name": "Variateur ACS550-01 4 kW 380-480 V",
+   "description": "Variateur ACS550-01 4 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "4 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-09A5-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-012A-4",
+   "name": "Variateur ACS550-01 5,5 kW 380-480 V",
+   "description": "Variateur ACS550-01 5,5 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "5,5 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-12A7-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-031A-4",
+   "name": "Variateur ACS550-01 15 kW 380-480 V",
+   "description": "Variateur ACS550-01 15 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "15 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-033A-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-059A-4",
+   "name": "Variateur ACS550-01 30 kW 380-480 V",
+   "description": "Variateur ACS550-01 30 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "30 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-062A-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-125A-4",
+   "name": "Variateur ACS550-01 55 kW 380-480 V",
+   "description": "Variateur ACS550-01 55 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "55 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-106A-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "ACS550-01-157A-4",
+   "name": "Variateur ACS550-01 75 kW 380-480 V",
+   "description": "Variateur ACS550-01 75 kW 380-480 V. Gamme ACS550 arrêtée : ABB la remplace par l'ACS580 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "75 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "ACS580-01-145A-4"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "A12-30-10-80",
+   "name": "Contacteur A12 3P 12 A, bobine 220-230 V 50 Hz",
+   "description": "Contacteur A12 3P 12 A, bobine 220-230 V 50 Hz. Gamme A arrêtée : ABB oriente vers le contacteur AF de même calibre (bobine large plage).",
+   "status": "obsolete",
+   "category": "Contacteurs et relais",
+   "confidenceScore": 65,
+   "attributes": {
+    "Courant AC-3": "12 A"
+   },
+   "supersededBy": "AF12-30-10-13"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "A30-30-10-80",
+   "name": "Contacteur A30 3P 32 A, bobine 220-230 V 50 Hz",
+   "description": "Contacteur A30 3P 32 A, bobine 220-230 V 50 Hz. Gamme A arrêtée : ABB oriente vers le contacteur AF de même calibre (bobine large plage).",
+   "status": "obsolete",
+   "category": "Contacteurs et relais",
+   "confidenceScore": 65,
+   "attributes": {
+    "Courant AC-3": "32 A"
+   },
+   "supersededBy": "AF30-30-00-13"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "A40-30-00-80",
+   "name": "Contacteur A40 3P 37 A, bobine 220-230 V 50 Hz",
+   "description": "Contacteur A40 3P 37 A, bobine 220-230 V 50 Hz. Gamme A arrêtée : ABB oriente vers le contacteur AF de même calibre (bobine large plage).",
+   "status": "obsolete",
+   "category": "Contacteurs et relais",
+   "confidenceScore": 65,
+   "attributes": {
+    "Courant AC-3": "37 A"
+   },
+   "supersededBy": "AF40-30-00-13"
+  },
+  {
+   "manufacturer": "ABB",
+   "industry": "industrie",
+   "reference": "A75-30-11-80",
+   "name": "Contacteur A75 3P 75 A, bobine 220-230 V 50 Hz",
+   "description": "Contacteur A75 3P 75 A, bobine 220-230 V 50 Hz. Gamme A arrêtée : ABB oriente vers le contacteur AF de même calibre (bobine large plage).",
+   "status": "obsolete",
+   "category": "Contacteurs et relais",
+   "confidenceScore": 65,
+   "attributes": {
+    "Courant AC-3": "75 A"
+   },
+   "supersededBy": "AF80-30-11-13"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1756-L74",
+   "name": "Contrôleur ControlLogix 5570, 16 Mo",
+   "description": "Contrôleur ControlLogix 5570, 16 Mo. Contrôleur ControlLogix 5570 (Allen-Bradley) : migration vers le ControlLogix 5580 de capacité équivalente.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "Mémoire utilisateur": "16 Mo"
+   },
+   "supersededBy": "1756-L84E"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1756-L75",
+   "name": "Contrôleur ControlLogix 5570, 32 Mo",
+   "description": "Contrôleur ControlLogix 5570, 32 Mo. Contrôleur ControlLogix 5570 (Allen-Bradley) : migration vers le ControlLogix 5580 de capacité équivalente.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "Mémoire utilisateur": "32 Mo"
+   },
+   "supersededBy": "1756-L85E"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1756-L64",
+   "name": "Contrôleur ControlLogix 5560, 16 Mo",
+   "description": "Contrôleur ControlLogix 5560, 16 Mo. Contrôleur ControlLogix 5560 (Allen-Bradley) arrêté : migration vers le ControlLogix 5580.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 70,
+   "attributes": {
+    "Mémoire utilisateur": "16 Mo"
+   },
+   "supersededBy": "1756-L84E"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1756-L65",
+   "name": "Contrôleur ControlLogix 5560, 32 Mo",
+   "description": "Contrôleur ControlLogix 5560, 32 Mo. Contrôleur ControlLogix 5560 (Allen-Bradley) arrêté : migration vers le ControlLogix 5580.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 70,
+   "attributes": {
+    "Mémoire utilisateur": "32 Mo"
+   },
+   "supersededBy": "1756-L85E"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1756-CNB",
+   "name": "Module de communication ControlNet",
+   "description": "Module de communication ControlNet, module ControlLogix arrêté remplacé par son successeur direct.",
+   "status": "obsolete",
+   "category": "Modules d'E/S déportées",
+   "confidenceScore": 70,
+   "attributes": {
+    "Interface": "ControlNet"
+   },
+   "supersededBy": "1756-CN2"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1762-L24BWA",
+   "name": "Automate MicroLogix 1200 24 E/S, sorties relais, alimentation 120/240 V AC",
+   "description": "Automate MicroLogix 1200 24 E/S, sorties relais, alimentation 120/240 V AC. MicroLogix 1200 arrêté : migration vers le MicroLogix 1400 ou la gamme Micro800.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "E/S": "14 DI / 10 DO relais"
+   },
+   "supersededBy": "1766-L32BWA"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1762-L40BWA",
+   "name": "Automate MicroLogix 1200 40 E/S, sorties relais, alimentation 120/240 V AC",
+   "description": "Automate MicroLogix 1200 40 E/S, sorties relais, alimentation 120/240 V AC. MicroLogix 1200 arrêté : migration vers le MicroLogix 1400 ou la gamme Micro800.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "E/S": "24 DI / 16 DO relais"
+   },
+   "supersededBy": "1766-L32BWA"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1762-L24AWA",
+   "name": "Automate MicroLogix 1200 24 E/S, entrées 120 V AC, sorties relais",
+   "description": "Automate MicroLogix 1200 24 E/S, entrées 120 V AC, sorties relais. MicroLogix 1200 arrêté : migration vers le MicroLogix 1400 ou la gamme Micro800.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "E/S": "14 DI AC / 10 DO relais"
+   },
+   "supersededBy": "1766-L32AWA"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1762-L40AWA",
+   "name": "Automate MicroLogix 1200 40 E/S, entrées 120 V AC, sorties relais",
+   "description": "Automate MicroLogix 1200 40 E/S, entrées 120 V AC, sorties relais. MicroLogix 1200 arrêté : migration vers le MicroLogix 1400 ou la gamme Micro800.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "E/S": "24 DI AC / 16 DO relais"
+   },
+   "supersededBy": "1766-L32AWA"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "1762-L40BXB",
+   "name": "Automate MicroLogix 1200 40 E/S, sorties relais et transistor, alimentation 24 V DC",
+   "description": "Automate MicroLogix 1200 40 E/S, sorties relais et transistor, alimentation 24 V DC. MicroLogix 1200 arrêté : migration vers le MicroLogix 1400 ou la gamme Micro800.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "E/S": "24 DI / 16 DO"
+   },
+   "supersededBy": "1766-L32BXB"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22B-D1P4N104",
+   "name": "Variateur PowerFlex 40 0,4 kW 380-480 V",
+   "description": "Variateur PowerFlex 40 0,4 kW 380-480 V. PowerFlex 40 arrêté : remplacement par le PowerFlex 525 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "0,4 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25B-D1P4N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22B-D2P3N104",
+   "name": "Variateur PowerFlex 40 0,75 kW 380-480 V",
+   "description": "Variateur PowerFlex 40 0,75 kW 380-480 V. PowerFlex 40 arrêté : remplacement par le PowerFlex 525 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "0,75 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25B-D2P3N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22B-D6P0N104",
+   "name": "Variateur PowerFlex 40 2,2 kW 380-480 V",
+   "description": "Variateur PowerFlex 40 2,2 kW 380-480 V. PowerFlex 40 arrêté : remplacement par le PowerFlex 525 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "2,2 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25B-D6P0N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22B-D012N104",
+   "name": "Variateur PowerFlex 40 5,5 kW 380-480 V",
+   "description": "Variateur PowerFlex 40 5,5 kW 380-480 V. PowerFlex 40 arrêté : remplacement par le PowerFlex 525 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "5,5 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25B-D013N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22B-D024N104",
+   "name": "Variateur PowerFlex 40 11 kW 380-480 V",
+   "description": "Variateur PowerFlex 40 11 kW 380-480 V. PowerFlex 40 arrêté : remplacement par le PowerFlex 525 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "11 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25B-D024N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22A-D1P4N104",
+   "name": "Variateur PowerFlex 4 0,4 kW 380-480 V",
+   "description": "Variateur PowerFlex 4 0,4 kW 380-480 V. PowerFlex 4 arrêté : remplacement par le PowerFlex 523 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "0,4 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25A-D1P4N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22A-D2P3N104",
+   "name": "Variateur PowerFlex 4 0,75 kW 380-480 V",
+   "description": "Variateur PowerFlex 4 0,75 kW 380-480 V. PowerFlex 4 arrêté : remplacement par le PowerFlex 523 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "0,75 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25A-D2P3N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22A-D4P0N104",
+   "name": "Variateur PowerFlex 4 1,5 kW 380-480 V",
+   "description": "Variateur PowerFlex 4 1,5 kW 380-480 V. PowerFlex 4 arrêté : remplacement par le PowerFlex 523 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "1,5 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25A-D4P0N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "22A-D6P0N104",
+   "name": "Variateur PowerFlex 4 2,2 kW 380-480 V",
+   "description": "Variateur PowerFlex 4 2,2 kW 380-480 V. PowerFlex 4 arrêté : remplacement par le PowerFlex 523 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "2,2 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "25A-D6P0N104"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "2711C-T6C",
+   "name": "PanelView Component C600 5,7\" tactile couleur",
+   "description": "PanelView Component C600 5,7\" tactile couleur. PanelView Component arrêté : remplacement par le PanelView 800 de taille équivalente.",
+   "status": "obsolete",
+   "category": "IHM et pupitres",
+   "confidenceScore": 60,
+   "attributes": {
+    "Écran": "5,7\" tactile"
+   },
+   "supersededBy": "2711R-T7T"
+  },
+  {
+   "manufacturer": "Rockwell Automation",
+   "industry": "industrie",
+   "reference": "2711C-T10C",
+   "name": "PanelView Component C1000 10,4\" tactile couleur",
+   "description": "PanelView Component C1000 10,4\" tactile couleur. PanelView Component arrêté : remplacement par le PanelView 800 de taille équivalente.",
+   "status": "obsolete",
+   "category": "IHM et pupitres",
+   "confidenceScore": 60,
+   "attributes": {
+    "Écran": "10,4\" tactile"
+   },
+   "supersededBy": "2711R-T10T"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "CJ1M-CPU11",
+   "name": "Unité centrale CJ1M, 5 K pas",
+   "description": "Unité centrale CJ1M, 5 K pas. Unité centrale CJ1M arrêtée : Omron la remplace par la CJ2M de capacité équivalente.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "Programme": "5 K pas"
+   },
+   "supersededBy": "CJ2M-CPU11"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "CJ1M-CPU12",
+   "name": "Unité centrale CJ1M, 10 K pas",
+   "description": "Unité centrale CJ1M, 10 K pas. Unité centrale CJ1M arrêtée : Omron la remplace par la CJ2M de capacité équivalente.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "Programme": "10 K pas"
+   },
+   "supersededBy": "CJ2M-CPU12"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "CJ1M-CPU13",
+   "name": "Unité centrale CJ1M, 20 K pas",
+   "description": "Unité centrale CJ1M, 20 K pas. Unité centrale CJ1M arrêtée : Omron la remplace par la CJ2M de capacité équivalente.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 65,
+   "attributes": {
+    "Programme": "20 K pas"
+   },
+   "supersededBy": "CJ2M-CPU13"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "S82K-05024",
+   "name": "Alimentation S82K 24 V / 2,1 A (50 W)",
+   "description": "Alimentation S82K 24 V / 2,1 A (50 W). Gamme S82K arrêtée : Omron la remplace par la S8VK-C.",
+   "status": "obsolete",
+   "category": "Alimentations industrielles",
+   "confidenceScore": 65,
+   "attributes": {
+    "Sortie": "24 V DC / 2,1 A"
+   },
+   "supersededBy": "S8VK-C06024"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "S82K-10024",
+   "name": "Alimentation S82K 24 V / 4,2 A (100 W)",
+   "description": "Alimentation S82K 24 V / 4,2 A (100 W). Gamme S82K arrêtée : Omron la remplace par la S8VK-C.",
+   "status": "obsolete",
+   "category": "Alimentations industrielles",
+   "confidenceScore": 65,
+   "attributes": {
+    "Sortie": "24 V DC / 4,2 A"
+   },
+   "supersededBy": "S8VK-C12024"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "3G3JX-A4004",
+   "name": "Variateur 3G3JX 0,4 kW 400 V",
+   "description": "Variateur 3G3JX 0,4 kW 400 V. Variateur JX arrêté : Omron oriente vers le MX2 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 55,
+   "attributes": {
+    "Puissance": "0,4 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "3G3MX2-A4004-V1"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "3G3JX-A4007",
+   "name": "Variateur 3G3JX 0,75 kW 400 V",
+   "description": "Variateur 3G3JX 0,75 kW 400 V. Variateur JX arrêté : Omron oriente vers le MX2 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 55,
+   "attributes": {
+    "Puissance": "0,75 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "3G3MX2-A4007-V1"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "3G3JX-A4015",
+   "name": "Variateur 3G3JX 1,5 kW 400 V",
+   "description": "Variateur 3G3JX 1,5 kW 400 V. Variateur JX arrêté : Omron oriente vers le MX2 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 55,
+   "attributes": {
+    "Puissance": "1,5 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "3G3MX2-A4015-V1"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "3G3JX-A4022",
+   "name": "Variateur 3G3JX 2,2 kW 400 V",
+   "description": "Variateur 3G3JX 2,2 kW 400 V. Variateur JX arrêté : Omron oriente vers le MX2 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 55,
+   "attributes": {
+    "Puissance": "2,2 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "3G3MX2-A4022-V1"
+  },
+  {
+   "manufacturer": "Omron",
+   "industry": "industrie",
+   "reference": "3G3JX-A4040",
+   "name": "Variateur 3G3JX 4 kW 400 V",
+   "description": "Variateur 3G3JX 4 kW 400 V. Variateur JX arrêté : Omron oriente vers le MX2 de même puissance.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 55,
+   "attributes": {
+    "Puissance": "4 kW",
+    "Alimentation": "3 ph 380-480 V"
+   },
+   "supersededBy": "3G3MX2-A4040-V1"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "FX3U-32MR/ES-A",
+   "name": "Automate FX3U 32 E/S relais, alimentation 100-240 V AC",
+   "description": "Automate FX3U 32 E/S relais, alimentation 100-240 V AC. Gamme FX3U en fin de production : Mitsubishi Electric oriente vers l'iQ-F FX5U équivalent (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "E/S": "16 DI / 16 DO relais"
+   },
+   "supersededBy": "FX5U-32MR/ES",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "FX3U-64MR/ES-A",
+   "name": "Automate FX3U 64 E/S relais, alimentation 100-240 V AC",
+   "description": "Automate FX3U 64 E/S relais, alimentation 100-240 V AC. Gamme FX3U en fin de production : Mitsubishi Electric oriente vers l'iQ-F FX5U équivalent (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "E/S": "32 DI / 32 DO relais"
+   },
+   "supersededBy": "FX5U-64MR/ES",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "FX3U-32MT/ES-A",
+   "name": "Automate FX3U 32 E/S transistor (sink), alimentation 100-240 V AC",
+   "description": "Automate FX3U 32 E/S transistor (sink), alimentation 100-240 V AC. Gamme FX3U en fin de production : Mitsubishi Electric oriente vers l'iQ-F FX5U équivalent (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "E/S": "16 DI / 16 DO transistor"
+   },
+   "supersededBy": "FX5U-32MT/ES",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "FX3U-64MT/ES-A",
+   "name": "Automate FX3U 64 E/S transistor (sink), alimentation 100-240 V AC",
+   "description": "Automate FX3U 64 E/S transistor (sink), alimentation 100-240 V AC. Gamme FX3U en fin de production : Mitsubishi Electric oriente vers l'iQ-F FX5U équivalent (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "E/S": "32 DI / 32 DO transistor"
+   },
+   "supersededBy": "FX5U-64MT/ES",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "FX2N-16MR-ES/UL",
+   "name": "Automate FX2N 16 E/S relais",
+   "description": "Automate FX2N 16 E/S relais. Gamme FX2N arrêtée de longue date, remplacée par la FX3U.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 75,
+   "attributes": {
+    "E/S": "8 DI / 8 DO relais"
+   },
+   "supersededBy": "FX3U-16MR/ES-A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "FX2N-48MR-ES/UL",
+   "name": "Automate FX2N 48 E/S relais",
+   "description": "Automate FX2N 48 E/S relais. Gamme FX2N arrêtée de longue date, remplacée par la FX3U.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 75,
+   "attributes": {
+    "E/S": "24 DI / 24 DO relais"
+   },
+   "supersededBy": "FX3U-48MR/ES-A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "Q00JCPU",
+   "name": "Unité centrale Q00JCPU, 8 K pas, embase et alimentation intégrées",
+   "description": "Unité centrale Q00JCPU, 8 K pas, embase et alimentation intégrées. Unité centrale Q de première génération arrêtée : Mitsubishi Electric oriente vers les modèles universels QnU (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "Programme": "8 K pas"
+   },
+   "supersededBy": "Q00UJCPU",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "Q00CPU",
+   "name": "Unité centrale Q00CPU, 8 K pas",
+   "description": "Unité centrale Q00CPU, 8 K pas. Unité centrale Q de première génération arrêtée : Mitsubishi Electric oriente vers les modèles universels QnU (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "Programme": "8 K pas"
+   },
+   "supersededBy": "Q00UCPU",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "Q01CPU",
+   "name": "Unité centrale Q01CPU, 14 K pas",
+   "description": "Unité centrale Q01CPU, 14 K pas. Unité centrale Q de première génération arrêtée : Mitsubishi Electric oriente vers les modèles universels QnU (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "Programme": "14 K pas"
+   },
+   "supersededBy": "Q01UCPU",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "GT1575-VNBA",
+   "name": "Terminal GOT1000 GT1575 10,4\" tactile, 100-240 V AC",
+   "description": "Terminal GOT1000 GT1575 10,4\" tactile, 100-240 V AC. Terminal GOT1000 arrêté : Mitsubishi Electric oriente vers le GOT2000 de taille équivalente.",
+   "status": "obsolete",
+   "category": "IHM et pupitres",
+   "confidenceScore": 60,
+   "attributes": {
+    "Écran": "10,4\" tactile"
+   },
+   "supersededBy": "GT2510-VTBA",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "GT1155-QSBD",
+   "name": "Terminal GOT1000 GT1155 5,7\" tactile, 24 V DC",
+   "description": "Terminal GOT1000 GT1155 5,7\" tactile, 24 V DC. Terminal GOT1000 arrêté : Mitsubishi Electric oriente vers le GOT2000 de taille équivalente.",
+   "status": "obsolete",
+   "category": "IHM et pupitres",
+   "confidenceScore": 60,
+   "attributes": {
+    "Écran": "5,7\" tactile"
+   },
+   "supersededBy": "GT2105-QTBDS",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "GT1055-QSBD",
+   "name": "Terminal GOT1000 GT1055 5,7\" tactile, 24 V DC",
+   "description": "Terminal GOT1000 GT1055 5,7\" tactile, 24 V DC. Terminal GOT1000 arrêté : Mitsubishi Electric oriente vers le GOT2000 de taille équivalente.",
+   "status": "obsolete",
+   "category": "IHM et pupitres",
+   "confidenceScore": 60,
+   "attributes": {
+    "Écran": "5,7\" tactile"
+   },
+   "supersededBy": "GT2105-QTBDS",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-10A",
+   "name": "Servo-amplificateur MR-J3 100 W, interface générale",
+   "description": "Servo-amplificateur MR-J3 100 W, interface générale. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "100 W",
+    "Commande": "interface générale"
+   },
+   "supersededBy": "MR-J4-10A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-20A",
+   "name": "Servo-amplificateur MR-J3 200 W, interface générale",
+   "description": "Servo-amplificateur MR-J3 200 W, interface générale. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "200 W",
+    "Commande": "interface générale"
+   },
+   "supersededBy": "MR-J4-20A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-40A",
+   "name": "Servo-amplificateur MR-J3 400 W, interface générale",
+   "description": "Servo-amplificateur MR-J3 400 W, interface générale. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "400 W",
+    "Commande": "interface générale"
+   },
+   "supersededBy": "MR-J4-40A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-70A",
+   "name": "Servo-amplificateur MR-J3 750 W, interface générale",
+   "description": "Servo-amplificateur MR-J3 750 W, interface générale. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "750 W",
+    "Commande": "interface générale"
+   },
+   "supersededBy": "MR-J4-70A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-100A",
+   "name": "Servo-amplificateur MR-J3 1 kW, interface générale",
+   "description": "Servo-amplificateur MR-J3 1 kW, interface générale. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "1 kW",
+    "Commande": "interface générale"
+   },
+   "supersededBy": "MR-J4-100A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-200A",
+   "name": "Servo-amplificateur MR-J3 2 kW, interface générale",
+   "description": "Servo-amplificateur MR-J3 2 kW, interface générale. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "2 kW",
+    "Commande": "interface générale"
+   },
+   "supersededBy": "MR-J4-200A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-10B",
+   "name": "Servo-amplificateur MR-J3 100 W, SSCNET III",
+   "description": "Servo-amplificateur MR-J3 100 W, SSCNET III. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "100 W",
+    "Commande": "SSCNET III"
+   },
+   "supersededBy": "MR-J4-10B",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-20B",
+   "name": "Servo-amplificateur MR-J3 200 W, SSCNET III",
+   "description": "Servo-amplificateur MR-J3 200 W, SSCNET III. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "200 W",
+    "Commande": "SSCNET III"
+   },
+   "supersededBy": "MR-J4-20B",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-40B",
+   "name": "Servo-amplificateur MR-J3 400 W, SSCNET III",
+   "description": "Servo-amplificateur MR-J3 400 W, SSCNET III. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "400 W",
+    "Commande": "SSCNET III"
+   },
+   "supersededBy": "MR-J4-40B",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "MR-J3-70B",
+   "name": "Servo-amplificateur MR-J3 750 W, SSCNET III",
+   "description": "Servo-amplificateur MR-J3 750 W, SSCNET III. Gamme MELSERVO-J3 arrêtée : remplacement par le MR-J4 de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "750 W",
+    "Commande": "SSCNET III"
+   },
+   "supersededBy": "MR-J4-70B",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "HF-KP13",
+   "name": "Servomoteur HF-KP 100 W",
+   "description": "Servomoteur HF-KP 100 W. Servomoteur HF-KP (MR-J3) arrêté : remplacement par le HG-KR de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "100 W"
+   },
+   "supersededBy": "HG-KR13",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "HF-KP23",
+   "name": "Servomoteur HF-KP 200 W",
+   "description": "Servomoteur HF-KP 200 W. Servomoteur HF-KP (MR-J3) arrêté : remplacement par le HG-KR de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "200 W"
+   },
+   "supersededBy": "HG-KR23",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "HF-KP43",
+   "name": "Servomoteur HF-KP 400 W",
+   "description": "Servomoteur HF-KP 400 W. Servomoteur HF-KP (MR-J3) arrêté : remplacement par le HG-KR de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "400 W"
+   },
+   "supersededBy": "HG-KR43",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "HF-KP73",
+   "name": "Servomoteur HF-KP 750 W",
+   "description": "Servomoteur HF-KP 750 W. Servomoteur HF-KP (MR-J3) arrêté : remplacement par le HG-KR de même puissance.",
+   "status": "obsolete",
+   "category": "Servovariateurs et servomoteurs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "750 W"
+   },
+   "supersededBy": "HG-KR73",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Phoenix Contact",
+   "industry": "industrie",
+   "reference": "2866750",
+   "name": "Alimentation QUINT-PS/1AC/24DC/5",
+   "description": "Alimentation QUINT-PS/1AC/24DC/5. Ancienne génération QUINT POWER arrêtée : Phoenix Contact la remplace par la QUINT4 de même courant.",
+   "status": "obsolete",
+   "category": "Alimentations industrielles",
+   "confidenceScore": 70,
+   "attributes": {
+    "Sortie": "24 V DC / 5 A"
+   },
+   "supersededBy": "2904600",
+   "crossReferences": [
+    {
+     "reference": "QUINT-PS/1AC/24DC/5",
+     "type": "oem",
+     "brand": "Phoenix Contact"
+    }
+   ]
+  },
+  {
+   "manufacturer": "Phoenix Contact",
+   "industry": "industrie",
+   "reference": "2866776",
+   "name": "Alimentation QUINT-PS/1AC/24DC/20",
+   "description": "Alimentation QUINT-PS/1AC/24DC/20. Ancienne génération QUINT POWER arrêtée : Phoenix Contact la remplace par la QUINT4 de même courant.",
+   "status": "obsolete",
+   "category": "Alimentations industrielles",
+   "confidenceScore": 70,
+   "attributes": {
+    "Sortie": "24 V DC / 20 A"
+   },
+   "supersededBy": "2904602",
+   "crossReferences": [
+    {
+     "reference": "QUINT-PS/1AC/24DC/20",
+     "type": "oem",
+     "brand": "Phoenix Contact"
+    }
+   ]
+  },
+  {
+   "manufacturer": "Phoenix Contact",
+   "industry": "industrie",
+   "reference": "2866789",
+   "name": "Alimentation QUINT-PS/1AC/24DC/40",
+   "description": "Alimentation QUINT-PS/1AC/24DC/40. Ancienne génération QUINT POWER arrêtée : Phoenix Contact la remplace par la QUINT4 de même courant.",
+   "status": "obsolete",
+   "category": "Alimentations industrielles",
+   "confidenceScore": 70,
+   "attributes": {
+    "Sortie": "24 V DC / 40 A"
+   },
+   "supersededBy": "2904603",
+   "crossReferences": [
+    {
+     "reference": "QUINT-PS/1AC/24DC/40",
+     "type": "oem",
+     "brand": "Phoenix Contact"
+    }
+   ]
+  },
+  {
+   "manufacturer": "Eaton",
+   "industry": "industrie",
+   "reference": "EASY512-DC-RC",
+   "name": "Relais programmable easy512 24 V DC, 8 DI / 4 DO relais",
+   "description": "Relais programmable easy512 24 V DC, 8 DI / 4 DO relais. Relais programmable easy500/700 en fin de commercialisation : Eaton oriente vers easyE4 (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "E/S": "8 DI / 4 DO relais"
+   },
+   "supersededBy": "EASY-E4-UC-12RC1",
+   "manufacturerWebsite": "https://www.eaton.com"
+  },
+  {
+   "manufacturer": "Eaton",
+   "industry": "industrie",
+   "reference": "EASY512-AC-R",
+   "name": "Relais programmable easy512 100-240 V AC, 8 DI / 4 DO relais",
+   "description": "Relais programmable easy512 100-240 V AC, 8 DI / 4 DO relais. Relais programmable easy500/700 en fin de commercialisation : Eaton oriente vers easyE4 (statut à confirmer).",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 55,
+   "attributes": {
+    "E/S": "8 DI / 4 DO relais"
+   },
+   "supersededBy": "EASY-E4-AC-12RC1",
+   "manufacturerWebsite": "https://www.eaton.com"
+  },
+  {
+   "manufacturer": "Festo",
+   "industry": "industrie",
+   "reference": "DNC-32-50-PPV-A",
+   "name": "Vérin normalisé DNC Ø32 course 50 mm",
+   "description": "Vérin normalisé DNC Ø32 course 50 mm. Vérin normalisé DNC arrêté : Festo le remplace par le DSBC de mêmes alésage et course.",
+   "status": "obsolete",
+   "category": "Pneumatique",
+   "confidenceScore": 70,
+   "attributes": {
+    "Alésage": "32 mm",
+    "Course": "50 mm"
+   },
+   "supersededBy": "DSBC-32-50-PPVA-N3"
+  },
+  {
+   "manufacturer": "Festo",
+   "industry": "industrie",
+   "reference": "DNC-32-200-PPV-A",
+   "name": "Vérin normalisé DNC Ø32 course 200 mm",
+   "description": "Vérin normalisé DNC Ø32 course 200 mm. Vérin normalisé DNC arrêté : Festo le remplace par le DSBC de mêmes alésage et course.",
+   "status": "obsolete",
+   "category": "Pneumatique",
+   "confidenceScore": 70,
+   "attributes": {
+    "Alésage": "32 mm",
+    "Course": "200 mm"
+   },
+   "supersededBy": "DSBC-32-200-PPVA-N3"
+  },
+  {
+   "manufacturer": "Festo",
+   "industry": "industrie",
+   "reference": "DNC-40-100-PPV-A",
+   "name": "Vérin normalisé DNC Ø40 course 100 mm",
+   "description": "Vérin normalisé DNC Ø40 course 100 mm. Vérin normalisé DNC arrêté : Festo le remplace par le DSBC de mêmes alésage et course.",
+   "status": "obsolete",
+   "category": "Pneumatique",
+   "confidenceScore": 70,
+   "attributes": {
+    "Alésage": "40 mm",
+    "Course": "100 mm"
+   },
+   "supersededBy": "DSBC-40-100-PPVA-N3"
+  },
+  {
+   "manufacturer": "Festo",
+   "industry": "industrie",
+   "reference": "DNC-50-100-PPV-A",
+   "name": "Vérin normalisé DNC Ø50 course 100 mm",
+   "description": "Vérin normalisé DNC Ø50 course 100 mm. Vérin normalisé DNC arrêté : Festo le remplace par le DSBC de mêmes alésage et course.",
+   "status": "obsolete",
+   "category": "Pneumatique",
+   "confidenceScore": 70,
+   "attributes": {
+    "Alésage": "50 mm",
+    "Course": "100 mm"
+   },
+   "supersededBy": "DSBC-50-100-PPVA-N3"
+  },
+  {
+   "manufacturer": "Festo",
+   "industry": "industrie",
+   "reference": "DNC-63-100-PPV-A",
+   "name": "Vérin normalisé DNC Ø63 course 100 mm",
+   "description": "Vérin normalisé DNC Ø63 course 100 mm. Vérin normalisé DNC arrêté : Festo le remplace par le DSBC de mêmes alésage et course.",
+   "status": "obsolete",
+   "category": "Pneumatique",
+   "confidenceScore": 70,
+   "attributes": {
+    "Alésage": "63 mm",
+    "Course": "100 mm"
+   },
+   "supersededBy": "DSBC-63-100-PPVA-N3"
+  },
+  {
+   "manufacturer": "Keysight",
+   "industry": "industrie",
+   "reference": "34411A",
+   "name": "Multimètre numérique 6½ digits avec numériseur",
+   "description": "Multimètre numérique 6½ digits avec numériseur. Modèle arrêté : Keysight le remplace par le multimètre Truevolt équivalent.",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 70,
+   "attributes": {
+    "Résolution": "6½ digits"
+   },
+   "supersededBy": "34470A"
+  },
+  {
+   "manufacturer": "Keysight",
+   "industry": "industrie",
+   "reference": "DSOX3012A",
+   "name": "Oscilloscope InfiniiVision 3000 X 100 MHz 2 voies",
+   "description": "Oscilloscope InfiniiVision 3000 X 100 MHz 2 voies. Oscilloscope InfiniiVision 3000 X série A arrêté, remplacé par la série 3000T X.",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 70,
+   "attributes": {
+    "Bande passante": "100 MHz",
+    "Voies": "2"
+   },
+   "supersededBy": "DSOX3012T"
+  },
+  {
+   "manufacturer": "Keysight",
+   "industry": "industrie",
+   "reference": "DSOX3014A",
+   "name": "Oscilloscope InfiniiVision 3000 X 100 MHz 4 voies",
+   "description": "Oscilloscope InfiniiVision 3000 X 100 MHz 4 voies. Oscilloscope InfiniiVision 3000 X série A arrêté, remplacé par la série 3000T X.",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 70,
+   "attributes": {
+    "Bande passante": "100 MHz",
+    "Voies": "4"
+   },
+   "supersededBy": "DSOX3014T"
+  },
+  {
+   "manufacturer": "Keysight",
+   "industry": "industrie",
+   "reference": "DSOX3024A",
+   "name": "Oscilloscope InfiniiVision 3000 X 200 MHz 4 voies",
+   "description": "Oscilloscope InfiniiVision 3000 X 200 MHz 4 voies. Oscilloscope InfiniiVision 3000 X série A arrêté, remplacé par la série 3000T X.",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 70,
+   "attributes": {
+    "Bande passante": "200 MHz",
+    "Voies": "4"
+   },
+   "supersededBy": "DSOX3024T"
+  },
+  {
+   "manufacturer": "Keysight",
+   "industry": "industrie",
+   "reference": "DSOX3034A",
+   "name": "Oscilloscope InfiniiVision 3000 X 350 MHz 4 voies",
+   "description": "Oscilloscope InfiniiVision 3000 X 350 MHz 4 voies. Oscilloscope InfiniiVision 3000 X série A arrêté, remplacé par la série 3000T X.",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 70,
+   "attributes": {
+    "Bande passante": "350 MHz",
+    "Voies": "4"
+   },
+   "supersededBy": "DSOX3034T"
+  },
+  {
+   "manufacturer": "Keysight",
+   "industry": "industrie",
+   "reference": "DSOX3054A",
+   "name": "Oscilloscope InfiniiVision 3000 X 500 MHz 4 voies",
+   "description": "Oscilloscope InfiniiVision 3000 X 500 MHz 4 voies. Oscilloscope InfiniiVision 3000 X série A arrêté, remplacé par la série 3000T X.",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 70,
+   "attributes": {
+    "Bande passante": "500 MHz",
+    "Voies": "4"
+   },
+   "supersededBy": "DSOX3054T"
+  },
+  {
+   "manufacturer": "Fluke",
+   "industry": "industrie",
+   "reference": "FLUKE-187",
+   "name": "Multimètre enregistreur Fluke 187",
+   "description": "Multimètre enregistreur Fluke 187. Modèle arrêté, remplacé par son successeur dans la gamme Fluke.",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 70,
+   "supersededBy": "FLUKE-287"
+  },
+  {
+   "manufacturer": "Fluke",
+   "industry": "industrie",
+   "reference": "FLUKE-189",
+   "name": "Multimètre enregistreur Fluke 189",
+   "description": "Multimètre enregistreur Fluke 189. Modèle arrêté, remplacé par son successeur dans la gamme Fluke.",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 70,
+   "supersededBy": "FLUKE-289"
+  },
+  {
+   "manufacturer": "Fluke",
+   "industry": "industrie",
+   "reference": "FLUKE-374",
+   "name": "Pince multimètre Fluke 374 True RMS 600 A AC/DC",
+   "description": "Pince multimètre Fluke 374 True RMS 600 A AC/DC. Version arrêtée, remplacée par la version FC (connectée sans fil).",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 65,
+   "attributes": {
+    "Courant max.": "600 A AC/DC"
+   },
+   "supersededBy": "FLUKE-374-FC"
+  },
+  {
+   "manufacturer": "Fluke",
+   "industry": "industrie",
+   "reference": "FLUKE-1587",
+   "name": "Multimètre d'isolement Fluke 1587",
+   "description": "Multimètre d'isolement Fluke 1587. Version arrêtée, remplacée par la version FC (connectée sans fil).",
+   "status": "obsolete",
+   "category": "Instruments de mesure",
+   "confidenceScore": 65,
+   "supersededBy": "FLUKE-1587-FC"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C2960X-24PS-L",
+   "name": "Catalyst 2960-X 24 ports GbE PoE+, 4 x 1G SFP, LAN Base",
+   "description": "Catalyst 2960-X 24 ports GbE PoE+, 4 x 1G SFP, LAN Base. Fin de vente Catalyst 2960-X : Cisco oriente vers le Catalyst 9200L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "24 x 1G PoE+"
+   },
+   "supersededBy": "C9200L-24P-4G-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C2960X-48FPS-L",
+   "name": "Catalyst 2960-X 48 ports GbE PoE+ 740 W, 4 x 1G SFP, LAN Base",
+   "description": "Catalyst 2960-X 48 ports GbE PoE+ 740 W, 4 x 1G SFP, LAN Base. Fin de vente Catalyst 2960-X : Cisco oriente vers le Catalyst 9200L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "48 x 1G PoE+"
+   },
+   "supersededBy": "C9200L-48P-4G-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C2960X-48LPS-L",
+   "name": "Catalyst 2960-X 48 ports GbE PoE+ 370 W, 4 x 1G SFP, LAN Base",
+   "description": "Catalyst 2960-X 48 ports GbE PoE+ 370 W, 4 x 1G SFP, LAN Base. Fin de vente Catalyst 2960-X : Cisco oriente vers le Catalyst 9200L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "48 x 1G PoE+"
+   },
+   "supersededBy": "C9200L-48P-4G-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C2960X-24TD-L",
+   "name": "Catalyst 2960-X 24 ports GbE, 2 x 10G SFP+, LAN Base",
+   "description": "Catalyst 2960-X 24 ports GbE, 2 x 10G SFP+, LAN Base. Fin de vente Catalyst 2960-X : Cisco oriente vers le Catalyst 9200L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "24 x 1G RJ45"
+   },
+   "supersededBy": "C9200L-24T-4X-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C2960X-48TD-L",
+   "name": "Catalyst 2960-X 48 ports GbE, 2 x 10G SFP+, LAN Base",
+   "description": "Catalyst 2960-X 48 ports GbE, 2 x 10G SFP+, LAN Base. Fin de vente Catalyst 2960-X : Cisco oriente vers le Catalyst 9200L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "48 x 1G RJ45"
+   },
+   "supersededBy": "C9200L-48T-4X-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C3650-24TS-S",
+   "name": "Catalyst 3650 24 ports GbE, 4 x 1G SFP, IP Base",
+   "description": "Catalyst 3650 24 ports GbE, 4 x 1G SFP, IP Base. Fin de vente Catalyst 3650 : migration vers le Catalyst 9300L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 60,
+   "attributes": {
+    "Ports": "24 x 1G RJ45"
+   },
+   "supersededBy": "C9300L-24T-4G-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C3650-48TS-S",
+   "name": "Catalyst 3650 48 ports GbE, 4 x 1G SFP, IP Base",
+   "description": "Catalyst 3650 48 ports GbE, 4 x 1G SFP, IP Base. Fin de vente Catalyst 3650 : migration vers le Catalyst 9300L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 60,
+   "attributes": {
+    "Ports": "48 x 1G RJ45"
+   },
+   "supersededBy": "C9300L-48T-4G-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C3650-24PS-S",
+   "name": "Catalyst 3650 24 ports GbE PoE+, 4 x 1G SFP, IP Base",
+   "description": "Catalyst 3650 24 ports GbE PoE+, 4 x 1G SFP, IP Base. Fin de vente Catalyst 3650 : migration vers le Catalyst 9300L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 60,
+   "attributes": {
+    "Ports": "24 x 1G PoE+"
+   },
+   "supersededBy": "C9300L-24P-4G-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C3650-48PS-S",
+   "name": "Catalyst 3650 48 ports GbE PoE+, 4 x 1G SFP, IP Base",
+   "description": "Catalyst 3650 48 ports GbE PoE+, 4 x 1G SFP, IP Base. Fin de vente Catalyst 3650 : migration vers le Catalyst 9300L équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 60,
+   "attributes": {
+    "Ports": "48 x 1G PoE+"
+   },
+   "supersededBy": "C9300L-48P-4G-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C3850-24U-S",
+   "name": "Catalyst 3850 24 ports GbE UPOE, IP Base",
+   "description": "Catalyst 3850 24 ports GbE UPOE, IP Base. Fin de vente Catalyst 3850 : migration vers le Catalyst 9300 équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "24 x 1G UPOE"
+   },
+   "supersededBy": "C9300-24U-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "WS-C3850-48U-S",
+   "name": "Catalyst 3850 48 ports GbE UPOE, IP Base",
+   "description": "Catalyst 3850 48 ports GbE UPOE, IP Base. Fin de vente Catalyst 3850 : migration vers le Catalyst 9300 équivalent.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "48 x 1G UPOE"
+   },
+   "supersededBy": "C9300-48U-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "ASA5506-K9",
+   "name": "Pare-feu ASA 5506-X avec services FirePOWER",
+   "description": "Pare-feu ASA 5506-X avec services FirePOWER. Pare-feu ASA 5500-X arrêté : Cisco oriente vers la gamme Firepower 1000.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FPR1010-NGFW-K9",
+   "crossReferences": [
+    {
+     "reference": "ASA5506-X",
+     "type": "oem",
+     "brand": "Cisco"
+    }
+   ]
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "ASA5508-K9",
+   "name": "Pare-feu ASA 5508-X avec services FirePOWER",
+   "description": "Pare-feu ASA 5508-X avec services FirePOWER. Pare-feu ASA 5500-X arrêté : Cisco oriente vers la gamme Firepower 1000.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FPR1120-NGFW-K9",
+   "crossReferences": [
+    {
+     "reference": "ASA5508-X",
+     "type": "oem",
+     "brand": "Cisco"
+    }
+   ]
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "ASA5516-FPWR-K9",
+   "name": "Pare-feu ASA 5516-X avec services FirePOWER",
+   "description": "Pare-feu ASA 5516-X avec services FirePOWER. Pare-feu ASA 5500-X arrêté : Cisco oriente vers la gamme Firepower 1000.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FPR1140-NGFW-K9",
+   "crossReferences": [
+    {
+     "reference": "ASA5516-X",
+     "type": "oem",
+     "brand": "Cisco"
+    }
+   ]
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "AIR-AP1832I-E-K9",
+   "name": "Point d'accès Aironet 1832i Wi-Fi 5",
+   "description": "Point d'accès Aironet 1832i Wi-Fi 5. Point d'accès Aironet arrêté : remplacement par la gamme Catalyst 9100 Wi-Fi 6.",
+   "status": "obsolete",
+   "category": "Points d'accès Wi-Fi",
+   "confidenceScore": 65,
+   "attributes": {
+    "Norme": "802.11ac Wave 2"
+   },
+   "supersededBy": "C9115AXI-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "AIR-AP2802I-E-K9",
+   "name": "Point d'accès Aironet 2802i Wi-Fi 5",
+   "description": "Point d'accès Aironet 2802i Wi-Fi 5. Point d'accès Aironet arrêté : remplacement par la gamme Catalyst 9100 Wi-Fi 6.",
+   "status": "obsolete",
+   "category": "Points d'accès Wi-Fi",
+   "confidenceScore": 65,
+   "attributes": {
+    "Norme": "802.11ac Wave 2"
+   },
+   "supersededBy": "C9120AXI-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "AIR-AP3802I-E-K9",
+   "name": "Point d'accès Aironet 3802i Wi-Fi 5",
+   "description": "Point d'accès Aironet 3802i Wi-Fi 5. Point d'accès Aironet arrêté : remplacement par la gamme Catalyst 9100 Wi-Fi 6.",
+   "status": "obsolete",
+   "category": "Points d'accès Wi-Fi",
+   "confidenceScore": 65,
+   "attributes": {
+    "Norme": "802.11ac Wave 2"
+   },
+   "supersededBy": "C9130AXI-E"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "MR33-HW",
+   "name": "Point d'accès Meraki MR33 Wi-Fi 5",
+   "description": "Point d'accès Meraki MR33 Wi-Fi 5. Fin de vente Meraki, remplacé par son successeur Wi-Fi 6.",
+   "status": "obsolete",
+   "category": "Points d'accès Wi-Fi",
+   "confidenceScore": 65,
+   "attributes": {
+    "Norme": "802.11ac Wave 2"
+   },
+   "supersededBy": "MR36-HW"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "MR42-HW",
+   "name": "Point d'accès Meraki MR42 Wi-Fi 5",
+   "description": "Point d'accès Meraki MR42 Wi-Fi 5. Fin de vente Meraki, remplacé par son successeur Wi-Fi 6.",
+   "status": "obsolete",
+   "category": "Points d'accès Wi-Fi",
+   "confidenceScore": 65,
+   "attributes": {
+    "Norme": "802.11ac Wave 2"
+   },
+   "supersededBy": "MR46-HW"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "MR52-HW",
+   "name": "Point d'accès Meraki MR52 Wi-Fi 5",
+   "description": "Point d'accès Meraki MR52 Wi-Fi 5. Fin de vente Meraki, remplacé par son successeur Wi-Fi 6.",
+   "status": "obsolete",
+   "category": "Points d'accès Wi-Fi",
+   "confidenceScore": 65,
+   "attributes": {
+    "Norme": "802.11ac Wave 2"
+   },
+   "supersededBy": "MR56-HW"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "MX64-HW",
+   "name": "Appliance de sécurité Meraki MX64",
+   "description": "Appliance de sécurité Meraki MX64. Fin de vente Meraki, remplacé par son successeur dans la gamme MX.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "MX67-HW"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "MX84-HW",
+   "name": "Appliance de sécurité Meraki MX84",
+   "description": "Appliance de sécurité Meraki MX84. Fin de vente Meraki, remplacé par son successeur dans la gamme MX.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "MX85-HW"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "GLC-ZX-SM",
+   "name": "Module SFP 1000BASE-ZX monomode 1550 nm",
+   "description": "Module SFP 1000BASE-ZX monomode 1550 nm. Module arrêté : Cisco le remplace par la version DOM / température étendue.",
+   "status": "obsolete",
+   "category": "Modules optiques SFP",
+   "confidenceScore": 70,
+   "attributes": {
+    "Débit": "1 Gbit/s",
+    "Portée": "70 km"
+   },
+   "supersededBy": "GLC-ZX-SMD"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "GLC-T",
+   "name": "Module SFP 1000BASE-T cuivre RJ45",
+   "description": "Module SFP 1000BASE-T cuivre RJ45. Module arrêté : Cisco le remplace par la version DOM / température étendue.",
+   "status": "obsolete",
+   "category": "Modules optiques SFP",
+   "confidenceScore": 70,
+   "attributes": {
+    "Débit": "1 Gbit/s",
+    "Média": "cuivre RJ45, 100 m"
+   },
+   "supersededBy": "GLC-TE"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "SFP-GE-T",
+   "name": "Module SFP 1000BASE-T cuivre RJ45, température étendue",
+   "description": "Module SFP 1000BASE-T cuivre RJ45, température étendue. Module arrêté : Cisco le remplace par la version DOM / température étendue.",
+   "status": "obsolete",
+   "category": "Modules optiques SFP",
+   "confidenceScore": 70,
+   "attributes": {
+    "Débit": "1 Gbit/s",
+    "Média": "cuivre RJ45, 100 m"
+   },
+   "supersededBy": "GLC-TE"
+  },
+  {
+   "manufacturer": "Cisco",
+   "industry": "informatique",
+   "reference": "PWR-C1-1100WAC",
+   "name": "Alimentation 1100 W AC pour Catalyst 3850 / 9300",
+   "description": "Alimentation 1100 W AC pour Catalyst 3850 / 9300. Alimentation arrêtée, remplacée par la version Platinum (-P) de même puissance.",
+   "status": "obsolete",
+   "category": "Alimentations serveur et réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Puissance": "1100 W"
+   },
+   "supersededBy": "PWR-C1-1100WAC-P"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX2200-24P-4G",
+   "name": "Commutateur EX2200 24 ports GbE PoE, 4 x 1G SFP",
+   "description": "Commutateur EX2200 24 ports GbE PoE, 4 x 1G SFP. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "24 x 1G PoE"
+   },
+   "supersededBy": "EX2300-24P"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX2200-48P-4G",
+   "name": "Commutateur EX2200 48 ports GbE PoE, 4 x 1G SFP",
+   "description": "Commutateur EX2200 48 ports GbE PoE, 4 x 1G SFP. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "48 x 1G PoE"
+   },
+   "supersededBy": "EX2300-48P"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX2200-C-12T-2G",
+   "name": "Commutateur compact EX2200-C 12 ports GbE, 2 x 1G SFP",
+   "description": "Commutateur compact EX2200-C 12 ports GbE, 2 x 1G SFP. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "12 x 1G RJ45"
+   },
+   "supersededBy": "EX2300-C-12T"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX2200-C-12P-2G",
+   "name": "Commutateur compact EX2200-C 12 ports GbE PoE+, 2 x 1G SFP",
+   "description": "Commutateur compact EX2200-C 12 ports GbE PoE+, 2 x 1G SFP. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "12 x 1G PoE+"
+   },
+   "supersededBy": "EX2300-C-12P"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX3300-48T",
+   "name": "Commutateur EX3300 48 ports GbE, 4 x 10G SFP+",
+   "description": "Commutateur EX3300 48 ports GbE, 4 x 10G SFP+. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "48 x 1G RJ45"
+   },
+   "supersededBy": "EX3400-48T"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX3300-24P",
+   "name": "Commutateur EX3300 24 ports GbE PoE+, 4 x 10G SFP+",
+   "description": "Commutateur EX3300 24 ports GbE PoE+, 4 x 10G SFP+. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "24 x 1G PoE+"
+   },
+   "supersededBy": "EX3400-24P"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX3300-48P",
+   "name": "Commutateur EX3300 48 ports GbE PoE+, 4 x 10G SFP+",
+   "description": "Commutateur EX3300 48 ports GbE PoE+, 4 x 10G SFP+. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "48 x 1G PoE+"
+   },
+   "supersededBy": "EX3400-48P"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX4200-24T",
+   "name": "Commutateur EX4200 24 ports GbE",
+   "description": "Commutateur EX4200 24 ports GbE. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "24 x 1G RJ45"
+   },
+   "supersededBy": "EX4300-24T"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "EX4200-48T",
+   "name": "Commutateur EX4200 48 ports GbE",
+   "description": "Commutateur EX4200 48 ports GbE. Commutateur EX arrêté (fin de vie Juniper), remplacé par son successeur dans la gamme EX.",
+   "status": "obsolete",
+   "category": "Commutateurs réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Ports": "48 x 1G RJ45"
+   },
+   "supersededBy": "EX4300-48T"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "SRX220H2",
+   "name": "Passerelle de services SRX220",
+   "description": "Passerelle de services SRX220. Passerelle SRX de branche arrêtée, remplacée par la gamme SRX300.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 70,
+   "supersededBy": "SRX340"
+  },
+  {
+   "manufacturer": "Juniper Networks",
+   "industry": "informatique",
+   "reference": "SRX240H2",
+   "name": "Passerelle de services SRX240",
+   "description": "Passerelle de services SRX240. Passerelle SRX de branche arrêtée, remplacée par la gamme SRX300.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 70,
+   "supersededBy": "SRX345"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-30E",
+   "name": "Pare-feu FortiGate 30E",
+   "description": "Pare-feu FortiGate 30E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-40F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-50E",
+   "name": "Pare-feu FortiGate 50E",
+   "description": "Pare-feu FortiGate 50E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-40F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-60E",
+   "name": "Pare-feu FortiGate 60E",
+   "description": "Pare-feu FortiGate 60E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-60F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-61E",
+   "name": "Pare-feu FortiGate 61E",
+   "description": "Pare-feu FortiGate 61E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-61F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-80E",
+   "name": "Pare-feu FortiGate 80E",
+   "description": "Pare-feu FortiGate 80E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-80F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-100E",
+   "name": "Pare-feu FortiGate 100E",
+   "description": "Pare-feu FortiGate 100E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-100F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-200E",
+   "name": "Pare-feu FortiGate 200E",
+   "description": "Pare-feu FortiGate 200E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-200F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-300E",
+   "name": "Pare-feu FortiGate 300E",
+   "description": "Pare-feu FortiGate 300E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-400F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-500E",
+   "name": "Pare-feu FortiGate 500E",
+   "description": "Pare-feu FortiGate 500E. Fin de commande Fortinet : remplacé par le modèle de la série F de même gamme.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 65,
+   "supersededBy": "FG-600F",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA750I",
+   "name": "Onduleur Smart-UPS SUA tour 750 VA",
+   "description": "Onduleur Smart-UPS SUA tour 750 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "750 VA"
+   },
+   "supersededBy": "SMT750I",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA1000I",
+   "name": "Onduleur Smart-UPS SUA tour 1000 VA",
+   "description": "Onduleur Smart-UPS SUA tour 1000 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "1000 VA"
+   },
+   "supersededBy": "SMT1000I",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA1500I",
+   "name": "Onduleur Smart-UPS SUA tour 1500 VA",
+   "description": "Onduleur Smart-UPS SUA tour 1500 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "1500 VA"
+   },
+   "supersededBy": "SMT1500I",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA2200I",
+   "name": "Onduleur Smart-UPS SUA tour 2200 VA",
+   "description": "Onduleur Smart-UPS SUA tour 2200 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "2200 VA"
+   },
+   "supersededBy": "SMT2200I",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA3000I",
+   "name": "Onduleur Smart-UPS SUA tour 3000 VA",
+   "description": "Onduleur Smart-UPS SUA tour 3000 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "3000 VA"
+   },
+   "supersededBy": "SMT3000I",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA750RMI2U",
+   "name": "Onduleur Smart-UPS SUA rack 2U 750 VA",
+   "description": "Onduleur Smart-UPS SUA rack 2U 750 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "750 VA"
+   },
+   "supersededBy": "SMT750RMI2U",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA1000RMI2U",
+   "name": "Onduleur Smart-UPS SUA rack 2U 1000 VA",
+   "description": "Onduleur Smart-UPS SUA rack 2U 1000 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "1000 VA"
+   },
+   "supersededBy": "SMT1000RMI2U",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA1500RMI2U",
+   "name": "Onduleur Smart-UPS SUA rack 2U 1500 VA",
+   "description": "Onduleur Smart-UPS SUA rack 2U 1500 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "1500 VA"
+   },
+   "supersededBy": "SMT1500RMI2U",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA2200RMI2U",
+   "name": "Onduleur Smart-UPS SUA rack 2U 2200 VA",
+   "description": "Onduleur Smart-UPS SUA rack 2U 2200 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "2200 VA"
+   },
+   "supersededBy": "SMT2200RMI2U",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SUA3000RMI2U",
+   "name": "Onduleur Smart-UPS SUA rack 2U 3000 VA",
+   "description": "Onduleur Smart-UPS SUA rack 2U 3000 VA. Smart-UPS SUA arrêté : APC le remplace par le Smart-UPS SMT de même puissance.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Puissance": "3000 VA"
+   },
+   "supersededBy": "SMT3000RMI2U",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SURT1000XLI",
+   "name": "Onduleur Smart-UPS RT 1000 VA",
+   "description": "Onduleur Smart-UPS RT 1000 VA. Smart-UPS RT (SURT) arrêté : APC le remplace par le Smart-UPS SRT.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Puissance": "1000 VA"
+   },
+   "supersededBy": "SRT1000XLI",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SURT2000XLI",
+   "name": "Onduleur Smart-UPS RT 2000 VA",
+   "description": "Onduleur Smart-UPS RT 2000 VA. Smart-UPS RT (SURT) arrêté : APC le remplace par le Smart-UPS SRT.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Puissance": "2000 VA"
+   },
+   "supersededBy": "SRT2200XLI",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SURT3000XLI",
+   "name": "Onduleur Smart-UPS RT 3000 VA",
+   "description": "Onduleur Smart-UPS RT 3000 VA. Smart-UPS RT (SURT) arrêté : APC le remplace par le Smart-UPS SRT.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Puissance": "3000 VA"
+   },
+   "supersededBy": "SRT3000XLI",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SURT5000XLI",
+   "name": "Onduleur Smart-UPS RT 5000 VA",
+   "description": "Onduleur Smart-UPS RT 5000 VA. Smart-UPS RT (SURT) arrêté : APC le remplace par le Smart-UPS SRT.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Puissance": "5000 VA"
+   },
+   "supersededBy": "SRT5KXLI",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SURT6000XLI",
+   "name": "Onduleur Smart-UPS RT 6000 VA",
+   "description": "Onduleur Smart-UPS RT 6000 VA. Smart-UPS RT (SURT) arrêté : APC le remplace par le Smart-UPS SRT.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Puissance": "6000 VA"
+   },
+   "supersededBy": "SRT6KXLI",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "SURT10000XLI",
+   "name": "Onduleur Smart-UPS RT 10 000 VA",
+   "description": "Onduleur Smart-UPS RT 10 000 VA. Smart-UPS RT (SURT) arrêté : APC le remplace par le Smart-UPS SRT.",
+   "status": "obsolete",
+   "category": "Onduleurs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Puissance": "10 000 VA"
+   },
+   "supersededBy": "SRT10KXLI",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "AP9630",
+   "name": "Carte de gestion réseau UPS Network Management Card 2",
+   "description": "Carte de gestion réseau UPS Network Management Card 2. Carte de gestion réseau de génération précédente arrêtée, remplacée par la génération suivante.",
+   "status": "obsolete",
+   "category": "Modules réseau et mémoire",
+   "confidenceScore": 65,
+   "attributes": {
+    "Génération": "NMC2"
+   },
+   "supersededBy": "AP9640",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "AP9631",
+   "name": "Carte de gestion réseau UPS Network Management Card 2 avec supervision d'environnement",
+   "description": "Carte de gestion réseau UPS Network Management Card 2 avec supervision d'environnement. Carte de gestion réseau de génération précédente arrêtée, remplacée par la génération suivante.",
+   "status": "obsolete",
+   "category": "Modules réseau et mémoire",
+   "confidenceScore": 65,
+   "attributes": {
+    "Génération": "NMC2"
+   },
+   "supersededBy": "AP9641",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "HPE",
+   "industry": "informatique",
+   "reference": "785067-B21",
+   "name": "Disque 300 Go SAS 12G 10K SFF SC Gen9",
+   "description": "Disque 300 Go SAS 12G 10K SFF SC Gen9. Disque de génération précédente arrêté : HPE le remplace par l'équivalent de génération suivante (tiroir Smart Carrier compatible).",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "300 Go",
+    "Vitesse": "10 000 tr/min"
+   },
+   "supersededBy": "872475-B21"
+  },
+  {
+   "manufacturer": "HPE",
+   "industry": "informatique",
+   "reference": "781516-B21",
+   "name": "Disque 600 Go SAS 12G 10K SFF SC Gen9",
+   "description": "Disque 600 Go SAS 12G 10K SFF SC Gen9. Disque de génération précédente arrêté : HPE le remplace par l'équivalent de génération suivante (tiroir Smart Carrier compatible).",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "600 Go",
+    "Vitesse": "10 000 tr/min"
+   },
+   "supersededBy": "872477-B21"
+  },
+  {
+   "manufacturer": "HPE",
+   "industry": "informatique",
+   "reference": "726821-B21",
+   "name": "Contrôleur Smart Array P440 4 Go FBWC",
+   "description": "Contrôleur Smart Array P440 4 Go FBWC. Contrôleur Smart Array Gen9 arrêté.",
+   "status": "obsolete",
+   "category": "Contrôleurs RAID",
+   "confidenceScore": 60,
+   "attributes": {
+    "Cache": "4 Go",
+    "Format": "carte PCIe"
+   },
+   "supersededBy": "830824-B21"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS220+",
+   "name": "NAS Synology DiskStation DS220+, 2 baies",
+   "description": "NAS Synology DiskStation DS220+, 2 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "2"
+   },
+   "supersededBy": "DS224+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS420+",
+   "name": "NAS Synology DiskStation DS420+, 4 baies",
+   "description": "NAS Synology DiskStation DS420+, 4 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "4"
+   },
+   "supersededBy": "DS423+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS720+",
+   "name": "NAS Synology DiskStation DS720+, 2 baies",
+   "description": "NAS Synology DiskStation DS720+, 2 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "2"
+   },
+   "supersededBy": "DS723+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS920+",
+   "name": "NAS Synology DiskStation DS920+, 4 baies",
+   "description": "NAS Synology DiskStation DS920+, 4 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "4"
+   },
+   "supersededBy": "DS923+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS1520+",
+   "name": "NAS Synology DiskStation DS1520+, 5 baies",
+   "description": "NAS Synology DiskStation DS1520+, 5 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "5"
+   },
+   "supersededBy": "DS1522+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS1618+",
+   "name": "NAS Synology DiskStation DS1618+, 6 baies",
+   "description": "NAS Synology DiskStation DS1618+, 6 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "6"
+   },
+   "supersededBy": "DS1621+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS1819+",
+   "name": "NAS Synology DiskStation DS1819+, 8 baies",
+   "description": "NAS Synology DiskStation DS1819+, 8 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "8"
+   },
+   "supersededBy": "DS1821+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS220j",
+   "name": "NAS Synology DiskStation DS220j, 2 baies",
+   "description": "NAS Synology DiskStation DS220j, 2 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "2"
+   },
+   "supersededBy": "DS223j",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS118",
+   "name": "NAS Synology DiskStation DS118, 1 baie",
+   "description": "NAS Synology DiskStation DS118, 1 baie. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "1"
+   },
+   "supersededBy": "DS124",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "RS820+",
+   "name": "NAS Synology RackStation RS820+, 4 baies, rack 1U",
+   "description": "NAS Synology RackStation RS820+, 4 baies, rack 1U. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "4"
+   },
+   "supersededBy": "RS822+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Seagate",
+   "industry": "informatique",
+   "reference": "ST1000DM003",
+   "name": "Disque dur Barracuda 1 To (ancienne génération)",
+   "description": "Disque dur Barracuda 1 To (ancienne génération). Modèle arrêté, remplacé par la référence actuelle de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "ST1000DM010",
+   "manufacturerWebsite": "https://www.seagate.com"
+  },
+  {
+   "manufacturer": "Seagate",
+   "industry": "informatique",
+   "reference": "ST2000DM001",
+   "name": "Disque dur Barracuda 2 To (ancienne génération)",
+   "description": "Disque dur Barracuda 2 To (ancienne génération). Modèle arrêté, remplacé par la référence actuelle de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "2 To"
+   },
+   "supersededBy": "ST2000DM008",
+   "manufacturerWebsite": "https://www.seagate.com"
+  },
+  {
+   "manufacturer": "Seagate",
+   "industry": "informatique",
+   "reference": "ST4000VN008",
+   "name": "Disque dur IronWolf 4 To (ancienne génération)",
+   "description": "Disque dur IronWolf 4 To (ancienne génération). Modèle arrêté, remplacé par la référence actuelle de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "4 To"
+   },
+   "supersededBy": "ST4000VN006",
+   "manufacturerWebsite": "https://www.seagate.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WD20EFRX",
+   "name": "Disque dur WD Red 2 To (CMR, 64 Mo)",
+   "description": "Disque dur WD Red 2 To (CMR, 64 Mo). Modèle arrêté, remplacé par la référence actuelle de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "2 To"
+   },
+   "supersededBy": "WD20EFPX",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WD40EFRX",
+   "name": "Disque dur WD Red 4 To (CMR, 64 Mo)",
+   "description": "Disque dur WD Red 4 To (CMR, 64 Mo). Modèle arrêté, remplacé par la référence actuelle de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "4 To"
+   },
+   "supersededBy": "WD40EFPX",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WD60EFRX",
+   "name": "Disque dur WD Red 6 To (CMR, 64 Mo)",
+   "description": "Disque dur WD Red 6 To (CMR, 64 Mo). Modèle arrêté, remplacé par la référence actuelle de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "6 To"
+   },
+   "supersededBy": "WD60EFPX",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WD10PURX",
+   "name": "Disque dur WD Purple 1 To (ancienne génération)",
+   "description": "Disque dur WD Purple 1 To (ancienne génération). Modèle arrêté, remplacé par la référence actuelle de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "WD10PURZ",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WD40PURX",
+   "name": "Disque dur WD Purple 4 To (ancienne génération)",
+   "description": "Disque dur WD Purple 4 To (ancienne génération). Modèle arrêté, remplacé par la référence actuelle de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "4 To"
+   },
+   "supersededBy": "WD40PURZ",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WDS100T1X0E",
+   "name": "SSD WD_BLACK SN850 1 To NVMe PCIe 4.0",
+   "description": "SSD WD_BLACK SN850 1 To NVMe PCIe 4.0. SSD de génération précédente arrêté, remplacé par son successeur de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 60,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "WDS100T2X0E",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WDS200T1X0E",
+   "name": "SSD WD_BLACK SN850 2 To NVMe PCIe 4.0",
+   "description": "SSD WD_BLACK SN850 2 To NVMe PCIe 4.0. SSD de génération précédente arrêté, remplacé par son successeur de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 60,
+   "attributes": {
+    "Capacité": "2 To"
+   },
+   "supersededBy": "WDS200T2X0E",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WDS100T3B0C",
+   "name": "SSD WD Blue SN570 1 To NVMe PCIe 3.0",
+   "description": "SSD WD Blue SN570 1 To NVMe PCIe 3.0. SSD de génération précédente arrêté, remplacé par son successeur de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 60,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "WDS100T3B0E",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-76E250B/EU",
+   "name": "SSD Samsung 860 EVO 250 Go SATA",
+   "description": "SSD Samsung 860 EVO 250 Go SATA. SSD SATA Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Capacité": "250 Go"
+   },
+   "supersededBy": "MZ-77E250B/EU",
+   "crossReferences": [
+    {
+     "reference": "MZ-76E250BW",
+     "type": "oem",
+     "brand": "Samsung"
+    }
+   ],
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-76E500B/EU",
+   "name": "SSD Samsung 860 EVO 500 Go SATA",
+   "description": "SSD Samsung 860 EVO 500 Go SATA. SSD SATA Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Capacité": "500 Go"
+   },
+   "supersededBy": "MZ-77E500B/EU",
+   "crossReferences": [
+    {
+     "reference": "MZ-76E500BW",
+     "type": "oem",
+     "brand": "Samsung"
+    }
+   ],
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-76E1T0B/EU",
+   "name": "SSD Samsung 860 EVO 1 To SATA",
+   "description": "SSD Samsung 860 EVO 1 To SATA. SSD SATA Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "MZ-77E1T0B/EU",
+   "crossReferences": [
+    {
+     "reference": "MZ-76E1T0BW",
+     "type": "oem",
+     "brand": "Samsung"
+    }
+   ],
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-76Q1T0B/EU",
+   "name": "SSD Samsung 860 QVO 1 To SATA",
+   "description": "SSD Samsung 860 QVO 1 To SATA. SSD SATA Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "MZ-77Q1T0B/EU",
+   "crossReferences": [
+    {
+     "reference": "MZ-76Q1T0BW",
+     "type": "oem",
+     "brand": "Samsung"
+    }
+   ],
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-V7E250BW",
+   "name": "SSD Samsung 970 EVO 250 Go NVMe",
+   "description": "SSD Samsung 970 EVO 250 Go NVMe. SSD NVMe Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Capacité": "250 Go"
+   },
+   "supersededBy": "MZ-V7S250BW",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-V7E500BW",
+   "name": "SSD Samsung 970 EVO 500 Go NVMe",
+   "description": "SSD Samsung 970 EVO 500 Go NVMe. SSD NVMe Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Capacité": "500 Go"
+   },
+   "supersededBy": "MZ-V7S500BW",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-V7E1T0BW",
+   "name": "SSD Samsung 970 EVO 1 To NVMe",
+   "description": "SSD Samsung 970 EVO 1 To NVMe. SSD NVMe Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "MZ-V7S1T0BW",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ7LH480HAHQ-00005",
+   "name": "SSD Samsung PM883 480 Go SATA 2,5\"",
+   "description": "SSD Samsung PM883 480 Go SATA 2,5\". SSD PM883 arrêté, remplacé par le PM893 de même capacité.",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "480 Go"
+   },
+   "supersededBy": "MZ7L3480HCHQ-00A07",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ7LH960HAJR-00005",
+   "name": "SSD Samsung PM883 960 Go SATA 2,5\"",
+   "description": "SSD Samsung PM883 960 Go SATA 2,5\". SSD PM883 arrêté, remplacé par le PM893 de même capacité.",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "960 Go"
+   },
+   "supersededBy": "MZ7L3960HCJR-00A07",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ7LH1T9HMLT-00005",
+   "name": "SSD Samsung PM883 1,92 To SATA 2,5\"",
+   "description": "SSD Samsung PM883 1,92 To SATA 2,5\". SSD PM883 arrêté, remplacé par le PM893 de même capacité.",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "1,92 To"
+   },
+   "supersededBy": "MZ7L31T9HBLT-00A07",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ7LH3T8HMLT-00005",
+   "name": "SSD Samsung PM883 3,84 To SATA 2,5\"",
+   "description": "SSD Samsung PM883 3,84 To SATA 2,5\". SSD PM883 arrêté, remplacé par le PM893 de même capacité.",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "3,84 To"
+   },
+   "supersededBy": "MZ7L33T8HBLT-00A07",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Kingston",
+   "industry": "informatique",
+   "reference": "SNVS/500G",
+   "name": "SSD Kingston NV1 500 Go NVMe PCIe 3.0",
+   "description": "SSD Kingston NV1 500 Go NVMe PCIe 3.0. SSD Kingston de génération précédente arrêté, remplacé par son successeur de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "500 Go"
+   },
+   "supersededBy": "SNV2S/500G",
+   "manufacturerWebsite": "https://www.kingston.com"
+  },
+  {
+   "manufacturer": "Kingston",
+   "industry": "informatique",
+   "reference": "SNVS/1000G",
+   "name": "SSD Kingston NV1 1 To NVMe PCIe 3.0",
+   "description": "SSD Kingston NV1 1 To NVMe PCIe 3.0. SSD Kingston de génération précédente arrêté, remplacé par son successeur de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "SNV2S/1000G",
+   "manufacturerWebsite": "https://www.kingston.com"
+  },
+  {
+   "manufacturer": "Kingston",
+   "industry": "informatique",
+   "reference": "SEDC500M/960G",
+   "name": "SSD Kingston DC500M 960 Go SATA (centre de données)",
+   "description": "SSD Kingston DC500M 960 Go SATA (centre de données). SSD Kingston de génération précédente arrêté, remplacé par son successeur de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "960 Go"
+   },
+   "supersededBy": "SEDC600M/960G",
+   "manufacturerWebsite": "https://www.kingston.com"
+  },
+  {
+   "manufacturer": "Kingston",
+   "industry": "informatique",
+   "reference": "SEDC500M/1920G",
+   "name": "SSD Kingston DC500M 1,92 To SATA (centre de données)",
+   "description": "SSD Kingston DC500M 1,92 To SATA (centre de données). SSD Kingston de génération précédente arrêté, remplacé par son successeur de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "1,92 To"
+   },
+   "supersededBy": "SEDC600M/1920G",
+   "manufacturerWebsite": "https://www.kingston.com"
+  },
+  {
+   "manufacturer": "Schneider Electric",
+   "industry": "industrie",
+   "reference": "ATV31H075N4",
+   "name": "Variateur ATV31 0,75 kW 380-500 V",
+   "description": "Variateur ATV31 0,75 kW 380-500 V. Gamme Altivar 31 arrêtée de longue date, remplacée par l'Altivar 312, elle-même remplacée par l'ATV320.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 80,
+   "attributes": {
+    "Puissance": "0,75 kW"
+   },
+   "supersededBy": "ATV312H075N4"
+  },
+  {
+   "manufacturer": "Schneider Electric",
+   "industry": "industrie",
+   "reference": "ATV31HU22N4",
+   "name": "Variateur ATV31 2,2 kW 380-500 V",
+   "description": "Variateur ATV31 2,2 kW 380-500 V. Gamme Altivar 31 arrêtée de longue date, remplacée par l'Altivar 312, elle-même remplacée par l'ATV320.",
+   "status": "obsolete",
+   "category": "Variateurs de vitesse",
+   "confidenceScore": 80,
+   "attributes": {
+    "Puissance": "2,2 kW"
+   },
+   "supersededBy": "ATV312HU22N4"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "FX2N-32MR-ES/UL",
+   "name": "Automate FX2N 32 E/S relais",
+   "description": "Automate FX2N 32 E/S relais. Gamme FX2N arrêtée de longue date, remplacée par la FX3U.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 75,
+   "attributes": {
+    "E/S": "16 DI / 16 DO relais"
+   },
+   "supersededBy": "FX3U-32MR/ES-A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Mitsubishi Electric",
+   "industry": "industrie",
+   "reference": "FX2N-64MR-ES/UL",
+   "name": "Automate FX2N 64 E/S relais",
+   "description": "Automate FX2N 64 E/S relais. Gamme FX2N arrêtée de longue date, remplacée par la FX3U.",
+   "status": "obsolete",
+   "category": "Automates programmables",
+   "confidenceScore": 75,
+   "attributes": {
+    "E/S": "32 DI / 32 DO relais"
+   },
+   "supersededBy": "FX3U-64MR/ES-A",
+   "manufacturerWebsite": "https://www.mitsubishielectric.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-60D",
+   "name": "Pare-feu FortiGate 60D",
+   "description": "Pare-feu FortiGate 60D. Fin de commande Fortinet : remplacé par la génération suivante.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 70,
+   "supersededBy": "FG-60E",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "Fortinet",
+   "industry": "informatique",
+   "reference": "FG-100D",
+   "name": "Pare-feu FortiGate 100D",
+   "description": "Pare-feu FortiGate 100D. Fin de commande Fortinet : remplacé par la génération suivante.",
+   "status": "obsolete",
+   "category": "Routeurs et pare-feux",
+   "confidenceScore": 70,
+   "supersededBy": "FG-100E",
+   "manufacturerWebsite": "https://www.fortinet.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "AP9617",
+   "name": "Carte de gestion réseau UPS Network Management Card",
+   "description": "Carte de gestion réseau UPS Network Management Card. Carte de gestion réseau de génération précédente arrêtée, remplacée par la génération suivante.",
+   "status": "obsolete",
+   "category": "Modules réseau et mémoire",
+   "confidenceScore": 65,
+   "attributes": {
+    "Génération": "NMC1"
+   },
+   "supersededBy": "AP9630",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "APC",
+   "industry": "informatique",
+   "reference": "AP9619",
+   "name": "Carte de gestion réseau UPS Network Management Card avec supervision d'environnement",
+   "description": "Carte de gestion réseau UPS Network Management Card avec supervision d'environnement. Carte de gestion réseau de génération précédente arrêtée, remplacée par la génération suivante.",
+   "status": "obsolete",
+   "category": "Modules réseau et mémoire",
+   "confidenceScore": 65,
+   "attributes": {
+    "Génération": "NMC1"
+   },
+   "supersededBy": "AP9631",
+   "manufacturerWebsite": "https://www.apc.com"
+  },
+  {
+   "manufacturer": "HPE",
+   "industry": "informatique",
+   "reference": "652564-B21",
+   "name": "Disque 300 Go SAS 6G 10K SFF SC Gen8",
+   "description": "Disque 300 Go SAS 6G 10K SFF SC Gen8. Disque de génération précédente arrêté : HPE le remplace par l'équivalent de génération suivante (tiroir Smart Carrier compatible).",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "300 Go",
+    "Vitesse": "10 000 tr/min"
+   },
+   "supersededBy": "785067-B21"
+  },
+  {
+   "manufacturer": "HPE",
+   "industry": "informatique",
+   "reference": "652583-B21",
+   "name": "Disque 600 Go SAS 6G 10K SFF SC Gen8",
+   "description": "Disque 600 Go SAS 6G 10K SFF SC Gen8. Disque de génération précédente arrêté : HPE le remplace par l'équivalent de génération suivante (tiroir Smart Carrier compatible).",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "600 Go",
+    "Vitesse": "10 000 tr/min"
+   },
+   "supersededBy": "781516-B21"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS218+",
+   "name": "NAS Synology DiskStation DS218+, 2 baies",
+   "description": "NAS Synology DiskStation DS218+, 2 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "2"
+   },
+   "supersededBy": "DS220+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS718+",
+   "name": "NAS Synology DiskStation DS718+, 2 baies",
+   "description": "NAS Synology DiskStation DS718+, 2 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "2"
+   },
+   "supersededBy": "DS720+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS918+",
+   "name": "NAS Synology DiskStation DS918+, 4 baies",
+   "description": "NAS Synology DiskStation DS918+, 4 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "4"
+   },
+   "supersededBy": "DS920+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Synology",
+   "industry": "informatique",
+   "reference": "DS1019+",
+   "name": "NAS Synology DiskStation DS1019+, 5 baies",
+   "description": "NAS Synology DiskStation DS1019+, 5 baies. Modèle arrêté : Synology le remplace par le modèle de la génération suivante.",
+   "status": "obsolete",
+   "category": "NAS et stockage réseau",
+   "confidenceScore": 70,
+   "attributes": {
+    "Baies": "5"
+   },
+   "supersededBy": "DS1520+",
+   "manufacturerWebsite": "https://www.synology.com"
+  },
+  {
+   "manufacturer": "Western Digital",
+   "industry": "informatique",
+   "reference": "WDS100T2B0C",
+   "name": "SSD WD Blue SN550 1 To NVMe PCIe 3.0",
+   "description": "SSD WD Blue SN550 1 To NVMe PCIe 3.0. SSD de génération précédente arrêté, remplacé par son successeur de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 60,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "WDS100T3B0C",
+   "manufacturerWebsite": "https://www.westerndigital.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-75E250B/EU",
+   "name": "SSD Samsung 850 EVO 250 Go SATA",
+   "description": "SSD Samsung 850 EVO 250 Go SATA. SSD SATA Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Capacité": "250 Go"
+   },
+   "supersededBy": "MZ-76E250B/EU",
+   "crossReferences": [
+    {
+     "reference": "MZ-75E250BW",
+     "type": "oem",
+     "brand": "Samsung"
+    }
+   ],
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-75E500B/EU",
+   "name": "SSD Samsung 850 EVO 500 Go SATA",
+   "description": "SSD Samsung 850 EVO 500 Go SATA. SSD SATA Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Capacité": "500 Go"
+   },
+   "supersededBy": "MZ-76E500B/EU",
+   "crossReferences": [
+    {
+     "reference": "MZ-75E500BW",
+     "type": "oem",
+     "brand": "Samsung"
+    }
+   ],
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-75E1T0B/EU",
+   "name": "SSD Samsung 850 EVO 1 To SATA",
+   "description": "SSD Samsung 850 EVO 1 To SATA. SSD SATA Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 75,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "MZ-76E1T0B/EU",
+   "crossReferences": [
+    {
+     "reference": "MZ-75E1T0BW",
+     "type": "oem",
+     "brand": "Samsung"
+    }
+   ],
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-V6E250BW",
+   "name": "SSD Samsung 960 EVO 250 Go NVMe",
+   "description": "SSD Samsung 960 EVO 250 Go NVMe. SSD NVMe Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Capacité": "250 Go"
+   },
+   "supersededBy": "MZ-V7E250BW",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-V6E500BW",
+   "name": "SSD Samsung 960 EVO 500 Go NVMe",
+   "description": "SSD Samsung 960 EVO 500 Go NVMe. SSD NVMe Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Capacité": "500 Go"
+   },
+   "supersededBy": "MZ-V7E500BW",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "Samsung",
+   "industry": "informatique",
+   "reference": "MZ-V6E1T0BW",
+   "name": "SSD Samsung 960 EVO 1 To NVMe",
+   "description": "SSD Samsung 960 EVO 1 To NVMe. SSD NVMe Samsung de génération précédente, remplacé par la génération suivante de même capacité.",
+   "status": "obsolete",
+   "category": "SSD et disques durs",
+   "confidenceScore": 70,
+   "attributes": {
+    "Capacité": "1 To"
+   },
+   "supersededBy": "MZ-V7E1T0BW",
+   "manufacturerWebsite": "https://www.samsung.com"
+  },
+  {
+   "manufacturer": "HPE",
+   "industry": "informatique",
+   "reference": "581286-B21",
+   "name": "Disque 600 Go SAS 6G 10K SFF DP G7",
+   "description": "Disque 600 Go SAS 6G 10K SFF DP G7. Disque de génération précédente arrêté : HPE le remplace par l'équivalent de génération suivante (tiroir Smart Carrier compatible).",
+   "status": "obsolete",
+   "category": "Stockage serveur",
+   "confidenceScore": 65,
+   "attributes": {
+    "Capacité": "600 Go",
+    "Vitesse": "10 000 tr/min"
+   },
+   "supersededBy": "652583-B21"
+  }
+ ]
+}

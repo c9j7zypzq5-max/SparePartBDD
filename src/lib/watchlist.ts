@@ -32,6 +32,20 @@ export function isInWatchlist(manufacturerSlug: string, partSlug: string): boole
   );
 }
 
+/** Ajoute les entrées absentes de la liste (sans retirer celles déjà suivies). Renvoie le nombre ajouté. */
+export function addToWatchlist(entries: WatchlistEntry[]): number {
+  const list = readWatchlist();
+  const known = new Set(list.map((e) => `${e.manufacturerSlug}/${e.partSlug}`));
+  const added = entries.filter((e) => {
+    const key = `${e.manufacturerSlug}/${e.partSlug}`;
+    if (known.has(key)) return false;
+    known.add(key);
+    return true;
+  });
+  if (added.length > 0) writeWatchlist([...list, ...added]);
+  return added.length;
+}
+
 export function toggleWatchlist(entry: WatchlistEntry): boolean {
   const list = readWatchlist();
   const idx = list.findIndex(

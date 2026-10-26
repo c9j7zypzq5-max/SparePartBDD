@@ -3,6 +3,7 @@ import Link from "next/link";
 import "./globals.css";
 import { siteUrl } from "@/lib/site-url";
 import { NavMenu } from "@/components/nav-menu";
+import { HeaderSearch } from "@/components/header-search";
 import { CompareBar } from "@/components/compare-bar";
 
 export const metadata: Metadata = {
@@ -32,16 +33,25 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr" className="overflow-x-hidden">
-      <body className="min-h-screen overflow-x-hidden bg-white text-zinc-900 antialiased">
+      <body className="flex min-h-screen flex-col overflow-x-hidden bg-white text-zinc-900 antialiased">
+        <a
+          href="#contenu"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg"
+        >
+          Aller au contenu
+        </a>
         <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/90 backdrop-blur">
-          <div className="relative mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-            <Link href="/" className="text-lg font-bold tracking-tight">
+          <div className="relative mx-auto flex max-w-5xl items-center gap-4 px-4 py-2.5">
+            <Link href="/" className="shrink-0 text-lg font-bold tracking-tight">
               SparePart<span className="text-blue-600">Search</span>
             </Link>
+            <HeaderSearch />
             <NavMenu />
           </div>
         </header>
-        <main className="mx-auto max-w-5xl px-4 py-8 pb-24">{children}</main>
+        <main id="contenu" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 pb-24 focus:outline-none">
+          {children}
+        </main>
         <CompareBar />
         <footer className="mt-12 border-t border-zinc-200 bg-zinc-50">
           <div className="mx-auto grid max-w-5xl gap-8 px-4 py-10 sm:grid-cols-3">

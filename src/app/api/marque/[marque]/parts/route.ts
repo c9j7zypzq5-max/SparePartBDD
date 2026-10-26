@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getManufacturerBySlug,
   getManufacturerPartsPaginatedFiltered,
+  getPartCardExtras,
 } from "@/lib/queries";
 
 const PAGE_SIZE = 24;
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
   );
   const hasMore = rows.length > PAGE_SIZE;
   const pageParts = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
+  const extras = await getPartCardExtras(pageParts);
 
   return NextResponse.json({
     parts: pageParts.map((p) => ({
@@ -39,6 +41,7 @@ export async function GET(req: NextRequest, { params }: { params: Params }) {
       manufacturerSlug: marque,
       manufacturerName: manufacturer.name,
       updatedAt: p.updatedAt?.toISOString() ?? null,
+      extras: extras.get(p.id),
     })),
     hasMore,
   });

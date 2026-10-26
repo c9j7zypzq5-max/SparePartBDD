@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { applyLifecycleReport } from "@/lib/lifecycle-pipeline";
 import type { LifecycleReportPayload } from "@/lib/lifecycle-types";
+import { requireApiKey } from "@/lib/api-auth";
 
 export const runtime = "nodejs";
 
@@ -9,17 +10,8 @@ export const runtime = "nodejs";
  * la politique de mise à jour des statuts — voir lifecycle-pipeline.ts.
  */
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.INGEST_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      { error: "INGEST_API_KEY non configurée côté serveur" },
-      { status: 500 },
-    );
-  }
-  const auth = req.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${apiKey}`) {
-    return Response.json({ error: "Non autorisé" }, { status: 401 });
-  }
+  const authError = requireApiKey(req);
+  if (authError) return authError;
 
   let payload: LifecycleReportPayload;
   try {
